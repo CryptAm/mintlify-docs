@@ -1,0 +1,193 @@
+---
+title: "Ручная установка"
+---
+
+Работаете в существующем React-проекте? Вот как вручную установить и настроить OnchainKit.
+
+## Установите необходимые зависимости
+
+Добавьте OnchainKit и его peer-зависимости в ваш проект:
+
+```bash Terminal
+npm install @coinbase/onchainkit react react-dom wagmi viem
+```
+
+Или с помощью предпочитаемого менеджера пакетов:
+
+```bash Terminal
+# pnpm
+pnpm add @coinbase/onchainkit react react-dom wagmi viem
+
+# yarn
+yarn add @coinbase/onchainkit react react-dom wagmi viem
+```
+
+## Импортируйте стили
+
+Компонентам OnchainKit необходимы базовые стили для корректного отображения. Импортируйте их в корневом layout вашего приложения или в главном CSS-файле:
+
+```tsx app/layout.tsx
+import '@coinbase/onchainkit/styles.css';
+```
+
+Или в вашем главном CSS-файле:
+
+```css globals.css
+@import '@coinbase/onchainkit/styles.css';
+```
+
+## Настройте и сконфигурируйте провайдер
+
+Оберните ваше приложение в `OnchainKitProvider`. Это дает всем компонентам OnchainKit доступ к конфигурации цепи и API-ключам.
+
+OnchainKit обрабатывает настройку Wagmi и React Query внутри себя, поэтому вам нужно только настроить провайдер с вашими предпочтениями.
+
+Если вы хотите кастомизировать эти провайдеры, ознакомьтесь со страницей [Custom Providers](/advanced/custom-providers).
+
+```tsx app/layout.tsx
+'use client';
+import { OnchainKitProvider } from '@coinbase/onchainkit';
+import { base } from 'wagmi/chains';
+
+export default function RootLayout({ children }) {
+  return (
+    <OnchainKitProvider
+      apiKey="YOUR_API_KEY"
+      chain={base}
+      config={{
+        appearance: {
+          mode: 'auto', // 'light' | 'dark' | 'auto'
+        },
+        wallet: {
+          display: 'modal', // 'modal' | 'drawer'
+          preference: 'all', // 'all' | 'smartWalletOnly' | 'eoaOnly'
+        },
+      }}
+    >
+      <html>
+        <body>
+          {children}
+        </body>
+      </html>
+    </OnchainKitProvider>
+  );
+}
+```
+
+## Переменные окружения (опционально)
+
+Хотя вы можете жестко прописать ваш API-ключ прямо в провайдере, использование переменных окружения может быть чище с точки зрения безопасности, особенно в продакшн-приложениях.
+
+### Next.js
+
+Создайте файл `.env.local` в корне вашего проекта:
+
+```bash .env.local
+NEXT_PUBLIC_ONCHAINKIT_API_KEY=your_api_key_here
+```
+
+### Vite
+
+Создайте файл `.env` в корне вашего проекта:
+
+```bash .env
+VITE_ONCHAINKIT_API_KEY=your_api_key_here
+```
+
+### Другие фреймворки
+
+Следуйте соглашению вашего фреймворка для переменных окружения. Большинство React-фреймворков поддерживают файлы `.env`.
+
+### Использование переменной окружения
+
+```tsx
+<OnchainKitProvider
+  apiKey={
+    // Next.js
+    process.env.NEXT_PUBLIC_ONCHAINKIT_API_KEY ||
+    // Vite
+    import.meta.env.VITE_ONCHAINKIT_API_KEY ||
+    // Жестко прописанный fallback
+    "your_api_key_here"
+  }
+  chain={base}
+>
+```
+
+## Базовое использование
+
+Теперь вы можете начать использовать компоненты OnchainKit:
+
+```tsx components/WalletDemo.tsx
+'use client';
+import {
+  ConnectWallet,
+  Wallet,
+  WalletDropdown,
+  WalletDropdownDisconnect,
+} from '@coinbase/onchainkit/wallet';
+
+export default function WalletDemo() {
+  return (
+    <Wallet>
+      <ConnectWallet />
+      <WalletDropdown />
+    </Wallet>
+  );
+}
+```
+
+## Настройка мини-приложения
+
+Если вы создаете мини-приложение, вам нужно выполнить несколько дополнительных шагов:
+
+### 1. Включите MiniKit в провайдере
+
+```tsx app/layout.tsx
+<OnchainKitProvider
+  apiKey="YOUR_API_KEY"
+  chain={base}
+  miniKit={{
+    enabled: true, // Добавьте это
+  }}
+>
+```
+
+### 2. Добавьте компонент SafeArea
+
+Оберните ваш основной контент для обработки безопасных зон на мобильных устройствах.
+
+Если вы хотите обернуть все ваше приложение, поместите это в корневой layout.
+
+```tsx app/page.tsx
+import { SafeArea } from '@coinbase/onchainkit/minikit';
+
+export default function Home() {
+  return (
+    <SafeArea>
+      <main>
+        {/* Контент вашего приложения */}
+      </main>
+    </SafeArea>
+  );
+}
+```
+
+### 3. Создайте конечную точку (endpoint) для манифеста
+
+Создайте API-маршрут, который отдает ваш Farcaster-манифест.
+
+Более подробную информацию смотрите в [manifest documentation](/mini-apps/features/manifest).
+
+```tsx app/api/.well-known/farcaster.json/route.ts
+export async function GET() {
+  return Response.json({
+    // ...ваши данные манифеста...
+  });
+}
+```
+
+## Следующие шаги
+
+- Ознакомьтесь с [документацией по компонентам](/onchainkit/latest/components) чтобы увидеть, что доступно
+- Прочтите [руководство по конфигурации](/onchainkit/latest/configuration) для расширенных вариантов настройки

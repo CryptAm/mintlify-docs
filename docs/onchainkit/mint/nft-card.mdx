@@ -1,0 +1,312 @@
+---
+title: <NFTCard /> · OnchainKit
+sidebarTitle: <NFTCard />
+description: Просмотр NFT с помощью OnchainKit
+---
+
+Компонент `NFTCard` предоставляет простой способ просмотра любого NFT. Просто введите адрес контракта NFT и идентификатор токена и включите дочерние компоненты, которые вы хотите отобразить.
+
+<Frame>
+<img alt="Checkout"
+  src="/images/onchainkit/NFTCard.gif"
+  height="364"
+/>
+</Frame>
+
+## Предварительные требования
+
+Перед использованием компонента `NFTCard` убедитесь, что вы выполнили шаги [Getting Started](/onchainkit/getting-started).
+
+Чтобы использовать компонент `NFTCard`, вам необходимо предоставить API-ключ в `OnchainKitProvider`. Вы можете получить его, следуя нашим шагам [Getting Started](/onchainkit/getting-started#get-your-public-api-key).
+
+### Создание нового проекта
+
+Если вы начинаете новый проект, мы рекомендуем использовать `create onchain` для создания структуры вашего проекта.
+
+```bash
+npm create onchain@latest
+```
+
+### Добавление в существующий проект
+
+Если вы добавляете `NFTCard` в существующий проект, просто установите OnchainKit.
+
+<CodeGroup>
+```bash npm
+npm install @coinbase/onchainkit
+```
+
+```bash yarn
+yarn add @coinbase/onchainkit
+```
+
+```bash pnpm
+pnpm add @coinbase/onchainkit
+```
+
+```bash bun
+bun add @coinbase/onchainkit
+```
+</CodeGroup>
+
+Оберните `<OnchainKitProvider />` вокруг вашего приложения, следуя шагам в [Getting Started](/onchainkit/getting-started#add-providers).
+
+## Быстрый старт
+
+Компонент `NFTCardDefault` является упрощенной версией компонента `NFTCard`, предназначенной для упрощения процесса интеграции для разработчиков. Вместо ручного определения каждого подкомпонента разработчики могут использовать эту сокращенную версию, которая отображает нашу рекомендуемую реализацию компонента и включает `NFTTitle`, `NFTMedia`, `NFTOwner`, `NFTLastSoldPrice` и `NFTNetwork`.
+
+```tsx
+import { NFTCardDefault } from '@coinbase/onchainkit/nft'; // [!code focus]
+
+<NFTCardDefault // [!code focus]
+  contractAddress='0xb4703a3a73aec16e764cbd210b0fde9efdab8941'  // [!code focus]
+  tokenId='1' // [!code focus]
+/>  // [!code focus]
+```
+
+Если вы хотите больше кастомизации, вы можете выполнить следующие шаги, чтобы настроить, какие подкомпоненты отображаются.
+
+<Steps>
+  <Step title="Добавьте NFTCard">
+
+  ```tsx
+  // @noErrors: 2741 - Property children missing in type
+  import { NFTCard } from '@coinbase/onchainkit/nft'; // [!code focus]
+
+  <NFTCard // [!code focus]
+    contractAddress='0xb4703a3a73aec16e764cbd210b0fde9efdab8941'  // [!code focus]
+    tokenId='1' // [!code focus]
+  >
+  </NFTCard>
+  ```
+  </Step>
+  <Step title="Добавьте компоненты NFTCard">
+  ```tsx
+  import { NFTCard } from '@coinbase/onchainkit/nft';
+  import {
+    NFTLastSoldPrice, // [!code ++]
+    NFTMedia, // [!code ++]
+    NFTNetwork, // [!code ++]
+    NFTOwner, // [!code ++]
+    NFTTitle, // [!code ++]
+  } from '@coinbase/onchainkit/nft/view'; // [!code ++]
+
+  <NFTCard
+    contractAddress='0xb4703a3a73aec16e764cbd210b0fde9efdab8941'
+    tokenId='1'
+  >
+    <NFTMedia />
+    <NFTTitle />
+    <NFTOwner />
+    <NFTLastSoldPrice />
+    <NFTNetwork />
+  </NFTCard>
+  ```
+
+  <iframe
+    src="https://684b5e62b1ff46bc5bf83966-aijszlfakk.chromatic.com/iframe.html?args=&id=onchainkit-nft-card--card-main&viewMode=story&dark=true&hero=true"
+    width="100%"
+    height="670px"
+  />
+  {/* <ViewCardMain /> */}
+
+  </Step>
+</Steps>
+
+Вот и все! Вы создали карточку NFT.
+
+## Кастомизация
+
+### Добавляйте подкомпоненты NFTCard в любом порядке
+
+Если вы предпочитаете, чтобы заголовок был над медиа, вы можете легко изменить порядок подкомпонентов, и они будут отображаться в новом порядке.
+
+```tsx
+import { NFTCard } from '@coinbase/onchainkit/nft';
+import {
+  NFTMedia,
+  NFTTitle,
+} from '@coinbase/onchainkit/nft/view';
+// ---cut-before---
+<NFTCard
+  contractAddress='0xb4703a3a73aec16e764cbd210b0fde9efdab8941'
+  tokenId='1'
+>
+  <NFTTitle />
+  <NFTMedia />
+  <NFTTitle />
+</NFTCard>
+// ---cut-after---
+```
+
+<iframe
+  src="https://684b5e62b1ff46bc5bf83966-aijszlfakk.chromatic.com/iframe.html?args=&id=onchainkit-nft-card--card-title-above&viewMode=story&dark=true&hero=true"
+  width="100%"
+  height="580px"
+/>
+{/* <ViewCardTitleAbove /> */}
+
+### Настройте соотношение сторон `<NFTMedia />`
+
+По умолчанию мы отображаем все медиа масштабированными под размер карточки. Если вы предпочитаете показывать медиа в исходном соотношении сторон, вы можете установить `square={false}` для компонента `<NFTMedia />`.
+
+```tsx
+import { NFTCard } from '@coinbase/onchainkit/nft';
+import {
+  NFTMedia,
+} from '@coinbase/onchainkit/nft/view';
+// ---cut-before---
+<NFTCard
+  contractAddress='0xb4703a3a73aec16e764cbd210b0fde9efdab8941'
+  tokenId='1'
+>
+  <NFTMedia square={false} />
+</NFTCard>
+// ---cut-after---
+```
+
+<Tabs>
+  <Tab title="Масштабировано по размеру (по умолчанию)">
+    <iframe
+      src="https://684b5e62b1ff46bc5bf83966-aijszlfakk.chromatic.com/iframe.html?args=&id=onchainkit-nft-card--card-scaled&viewMode=story&dark=true&hero=true"
+      width="100%"
+      height="580px"
+    />
+  </Tab>
+  <Tab title="Исходное соотношение сторон">
+    <iframe
+      src="https://684b5e62b1ff46bc5bf83966-aijszlfakk.chromatic.com/iframe.html?args=&id=onchainkit-nft-card--card-not-scaled&viewMode=story&dark=true&hero=true"
+      width="100%"
+      height="580px"
+    />
+  </Tab>
+</Tabs>
+{/* | Scaled to fit (default) | Original Aspect Ratio |
+|-----------------|------------|
+| <ViewCardScaled square={true} /> | <ViewCardScaled square={false} /> | */}
+
+### Переопределение стилей
+
+Мы рекомендуем настраивать стили, установив пользовательскую [OnchainKit theme](/onchainkit/guides/themes#custom-theme). Вы также можете переопределить стили отдельных компонентов, используя `className`.
+
+```tsx
+import { NFTCard } from '@coinbase/onchainkit/nft';
+import {
+  NFTMedia,
+  NFTTitle,
+} from '@coinbase/onchainkit/nft/view';
+export default function NFTComponent() {
+  return (
+// ---cut-before---
+<NFTCard
+  contractAddress='0xb4703a3a73aec16e764cbd210b0fde9efdab8941'
+  tokenId='1'
+>
+  <NFTMedia/>
+  <NFTTitle className='text-[#EA580C]'/>
+</NFTCard>
+// ---cut-after---
+);
+}
+```
+
+<iframe
+  src="https://684b5e62b1ff46bc5bf83966-aijszlfakk.chromatic.com/iframe.html?args=&id=onchainkit-nft-card--card-override-styles&viewMode=story&dark=true&hero=true"
+  width="100%"
+      height="580px"
+/>
+{/* <ViewCardOverrideStyles /> */}
+
+## Расширенное использование
+
+### Используйте свои собственные данные
+
+Реализация `NFTCard` по умолчанию использует Coinbase Developer Platform для предоставления данных и требует API-ключа. Если вы хотите использовать свои собственные данные, вы можете использовать свойство `useNFTData` для передачи хука, который получает данные NFT из источника по вашему выбору. Пока этот хук возвращает объект с той же структурой, что и тип [`NFTData`](/onchainkit/mint/types#nftdata), NFTCard будет отображаться.
+
+```tsx
+import { NFTCard } from '@coinbase/onchainkit/nft';
+import {
+  NFTMedia,
+  NFTTitle,
+} from '@coinbase/onchainkit/nft/view';
+// ---cut-before---
+
+function useNFTData() {  // [!code focus]
+  return {  // [!code focus]
+    title: 'My NFT',  // [!code focus]
+    imageUrl: 'https://example.com/image.png',  // [!code focus]
+  }  // [!code focus]
+}  // [!code focus]
+
+export default function NFTComponent() {
+  return (
+    <NFTCard
+      contractAddress='0xb4703a3a73aec16e764cbd210b0fde9efdab8941'
+      tokenId='1'
+      useNFTData={useNFTData}  // [!code focus]
+    >
+      <NFTMedia/>
+      <NFTTitle />
+    </NFTCard>
+  );
+}
+```
+
+### Отслеживание жизненного цикла компонента
+
+Вы можете использовать наш NFT [`LifecycleStatus`](/onchainkit/mint/types#lifecyclestatus) и свойство `onStatus` для отслеживания состояний транзакции.
+
+NFTCard имеет 4 состояния жизненного цикла:
+* `init` - Компонент инициализирован
+* `error` - Компонент столкнулся с ошибкой
+* `mediaLoading` - Медиа загружается
+* `success` - Медиа загружено
+
+```tsx
+import { NFTCard } from '@coinbase/onchainkit/nft';
+import { NFTMedia } from '@coinbase/onchainkit/nft/view';
+// ---cut-before---
+import type { LifecycleStatus } from '@coinbase/onchainkit/nft'; // [!code focus]
+
+const statusHandler = (status: LifecycleStatus) => { // [!code focus]
+  const { statusName, statusData } = status; // [!code focus]
+  switch (statusName) { // [!code focus]
+    case 'success': // [!code focus]
+      // обработка успеха
+    case 'error': // [!code focus]
+      // обработка ошибки
+    default: // [!code focus]
+      // обработка состояния 'init'
+  } // [!code focus]
+} // [!code focus]
+
+<NFTCard  // [!code focus]
+  onStatus={statusHandler}  // [!code focus]
+  contractAddress='0xb4703a3a73aec16e764cbd210b0fde9efdab8941'
+  tokenId='1'
+>
+  <NFTMedia />
+</NFTCard>
+// ---cut-after---
+```
+
+## Примеры использования
+- **Отображение вашего любимого NFT**: Создайте свою собственную галерею, демонстрирующую ваши любимые NFT
+- **Отображение аватара, сминтинного в игре**: Позвольте вашим пользователям создавать и затем просматривать сминтинный аватар
+
+## Компоненты
+
+Компонент `NFTCard` может быть кастомизирован с помощью следующих компонентов:
+
+- `<NFTMedia square={boolean}/>` - Медиа для NFT, включает поддержку изображений, видео и аудио NFT.
+- `<NFTTitle />` - Заголовок NFT.
+- `<NFTOwner />` - Отображает аватар владельца, имя или адрес и значок (если применимо).
+- `<NFTLastSoldPrice />` - Последняя цена продажи NFT в нативной валюте и USD.
+- `<NFTNetwork />` - Сеть, в которой находится NFT, в настоящее время поддерживаются только NFT на BASE.
+
+## Свойства 
+
+- [`LifecycleStatus`](/onchainkit/mint/types#lifecyclestatus)
+- [`NFTCardReact`](/onchainkit/mint/types#nftcardreact)
+- [`NFTData`](/onchainkit/mint/types#nftdata)
+

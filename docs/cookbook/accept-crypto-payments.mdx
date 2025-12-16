@@ -1,0 +1,394 @@
+---
+title: 'Прием криптоплатежей с Coinbase Commerce и OnchainKit'
+sidebarTitle: 'Прием криптоплатежей'
+description: 'Узнайте, как интегрировать платежи Coinbase Commerce в ваше приложение с помощью OnchainKit, чтобы устранить традиционные комиссии и расширить вашу глобальную доступность.'
+---
+
+Прием криптоплатежей может помочь вам **устранить традиционные комиссии за кредитные карты и избежать дорогостоящих оспариваний платежей (chargebacks)**, предоставив более быстрый, глобальный платежный опыт. В этом руководстве вы узнаете, как быстро интегрировать Coinbase Commerce и OnchainKit для приема криптоплатежей за продукты или услуги в вашем приложении.
+
+## Что вы создадите
+
+К концу этого руководства у вас будет полностью функциональный процесс оформления заказа, который:
+
+- Отображает ваш продукт с привлекательным интерфейсом
+- Подключает кошельки пользователей безопасно
+- Обрабатывает криптоплатежи через Coinbase Commerce
+- Предоставляет обновления статуса платежа в реальном времени
+
+<CardGroup cols={2}>
+  <Card title="Устраните комиссии" icon="credit-card">
+    Устраните традиционные комиссии за обработку кредитных карт и оспаривания платежей
+  </Card>
+  <Card title="Глобальная доступность" icon="globe">
+    Принимайте платежи от пользователей криптовалют по всему миру, 24/7
+  </Card>
+  <Card title="Быстрое зачисление" icon="bolt">
+    Получайте платежи мгновенно с подтверждением в блокчейне
+  </Card>
+  <Card title="Простая интеграция" icon="code">
+    Начните за считанные минуты с компонентами OnchainKit
+  </Card>
+</CardGroup>
+
+## Предварительные требования
+
+Прежде чем начать, убедитесь, что у вас настроены следующие аккаунты и инструменты:
+
+<Steps>
+  <Step title="Аккаунт Coinbase Commerce">
+    [Зарегистрируйтесь в Coinbase Commerce](https://beta.commerce.coinbase.com/sign-up) для приема платежей криптовалютой по всему миру.
+    
+    <Check>
+    Он понадобится вам для создания продуктов и управления платежами.
+    </Check>
+  </Step>
+  
+  <Step title="Аккаунт Coinbase Developer Platform">
+    [Создайте аккаунт CDP](https://www.coinbase.com/cloud) для доступа к API и сервисам OnchainKit.
+    
+    <Tip>
+    CDP предоставляет инфраструктуру для бесшовных криптоинтеграций.
+    </Tip>
+  </Step>
+  
+  <Step title="Аккаунт Reown (WalletConnect)">
+    [Настройте Reown](https://cloud.reown.com/) (formerly WalletConnect) для безопасного подключения кошельков между устройствами и платформами.
+  </Step>
+</Steps>
+
+## Руководство по реализации
+
+<Steps>
+  <Step title="Создайте ваш продукт в Coinbase Commerce">
+    
+    Сначала вы создадите продукт в Coinbase Commerce, который представляет то, что вы продаете.
+
+    1. **Войдите** в ваш [дашборд Coinbase Commerce](https://beta.commerce.coinbase.com/)
+    2. Перейдите на [страницу создания продукта](https://beta.commerce.coinbase.com/products)
+    3. **Заполните детали вашего продукта**:
+       - Название продукта (четкое и описательное)
+       - Описание (что покупают клиенты)
+       - Цена (в вашей предпочитаемой валюте)
+    4. Нажмите **Create product**
+    5. После создания выберите **View product** и скопируйте **UUID** из URL
+
+    <Frame>
+      ![Скриншот создания продукта](/images/onchainkit-tutorials/pay-create-product-details.png)
+    </Frame>
+
+    <Tip>
+    Сохраните UUID продукта сразу - он понадобится вам в качестве переменной окружения. UUID появляется в URL продукта после создания.
+    </Tip>
+  </Step>
+
+  <Step title="Настройте вашу среду разработки">
+    
+    Склонируйте официальный шаблон приложения OnchainKit, чтобы быстро начать с уже настроенных рекомендаций.
+
+    <CodeGroup>
+    ```bash Bun
+    git clone https://github.com/coinbase/onchainkit-app-template.git
+    cd onchainkit-app-template
+    bun install
+    ```
+
+    ```bash npm
+    git clone https://github.com/coinbase/onchainkit-app-template.git
+    cd onchainkit-app-template
+    npm install
+    ```
+
+    ```bash Yarn
+    git clone https://github.com/coinbase/onchainkit-app-template.git
+    cd onchainkit-app-template
+    yarn install
+    ```
+    </CodeGroup>
+
+    <Check>
+    Убедитесь, что установка завершилась успешно, выполнив `ls` для просмотра файлов проекта.
+    </Check>
+  </Step>
+
+  <Step title="Настройте переменные окружения">
+    
+    Создайте вашу конфигурацию окружения с необходимыми API ключами и идентификаторами.
+
+    В корне вашего проекта создайте или обновите файл `.env.local`:
+
+    ```bash .env.local
+    # Coinbase Commerce Product ID (from Step 1)
+    NEXT_PUBLIC_PRODUCT_ID=your_product_uuid_here
+
+    # Coinbase Developer Platform API Key
+    NEXT_PUBLIC_ONCHAINKIT_API_KEY=your_cdp_api_key_here
+
+    # Reown (WalletConnect) Project ID
+    NEXT_PUBLIC_WC_PROJECT_ID=your_walletconnect_project_id_here
+
+    # Disable Next.js telemetry (optional)
+    NEXT_TELEMETRY_DISABLED=1
+    ```
+
+    <Warning>
+    Никогда не коммитьте API ключи в систему контроля версий. Добавьте `.env.local` в ваш файл `.gitignore`.
+    </Warning>
+
+    <Tip>
+    Используйте описательные имена переменных и держите их организованными с комментариями для членов команды.
+    </Tip>
+  </Step>
+
+  <Step title="Настройте интеграцию смарт-кошелька">
+    
+    Настройте Wagmi для приоритизации смарт-кошельков для лучшего пользовательского опыта.
+
+    Обновите файл конфигурации Wagmi (обычно `src/app/wagmi.ts`):
+
+    ```typescript src/app/wagmi.ts
+    // ... существующая конфигурация Wagmi
+
+    // После вашего хука useMemo() добавьте:
+    coinbaseWallet.preference = 'smartWalletOnly';
+    ```
+
+    <Note>
+    Эта конфигурация гарантирует, что пользователи подключаются с помощью смарт-кошельков, которые обеспечивают повышенную безопасность и лучший UX.
+    </Note>
+  </Step>
+
+  <Step title="Настройте провайдер OnchainKit">
+    
+    Настройте провайдер OnchainKit для подключения к сети Base и вашему CDP API ключу.
+
+    Обновите `src/app/components/OnchainProviders.tsx`:
+
+    ```typescript src/app/components/OnchainProviders.tsx
+    'use client';
+    import { OnchainKitProvider } from '@coinbase/onchainkit';
+    import { RainbowKitProvider } from '@rainbow-me/rainbowkit';
+    import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+    import type { ReactNode } from 'react';
+    import { base } from 'viem/chains';
+    import { WagmiProvider } from 'wagmi';
+    import { useWagmiConfig } from '../wagmi';
+
+    type Props = { children: ReactNode };
+    const queryClient = new QueryClient();
+
+    function OnchainProviders({ children }: Props) {
+      const wagmiConfig = useWagmiConfig();
+      
+      return (
+        <WagmiProvider config={wagmiConfig}>
+          <QueryClientProvider client={queryClient}>
+            <OnchainKitProvider
+              apiKey={process.env.NEXT_PUBLIC_ONCHAINKIT_API_KEY}
+              chain={base}
+            >
+              <RainbowKitProvider modalSize='compact'>
+                {children}
+              </RainbowKitProvider>
+            </OnchainKitProvider>
+          </QueryClientProvider>
+        </WagmiProvider>
+      );
+    }
+
+    export default OnchainProviders;
+    ```
+
+    Обновите файл конфигурации для корректной обработки переменных окружения:
+
+    ```typescript Config.ts
+    export const NEXT_PUBLIC_URL =
+      process.env.NODE_ENV === 'development'
+        ? 'http://localhost:3000'
+        : 'https://your-app-domain.vercel.app'; // Замените на ваш фактический домен
+
+    export const NEXT_PUBLIC_CDP_API_KEY =
+      process.env.NEXT_PUBLIC_ONCHAINKIT_API_KEY;
+
+    export const NEXT_PUBLIC_WC_PROJECT_ID =
+      process.env.NEXT_PUBLIC_WC_PROJECT_ID;
+    ```
+
+    <Tip>
+    Использование переменных окружения делает ваше приложение более безопасным и упрощает деплой в разных средах.
+    </Tip>
+  </Step>
+
+  <Step title="Реализуйте платежный интерфейс">
+    
+    Создайте привлекательный платежный интерфейс, который демонстрирует ваш продукт и обрабатывает процесс оформления заказа.
+
+    Обновите вашу главную страницу (`src/app/page.tsx`):
+
+    ```typescript src/app/page.tsx
+    import { Checkout, CheckoutButton, CheckoutStatus } from '@coinbase/onchainkit/checkout';
+    import Image from 'next/image';
+
+    const productId = process.env.NEXT_PUBLIC_PRODUCT_ID;
+
+    export default function PaymentPage() {
+      return (
+        <main className="flex min-h-screen flex-col items-center justify-center p-4">
+          <div className="max-w-2xl w-full">
+            {/* Product showcase section */}
+            <section className="flex w-full flex-col items-center justify-center gap-6 rounded-xl bg-gradient-to-b from-blue-50 to-white p-8 shadow-lg">
+              
+              {/* Product image container */}
+              <div className="flex h-[400px] w-[400px] max-w-full items-center justify-center rounded-xl bg-gradient-to-br from-gray-900 to-gray-800 shadow-xl">
+                <div className="rounded-lg bg-white p-4 shadow-inner">
+                  <Image 
+                    src="/your-product-image.jpg" 
+                    width={320} 
+                    height={320} 
+                    alt="Product image" 
+                    className="rounded-lg"
+                  />
+                </div>
+              </div>
+
+              {/* Product information */}
+              <div className="text-center space-y-2">
+                <h1 className="text-2xl font-bold text-gray-900">Your Amazing Product</h1>
+                <p className="text-gray-600">High-quality product with crypto payment support</p>
+              </div>
+
+              {/* Payment section */}
+              <div className="w-full max-w-md">
+                {address ? (
+                  <Checkout productId={productId}>
+                    <CheckoutButton 
+                      coinbaseBranded={true}
+                      className="w-full"
+                    />
+                    <CheckoutStatus />
+                  </Checkout>
+                ) : (
+                  <WalletWrapper 
+                    className="w-full" 
+                    text="Connect wallet to purchase" 
+                  />
+                )}
+              </div>
+            </section>
+          </div>
+        </main>
+      );
+    }
+    ```
+
+    <Warning>
+    Убедитесь, что вы добавили изображение вашего продукта в папку `public` и обновили путь к изображению соответствующим образом.
+    </Warning>
+
+    <Check>
+    Условный рендеринг предотвращает ошибки, когда кошелек не подключен, обеспечивая плавный пользовательский опыт.
+    </Check>
+  </Step>
+
+  <Step title="Протестируйте и задеплойте ваше приложение">
+    
+    Протестируйте ваш платежный процесс локально перед деплоем в продакшен.
+
+    **Локальное тестирование:**
+
+    <CodeGroup>
+    ```bash Bun
+    bun run dev
+    ```
+
+    ```bash npm
+    npm run dev
+    ```
+
+    ```bash Yarn
+    yarn dev
+    ```
+    </CodeGroup>
+
+    1. **Посетите** `http://localhost:3000`
+    2. **Подключите ваш кошелек**, используя кнопку подключения кошелька
+    3. **Протестируйте процесс оформления заказа** с небольшой суммой
+    4. **Проверьте обновление статуса платежа** корректно
+
+    <Frame>
+      ![Скриншот финального продукта](/images/onchainkit-tutorials/pay-final-product.png)
+    </Frame>
+
+    **Деплой в продакшен:**
+
+    1. **Обновите вашу конфигурацию** с продакшен URL
+    2. **Деплойте на предпочитаемую платформу** (Vercel, Netlify и т.д.)
+    3. **Протестируйте живое приложение** с реальными транзакциями
+    4. **Мониторьте подтверждения платежей** в вашем дашборде Coinbase Commerce
+
+    <Tip>
+    Начните с тестовых транзакций (testnet), чтобы убедиться, что все работает, прежде чем переходить на основную сеть (mainnet).
+    </Tip>
+  </Step>
+</Steps>
+
+## Решение проблем
+
+<AccordionGroup>
+  <Accordion title="Проблемы с подключением кошелька">
+    **Распространенные решения:**
+    - Убедитесь, что ваш ID проекта WalletConnect корректно настроен
+    - Проверьте, что расширение вашего кошелька обновлено до последней версии
+    - Попробуйте подключиться с другим провайдером кошелька
+    - Очистите кэш и cookies вашего браузера
+  </Accordion>
+
+  <Accordion title="Платеж не обрабатывается">
+    **Проверьте эти пункты:**
+    - Убедитесь, что ваш ID продукта точно совпадает с Coinbase Commerce
+    - Убедитесь, что ваш CDP API ключ имеет необходимые разрешения
+    - Подтвердите, что у пользователя достаточно средств для транзакции
+    - Проверьте подключение к сети и статус блокчейна
+  </Accordion>
+
+  <Accordion title="Ошибки с переменными окружения">
+    **Чеклист конфигурации:**
+    - Все необходимые переменные окружения установлены в `.env.local`
+    - Нет лишних пробелов или кавычек вокруг значений переменных
+    - Файл находится в корневой директории проекта
+    - Перезапустите сервер разработки после внесения изменений
+  </Accordion>
+</AccordionGroup>
+
+## Следующие шаги
+
+Теперь, когда у вас работают криптоплатежи, рассмотрите эти улучшения:
+
+<CardGroup cols={2}>
+  <Card title="Добавьте несколько продуктов" icon="grid">
+    Масштабируйте вашу настройку для обработки нескольких продуктов и услуг
+  </Card>
+  <Card title="Внедрите вебхуки" icon="webhook">
+    Настройте вебхуки подтверждения платежей для автоматической обработки
+  </Card>
+  <Card title="Аналитическая панель" icon="chart-line">
+    Отслеживайте метрики платежей и поведение клиентов
+  </Card>
+  <Card title="Поддержка нескольких сетей" icon="link">
+    Принимайте платежи в нескольких сетях блокчейна
+  </Card>
+</CardGroup>
+
+## Заключение
+
+Поздравляем! Вы успешно интегрировали Coinbase Commerce и OnchainKit в ваше приложение. Ваши пользователи теперь могут совершать криптоплатежи, предоставляя вам доступ к:
+
+✅ **Нулевым традиционным платежным комиссиям и оспариваниям**
+✅ **Глобальному охвату клиентов с обработкой платежей 24/7**
+✅ **Мгновенному зачислению с подтверждением в блокчейне**
+✅ **Повышенной безопасности через интеграцию смарт-кошельков**
+
+**Готовы масштабироваться?** Рассмотрите возможность расширения на несколько продуктов, внедрения автоматизированного выполнения заказов или добавления аналитики для отслеживания производительности ваших криптоплатежей.
+
+<Check>
+Ваше приложение теперь поддерживает будущее глобальных платежей. Удачи в разработке на Base!
+</Check>

@@ -1,0 +1,60 @@
+---
+title: "Base Pay"
+description: "Принимайте платежи в USDC с помощью Base Pay в вашем React-приложении на Wagmi"
+---
+
+Base Pay работает в приложениях на Wagmi точно так же, как и везде - он функционирует независимо от подключений кошелька и использует Base Account SDK напрямую.
+
+## Реализация
+
+Для Base Pay не требуется какая-либо специальная интеграция с Wagmi. Просто следуйте [руководству по приему платежей (Accept Payments)](/base-account/guides/accept-payments) - все примеры кода работают точно так же и в вашем приложении на Wagmi.
+
+Ключевые моменты:
+
+- **Не требуется подключение кошелька** - Base Pay обрабатывает все через SDK
+- **Тот же API** - Используйте `pay()` и `getPaymentStatus()` точно так, как показано в основном руководстве
+- **Работает совместно с Wagmi** - Вы можете отображать подключенный адрес пользователя из `useAccount()`, но это не обязательно для платежей
+
+## Краткий пример
+
+```tsx
+import { pay } from '@base-org/account'
+import { useAccount } from 'wagmi' // Опционально - только для отображения
+
+export function CheckoutButton() {
+  const { address } = useAccount() // Опционально
+
+  const handlePayment = async () => {
+    try {
+      const payment = await pay({
+        amount: '5.00',
+        to: '0xYourAddress',
+        testnet: true
+      })
+      console.log('Payment sent:', payment.id)
+    } catch (error) {
+      console.error('Payment failed:', error)
+    }
+  }
+
+  return (
+    <div>
+      {address && <p>Connected: {address}</p>}
+      <button onClick={handlePayment}>
+        Pay $5.00 with Base Pay
+      </button>
+    </div>
+  )
+}
+```
+
+<Warning>
+**Пожалуйста, следуйте руководству по бренду** 
+
+Если вы планируете использовать BasePayButton, пожалуйста, следуйте [руководству по бренду](/base-account/reference/ui-elements/brand-guidelines) чтобы обеспечить единообразие в вашем приложении.
+
+</Warning>
+
+## Узнать больше
+
+Полные детали реализации, примеры и расширенные функции, такие как сбор информации о пользователе, смотрите в основном [руководстве по приему платежей (Accept Payments)](/base-account/guides/accept-payments).

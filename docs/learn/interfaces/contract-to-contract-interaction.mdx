@@ -1,0 +1,266 @@
+---
+title: 'Взаимодействие между контрактами'
+sidebarTitle: Пошаговое руководство
+description: Взаимодействуйте с другими смарт-контрактами
+hide_table_of_contents: false
+---
+
+В этой статье вы узнаете, как взаимодействовать с другими смарт-контрактами, используя интерфейсы и функцию `.call()`, которая позволяет взаимодействовать с другими смарт-контрактами без использования интерфейса.
+
+<Warning>
+Этот учебник был перемещен в рамках реорганизации! Он предполагает, что вы используете Hardhat. Все в этом уроке будет работать с незначительными изменениями, если вы работаете в Foundry или Remix.
+</Warning>
+
+
+---
+
+## Цели
+
+К концу этого урока вы сможете:
+
+- Использовать интерфейсы, чтобы позволить смарт-контракту вызывать функции в другом смарт-контракте
+- Использовать функцию `call()` для взаимодействия с другим контрактом без использования интерфейса
+
+---
+
+## Обзор
+
+Взаимодействие со внешними смарт-контрактами - очень распространенная задача в жизни разработчика смарт-контрактов. Это включает взаимодействие с контрактами, которые уже развернуты в определенной сети
+
+Обычно создатели определенных смарт-контрактов документируют их функциональность и предоставляют доступ к своим функциям, предлагая интерфейсы, которые можно использовать для интеграции этих конкретных контрактов в ваши собственные.
+
+Например, [Uniswap] предоставляет документацию о том, как взаимодействовать с их смарт-контрактами, а также некоторые пакеты для легкой интеграции их протокола.
+
+В этом примере вы будете взаимодействовать с [Uniswap protocol], чтобы создать пользовательский пул для пользовательской пары токенов.
+
+Поскольку протокол Uniswap уже развернут, вы будете использовать [Hardhat forking] для тестирования вашего контракта.
+
+В примере также будут использоваться два подхода:
+
+- Использование интерфейсов
+- Использование функции `.call()`
+
+## Взаимодействие с развернутыми контрактами с использованием интерфейсов
+
+Сначала необходимо установить [Uniswap V3 core package] выполнив команду:
+
+```bash
+npm install @uniswap/v3-core
+```
+
+Этот пакет предоставляет доступ к интерфейсам Uniswap основного протокола.
+
+Затем напишите пользовательский контракт с именем `PoolCreator` со следующим кодом:
+
+```solidity
+// SPDX-License-Identifier: UNLICENSED
+pragma solidity ^0.8.19;
+
+import "@uniswap/v3-core/contracts/interfaces/IUniswapV3Factory.sol";
+
+contract PoolCreator {
+    IUniswapV3Factory public uniswapFactory;
+
+    constructor(address _factoryAddress) {
+        uniswapFactory = IUniswapV3Factory(_factoryAddress);
+    }
+
+    function createPool(
+        address tokenA,
+        address tokenB,
+        uint24 fee
+    ) external returns (address poolAddress) {
+        // Проверяем, существует ли уже пул с заданными токенами и комиссией
+        poolAddress = uniswapFactory.getPool(tokenA, tokenB, fee);
+        if (poolAddress == address(0)) {
+            // Если пул не существует, создаем новый
+            poolAddress = uniswapFactory.createPool(tokenA, tokenB, fee);
+        }
+
+        return poolAddress;
+    }
+}
+```
+
+Обратите внимание на следующее:
+
+- - Вы импортируете интерфейс `IUniswapV3Factory`. Интерфейс содержит объявления функций, включая `getPool` и `createPool`:
+
+```solidity
+// SPDX-License-Identifier: GPL-2.0-or-later
+pragma solidity >=0.5.0;
+
+/// @title The interface for the Uniswap V3 Factory
+/// @notice The Uniswap V3 Factory facilitates creation of Uniswap V3 pools and control over the protocol fees
+interface IUniswapV3Factory {
+    // ...
+    // ...другие объявления функций
+
+    /// @notice Returns the pool address for a given pair of tokens and a fee, or address 0 if it does not exist
+    /// @dev tokenA and tokenB may be passed in either token0/token1 or token1/token0 order
+    /// @param tokenA The contract address of either token0 or token1
+    /// @param tokenB The contract address of the other token
+    /// @param fee The fee collected upon every swap in the pool, denominated in hundredths of a bip
+    /// @return pool The pool address
+    function getPool(
+        address tokenA,
+        address tokenB,
+        uint24 fee
+    ) external view returns (address pool);
+
+    /// @notice Creates a pool for the given two tokens and fee
+    /// @param tokenA One of the two tokens in the desired pool
+    /// @param tokenB The other of the two tokens in the desired pool
+    /// @param fee The desired fee for the pool
+    /// @dev tokenA and tokenB may be passed in either order: token0/token1 or token1/token0. tickSpacing is retrieved
+    /// from the fee. The call will revert if the pool already exists, the fee is invalid, or the token arguments
+    /// are invalid.
+    /// @return pool The address of the newly created pool
+    function createPool(
+        address tokenA,
+        address tokenB,
+        uint24 fee
+    ) external returns (address pool);
+```
+
+- Конструктор получает адрес фабрики пулов и создает экземпляр `IUniswapV3Factory`.
+- Функция createPool включает проверку, чтобы убедиться, что пул не существует.
+- Функция createPool создает новый пул.
+
+Затем создайте тестовый файл с именем `PoolCreator.test.ts` со следующим содержимым:
+
+```tsx
+import { ethers } from 'hardhat';
+import { HardhatEthersSigner } from '@nomicfoundation/hardhat-ethers/signers';
+
+import { Token, Token__factory, PoolCreator, PoolCreator__factory } from '../typechain-types';
+
+describe('PoolCreator tests', function () {
+  const UNISWAP_FACTORY_ADDRESS = '0x1F98431c8aD98523631AE4a59f267346ea31F984';
+  let tokenA: Token;
+  let tokenB: Token;
+  let poolCreator: PoolCreator;
+  let owner: HardhatEthersSigner;
+
+  before(async () => {
+    const signers = await ethers.getSigners();
+    owner = signers[0];
+    tokenA = await new Token__factory().connect(owner).deploy('TokenA', 'TokenA');
+    tokenB = await new Token__factory().connect(owner).deploy('TokenB', 'TokenB');
+    poolCreator = await new PoolCreator__factory().connect(owner).deploy(UNISWAP_FACTORY_ADDRESS);
+  });
+
+  it('should create a pool', async () => {
+    const contractAddress = await poolCreator.createPool.staticCall(tokenA, tokenB, 500);
+    console.log('Contract Address', contractAddress);
+    await poolCreator.createPool(tokenA, tokenB, 500);
+  });
+});
+```
+
+Обратите внимание на следующее:
+
+- Адрес `0x1F98431c8aD98523631AE4a59f267346ea31F984` - это адрес фабрики пулов Uniswap, развернутой в основной сети Ethereum. Это можно проверить, посмотрев документацию Uniswap, которая включает [Deployment addresses of the contracts].
+- Вы создали два токена, TokenA и TokenB, используя контракт `Token`.
+
+```solidity
+// SPDX-License-Identifier: UNLICENSED
+pragma solidity ^0.8.19;
+
+import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
+
+contract Token is ERC20 {
+    constructor(string memory name, string memory symbol) ERC20(name, symbol){
+        _mint(msg.sender, 1000 ether);
+    }
+}
+```
+
+Наконец, запустите `npx hardhat test`, и вы должны получить результат, похожий на следующий:
+
+```
+PoolCreator tests
+Contract Address 0xa76662f79A5bC06e459d0a841190C7a4e093b04d
+    ✔ should create a pool (1284ms)
+
+  1 passing (5s)
+```
+
+## Взаимодействие со внешними контрактами с использованием `.call()`
+
+В предыдущем примере вы использовали интерфейс фабрики Uniswap V3, однако если у вас нет доступа к интерфейсу контракта, вы можете использовать специальную функцию `call`.
+
+Используя `call`, вы можете вызвать любой контракт, если знаете минимальную информацию о сигнатуре функции. В этом случае вы должны как минимум знать, что `createPool` требует три параметра:
+
+- tokenA
+- tokenB
+- fee
+
+Новый модифицированный код смарт-контракта выглядит следующим образом:
+
+```solidity
+// SPDX-License-Identifier: UNLICENSED
+pragma solidity ^0.8.19;
+
+contract PoolCreator {
+    address public uniswapFactory;
+
+    constructor(address _factoryAddress) {
+        uniswapFactory = _factoryAddress;
+    }
+
+    function createPool(
+        address tokenA,
+        address tokenB,
+        uint24 fee
+    ) external returns (address poolAddress) {
+         bytes memory payload = abi.encodeWithSignature(
+            "createPool(address,address,uint24)",
+            tokenA,
+            tokenB,
+            fee
+        );
+
+        (bool success, bytes memory data) = uniswapFactory.call(payload);
+        require(success, "Uniswap factory call failed");
+
+        // Адрес пула должен возвращаться как первые 32 байта данных
+        assembly {
+            poolAddress := mload(add(data, 32))
+        }
+
+        require(poolAddress != address(0), "Pool creation failed");
+        return poolAddress;
+    }
+}
+```
+
+Обратите внимание на следующее:
+
+- Используя `abi.encodeWithSignature`, вы кодируете полезную нагрузку, необходимую для вызова смарт-контракта с помощью функции `.call()`.
+- Использование `.call()` не требует импорта интерфейса.
+- Вы загружаете адрес пула с помощью специальной операции ассемблера `mload`.
+
+Попробуйте снова выполнить команду `npx hardhat test`, и вы должны ожидать тот же результат:
+
+```
+PoolCreator tests
+Contract Address 0xa76662f79A5bC06e459d0a841190C7a4e093b04d
+    ✔ should create a pool (1284ms)
+
+  1 passing (5s)
+```
+
+## Заключение
+
+Интерфейсы или функция `.call` - это два способа взаимодействия со внешними контрактами. Использование интерфейсов предоставляет несколько преимуществ, включая безопасность типов, читаемость кода и проверку ошибок компилятором. При взаимодействии с хорошо документированными контрактами, такими как Uniswap, использование интерфейсов часто является предпочтительным и наиболее безопасным подходом.
+
+С другой стороны, функция `.call` предлагает большую гибкость, но требует большей ответственности. Она позволяет разработчикам вызывать функции контрактов, даже не зная заранее их интерфейсов. Однако ей не хватает безопасности типов и проверки ошибок, предоставляемых интерфейсами, что делает ее более подверженной ошибкам.
+
+---
+
+[Uniswap]: https://docs.uniswap.org/contracts/v3/reference/core/UniswapV3Factory
+[Uniswap protocol]: https://uniswap.org
+[Hardhat forking]: https://hardhat.org/hardhat-network/docs/guides/forking-other-networks
+[Uniswap V3 core package]: https://www.npmjs.com/package/@uniswap/v3-core
+[Deployment addresses of the contracts]: https://docs.uniswap.org/contracts/v3/reference/deployments

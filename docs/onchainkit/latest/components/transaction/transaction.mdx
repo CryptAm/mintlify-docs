@@ -1,0 +1,474 @@
+---
+title: Transaction
+sidebarTitle: Transaction
+description: Компоненты Transaction предоставляют высокоуровневую обертку вокруг всего процесса транзакции
+---
+
+Компоненты `Transaction` предоставляют высокоуровневую обертку вокруг всего процесса транзакции. Они обрабатывают жизненный цикл транзакции, включая оценку газа, спонсирование комиссий и обновления статуса.
+
+## Быстрый старт
+
+Компонент `Transaction` теперь поддерживает упрощенную сокращенную версию для оптимизации процесса интеграции для разработчиков. Вместо ручного определения каждого подкомпонента и пропа вы можете отображать `Transaction` без дочерних элементов, и он автоматически включит нашу рекомендуемую реализацию - с компонентами `TransactionButton` и `TransactionToast`.
+
+Если вам нужна большая кастомизация, следуйте руководству по реализации для наших компонентов `Transaction` ниже.
+
+```tsx
+import { Transaction } from "@coinbase/onchainkit/transaction"
+
+const calls = [...];
+
+<Transaction calls={calls} />
+```
+
+<iframe
+  src="https://684b5e62b1ff46bc5bf83966-aijszlfakk.chromatic.com/iframe.html?args=&id=onchainkit-transaction--default&viewMode=story&dark=true&hero=true"
+  width="100%"
+  height="auto"
+/>
+
+### Свойства
+
+```tsx
+type TransactionProps = {
+  calls?: Calls | Contracts | Array<Call | ContractFunctionParameters>; // Массив вызовов для выполнения в транзакции
+  capabilities?: WalletCapabilities; // @deprecated Используйте `isSponsored` вместо этого
+  chainId?: number; // chainId для транзакции
+  children?: ReactNode; // Дочерние компоненты для отображения внутри компонента транзакции
+  className?: string; // Опциональное имя CSS-класса для стилизации компонента
+  isSponsored?: boolean; // Спонсируются ли транзакции (по умолчанию: false)
+  onError?: (e: TransactionError) => void; // Опциональная функция обратного вызова для обработки ошибок транзакции
+  onStatus?: (lifecycleStatus: LifecycleStatus) => void; // Опциональная функция обратного вызова, которая предоставляет доступ к состоянию жизненного цикла компонента
+  onSuccess?: (response: TransactionResponseType) => void; // Опциональная функция обратного вызова, которая предоставляет доступ к квитанциям транзакции
+  resetAfter?: number; // Опциональное время (в мс), после которого сбросить компонент
+} & (
+  | {
+      children: ReactNode;
+      disabled?: never; // Опциональный проп для отключения кнопки отправки. Доступно только когда children не предоставлены
+    }
+  | {
+      children?: never;
+      disabled?: boolean; // Опциональный проп для отключения кнопки отправки. Доступно только когда children не предоставлены
+    }
+);
+```
+
+## Пошаговое руководство
+
+<Steps>
+  <Step title="Добавьте calls">
+  Выполните одну или несколько транзакций с помощью компонента Transaction. Вы можете передавать транзакции либо в формате `Call`, либо `ContractFunctionParameters`. Компонент автоматически применит логику батчинга, если кошелек пользователя поддерживает его.
+
+  #### Типы
+
+  - [`ContractFunctionParameters`](https://github.com/wevm/viem/blob/ce1b8aff4d4523d3a324e500261c8c0867fd35e9/src/types/contract.ts#L188)
+  - `Call` (см. раздел «Вспомогательные типы» ниже)
+
+  <CodeGroup>
+  ```tsx TransactionComponents.tsx
+  import { useCallback } from 'react';
+  import { Avatar, Name } from '@coinbase/onchainkit/identity';
+  import { // [!code focus]
+    Transaction, // [!code focus]
+    TransactionButton,
+    TransactionSponsor,
+    TransactionStatus,
+    TransactionStatusAction,
+    TransactionStatusLabel,
+  } from '@coinbase/onchainkit/transaction'; // [!code focus]
+  import type { LifecycleStatus } from '@coinbase/onchainkit/transaction';
+  import { Wallet, ConnectWallet } from '@coinbase/onchainkit/wallet';
+  import { useAccount } from 'wagmi';
+  import { calls } from '@/calls'; // [!code focus]
+
+  // ---cut-start---
+
+  const BASE_SEPOLIA_CHAIN_ID = 84532;
+  // ---cut-end---
+
+  export default function TransactionComponents() {
+  const { address } = useAccount();
+
+      const handleOnStatus = useCallback((status: LifecycleStatus) => {
+        console.log('LifecycleStatus', status);
+      }, []);
+
+      return address ? (
+        <Transaction // [!code focus]
+          chainId={BASE_SEPOLIA_CHAIN_ID} // [!code focus]
+          calls={calls} // [!code focus]
+          onStatus={handleOnStatus} // [!code focus]
+        >
+          <TransactionButton />
+          <TransactionSponsor />
+          <TransactionStatus>
+            <TransactionStatusLabel />
+            <TransactionStatusAction />
+          </TransactionStatus>
+        </Transaction> // [!code focus]
+      ) : (
+        <Wallet>
+          <ConnectWallet>
+            <Avatar className='h-6 w-6' />
+            <Name />
+          </ConnectWallet>
+        </Wallet>
+      );
+
+  };
+
+  ```
+
+  ```ts calls.ts
+  const clickContractAddress = '0x67c97D1FB8184F038592b2109F854dfb09C77C75';
+  const clickContractAbi = [
+    {
+      type: 'function',
+      name: 'click',
+      inputs: [],
+      outputs: [],
+      stateMutability: 'nonpayable',
+    },
+  ] as const;
+
+  export const calls = [
+    {
+      address: clickContractAddress,
+      abi: clickContractAbi,
+      functionName: 'click',
+      args: [],
+    }
+  ];
+  ```
+  </CodeGroup>
+
+  <iframe
+    src="https://684b5e62b1ff46bc5bf83966-aijszlfakk.chromatic.com/iframe.html?args=&id=onchainkit-transaction--types&viewMode=story&dark=true&hero=true"
+    width="100%"
+    height="auto"
+  />
+
+  </Step>
+  <Step title="Отслеживайте LifecycleStatus">
+  Полностью контролируйте данные ваших транзакций с помощью объекта `LifecycleStatus` через свойство `onStatus`. 
+  Этот TypeScript объект предоставляет `statusName` и `statusData`, чтобы держать вас в курсе.
+
+  ```tsx
+  import { useCallback } from 'react';
+  import {
+    Transaction,
+    TransactionButton,
+    TransactionSponsor,
+    TransactionStatus,
+    TransactionToast,
+    TransactionToastIcon,
+    TransactionToastLabel,
+    TransactionToastAction,
+  } from '@coinbase/onchainkit/transaction';
+  import {contracts} from '@/contracts';
+  // ---cut-before---
+
+  import type { LifecycleStatus } from '@coinbase/onchainkit/transaction'; // [!code focus]
+
+  // опущено для краткости
+
+  const handleOnStatus = useCallback((status: LifecycleStatus) => {  // [!code focus]
+    console.log('Transaction status:', status); // [!code focus]
+  }, []); // [!code focus]
+
+  // опущено для краткости
+
+  // Использование в компоненте
+  <Transaction  // [!code focus]
+    contracts={contracts}
+    onStatus={handleOnStatus} // [!code focus]
+  >
+    <TransactionButton />
+    <TransactionSponsor />
+    <TransactionToast>
+      <TransactionToastIcon />
+      <TransactionToastLabel />
+      <TransactionToastAction />
+    </TransactionToast>
+  </Transaction>
+  ```
+
+  Статус жизненного цикла имеет семь состояний для опыта транзакции.
+
+  ```ts
+  import type { TransactionError } from "@coinbase/onchainkit/transaction";
+  import type { Address, TransactionReceipt } from "viem";
+  // ---cut-before---
+  type LifecycleStatus =
+    | {
+        statusName: 'init';
+        statusData: null;
+      }
+    | {
+        statusName: 'error';
+        statusData: TransactionError;
+      }
+    | {
+        statusName: 'transactionIdle'; // начальный статус до выполнения функции мутации
+        statusData: null;
+      }
+    | {
+        statusName: 'buildingTransaction'; // разрешение промисов calls или contracts
+        statusData: null;
+      }
+    | {
+        statusName: 'transactionPending'; // если мутация в настоящее время выполняется
+        statusData: null;
+      }
+    | {
+        statusName: 'transactionLegacyExecuted';
+        statusData: {
+          transactionHashList: string[];
+        };
+      }
+    | {
+        statusName: 'success'; // если последняя попытка мутации была успешной
+        statusData: {
+          transactionReceipts: TransactionReceipt[];
+        };
+      };
+  ```
+
+  </Step>
+  <Step title="Спонсируйте с помощью возможностей Paymaster">
+  Чтобы спонсировать ваши транзакции с возможностями Paymaster, настройте ваш [`OnchainKitProvider`](/onchainkit/config/onchainkit-provider) с соответствующим URL `config.paymaster`, затем передайте `isSponsored={true}` в компонент `Transaction`.
+
+  Получите конечную точку Paymaster и Bundler на [Coinbase Developer Platform](https://portal.cdp.coinbase.com/products/bundler-and-paymaster).
+
+  <Frame>
+  <img
+    alt="OnchainKit Paymaster and Bundler endpoint"
+    title="OnchainKit Paymaster and Bundler endpoint"
+    src="/images/onchainkit/onchainkit-components-paymaster-endpoint.png"
+    width="702"
+    loading="lazy"
+  />
+  </Frame>
+
+  ```tsx
+  <OnchainKitProvider
+    config={{ // [!code focus]
+      paymaster: process.env.PAYMASTER_ENDPOINT, // [!code focus]
+    }} // [!code focus]
+  >
+  ```
+
+  Затем передайте `isSponsored={true}` в компонент `Transaction`.
+
+  ```tsx
+  import { Transaction, TransactionButton, TransactionSponsor } from "@coinbase/onchainkit/transaction"
+  // ---cut-before---
+  // опущено для краткости
+  <Transaction
+    isSponsored={true} // [!code focus]
+    contracts={contracts} // [!code focus]
+  >
+    <TransactionButton />
+    <TransactionSponsor />
+  </Transaction>
+  ```
+  </Step>
+</Steps>
+
+### Использование `calls` с промисами
+
+`Calls` также принимает асинхронные функции, которые разрешаются при каждом клике на кнопку. Это может быть полезно, если вы вызываете API для получения данных транзакции.
+
+Эти функции должны разрешаться в `Call[]` или `ContractFunctionParameters[]`.
+
+В примере данные calls будут получены с api.transaction.com, когда пользователь нажимает на кнопку Transaction Button.
+
+```ts
+import { Transaction, TransactionButton, LifecycleStatus} from '@coinbase/onchainkit/transaction';
+import { baseSepolia } from 'wagmi/chains';
+
+// ---cut-before---
+
+const callsCallback = async () => { // [!code focus]
+  const res = await fetch('api.transaction.com/createTransaction'); // [!code focus]
+  const callData = await res.json(); // [!code focus]
+  return callData; // [!code focus]
+} // [!code focus]
+
+export default function TransactionWithCalls() {
+
+  return (
+    <Transaction
+      chainId={baseSepolia.id}
+      calls={callsCallback} // [!code focus]
+      onStatus={(status: LifecycleStatus) => console.log('Transaction status:', status)}
+    >
+      <TransactionButton />
+    </Transaction>
+  );
+}
+```
+
+## Компоненты
+
+<Frame>
+<div className="flex flex-col max-w-[648px] gap-6">
+  <img
+    src="/images/onchainkit/onchainkit-components-transaction-anatomy.png"
+    alt="OnchainKit transaction anatomy component diagram"
+    title="Визуальное представление компонентов транзакции OnchainKit"
+    width="648"
+    loading="lazy"
+  />
+</div>
+</Frame>
+
+Компоненты предназначены для совместной работы иерархически. Для каждого компонента убедитесь в следующем:
+
+- `<Transaction />` - Служит основным контейнером для всех компонентов, связанных с транзакцией.
+- `<TransactionButton />` - Обрабатывает процесс инициации транзакции.
+- `<TransactionSponsor />` - Отображает информацию о спонсировании комиссий за газ транзакции.
+- `<TransactionStatus />` - Содержит информацию о статусе транзакции и действия.
+- `<TransactionStatusLabel />` - Отображает текущий статус транзакции.
+- `<TransactionStatusAction />` - Предоставляет дополнительные действия на основе статуса транзакции.
+- `<TransactionToast />` - Отображает уведомление о статусе транзакции.
+- `<TransactionToastIcon />` - Отображает иконку в уведомлении о транзакции.
+- `<TransactionToastLabel />` - Отображает текстовую метку в уведомлении о транзакции.
+- `<TransactionToastAction />` - Предоставляет дополнительные действия внутри уведомления о транзакции.
+
+## Расширенная кастомизация
+
+### Пользовательская кнопка транзакции с пропами рендера
+
+Для полного контроля над отображением кнопки транзакции используйте свойство `render` на `TransactionButton`. Это позволяет реализовать пользовательский UI, сохраняя всю функциональность транзакции:
+
+```tsx
+import { TransactionButton } from '@coinbase/onchainkit/transaction';
+
+<TransactionButton
+  render={({ status, onSubmit, isDisabled }) => (
+    <button
+      onClick={onSubmit}
+      disabled={isDisabled}
+      className="my-custom-transaction-button"
+    >
+      {status === 'pending' ? 'Processing...' : 'Submit Transaction'}
+    </button>
+  )}
+/>
+```
+
+## Свойства компонентов
+
+### TransactionButtonProps
+
+```ts
+type TransactionButtonProps = {
+  className?: string; // Опциональное имя CSS-класса для стилизации компонента кнопки
+  disabled?: boolean; // Опциональный проп для отключения кнопки отправки
+  text?: ReactNode; // Опциональный текст для отображения в компоненте кнопки
+  errorOverride?: TransactionButtonOverride; // Опциональные переопределения для текста и обработчика onClick в состоянии ошибки
+  successOverride?: TransactionButtonOverride; // Опциональные переопределения для текста и обработчика onClick в состоянии успеха
+  pendingOverride?: Pick<TransactionButtonOverride, 'text'>; // Опциональные переопределения для текста в состоянии ожидания
+  render?: (params: {
+    status: 'default' | 'success' | 'error' | 'pending';
+    onSubmit: () => void;
+    onSuccess: () => void;
+    isDisabled: boolean;
+    context: TransactionContextType;
+  }) => ReactNode; // Пользовательская функция рендера для полного контроля над отображением кнопки
+};
+```
+
+### TransactionSponsorProps
+
+```ts
+type TransactionSponsorProps = {
+  className?: string; // Опциональное имя CSS-класса для стилизации компонента спонсора
+};
+```
+
+### TransactionStatusProps
+
+```ts
+type TransactionStatusProps = {
+  children?: ReactNode; // Дочерние компоненты для отображения внутри компонента статуса
+  className?: string; // Опциональное имя CSS-класса для стилизации компонента статуса
+};
+```
+
+### TransactionStatusActionProps
+
+```ts
+type TransactionStatusActionProps = {
+  className?: string; // Опциональное имя CSS-класса для стилизации
+};
+```
+
+### TransactionStatusLabelProps
+
+```ts
+type TransactionStatusLabelProps = {
+  className?: string; // Опциональное имя CSS-класса для стилизации
+};
+```
+
+### TransactionToastProps
+
+```ts
+type TransactionToastProps = {
+  children?: ReactNode; // Дочерние компоненты для отображения внутри компонента уведомления
+  className?: string; // Опциональное имя CSS-класса для стилизации компонента уведомления
+  duration?: number; // Опциональное значение для настройки времени до исчезновения уведомления
+  position?: 'top-center' | 'top-right' | 'bottom-center' | 'bottom-right'; // Опциональное свойство позиции для указания расположения уведомления на экране
+};
+```
+
+### TransactionToastActionProps
+
+```ts
+type TransactionToastActionProps = {
+  className?: string; // Опциональное имя CSS-класса для стилизации
+};
+```
+
+### TransactionToastIconProps
+
+```ts
+type TransactionToastIconProps = {
+  className?: string; // Опциональное имя CSS-класса для стилизации
+};
+```
+
+### TransactionToastLabelProps
+
+```ts
+type TransactionToastLabelProps = {
+  className?: string; // Опциональное имя CSS-класса для стилизации
+};
+```
+
+### Supporting Types
+
+```ts
+type Call = { to: Hex; data?: Hex; value?: bigint };
+
+type LifecycleStatus =
+  | { statusName: 'init'; statusData: null }
+  | { statusName: 'error'; statusData: TransactionError }
+  | { statusName: 'transactionIdle'; statusData: null }
+  | { statusName: 'buildingTransaction'; statusData: null }
+  | { statusName: 'transactionPending'; statusData: null }
+  | { statusName: 'transactionLegacyExecuted'; statusData: { transactionHashList: Address[] } }
+  | { statusName: 'success'; statusData: { transactionReceipts: TransactionReceipt[] } }
+  | { statusName: 'reset'; statusData: null };
+
+type TransactionError = {
+  code: string; // Код ошибки, представляющий тип ошибки транзакции
+  error: string; // Сообщение об ошибке с подробностями об ошибке транзакции
+  message: string; // Сообщение об ошибке с подробностями об ошибке транзакции
+};
+
+type TransactionResponseType = {
+  transactionReceipts: TransactionReceipt[];
+};
+```

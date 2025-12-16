@@ -1,43 +1,166 @@
-# Mintlify Starter Kit
+<p align="center">
+<img src="./Basemark.png" alt="Base logo" width="480" />
+</p>
 
-Use the starter kit to get your docs deployed and ready to customize.
+<!-- Блок 1 - статус -->
 
-Click the green **Use this template** button at the top of this repo to copy the Mintlify starter kit. The starter kit contains examples with
+[![GitHub contributors](https://img.shields.io/github/contributors/base/docs)](https://github.com/base/docs/graphs/contributors)
+[![GitHub commit activity](https://img.shields.io/github/commit-activity/w/base/docs)](https://github.com/base/docs/graphs/contributors)
+[![GitHub Stars](https://img.shields.io/github/stars/base/docs.svg)](https://github.com/base/docs/stargazers)
+![GitHub repo size](https://img.shields.io/github/repo-size/base/docs)
+[![GitHub](https://img.shields.io/github/license/base/docs?color=blue)](https://github.com/base/docs/blob/main/LICENSE.md)
 
-- Guide pages
-- Navigation
-- Customizations
-- API reference pages
-- Use of popular components
+<!-- Блок 2 - ссылки и профили -->
 
-**[Follow the full quickstart guide](https://starter.mintlify.com/quickstart)**
+[![Website base.org](https://img.shields.io/website-up-down-green-red/https/base.org.svg)](https://base.org)
+[![Blog](https://img.shields.io/badge/blog-up-green)](https://base.mirror.xyz/)
+[![Docs](https://img.shields.io/badge/docs-up-green)](https://docs.base.org/)
+[![Discord](https://img.shields.io/discord/1067165013397213286?label=discord)](https://base.org/discord)
+[![Twitter Base](https://img.shields.io/twitter/follow/Base?style=social)](https://twitter.com/Base)
 
-## Development
+<!-- Блок 3 - детальный статус -->
 
-Install the [Mintlify CLI](https://www.npmjs.com/package/mint) to preview your documentation changes locally. To install, use the following command:
+[![GitHub pull requests by-label](https://img.shields.io/github/issues-pr-raw/base/docs)](https://github.com/base/docs/pulls)
+[![GitHub Issues](https://img.shields.io/github/issues-raw/base/docs.svg)](https://github.com/base/docs/issues)
 
-```
+Документация Base управляется сообществом. Мы приветствуем и поощряем вклад каждого, чтобы поддерживать эти документы точными, полезными и актуальными.
+
+> Примечание: Этот репозиторий используется для публичного сайта документации Base. Контент находится в папке `docs/`.
+
+## Локальная разработка
+
+Предварительное требование: Node.js v19+.
+
+1. Клонируйте репозиторий.
+2. Установите Mint CLI для локального просмотра изменений документации:
+
+```bash
 npm i -g mint
 ```
 
-Run the following command at the root of your documentation, where your `docs.json` is located:
+3. Просмотр локально (запустите из директории docs/, где находится docs.json):
 
-```
+```bash
+cd docs
 mint dev
 ```
 
-View your local preview at `http://localhost:3000`.
+Альтернативно, без глобальной установки:
 
-## Publishing changes
+```bash
+npx mint dev
+```
 
-Install our GitHub app from your [dashboard](https://dashboard.mintlify.com/settings/organization/github-app) to propagate changes from your repo to your deployment. Changes are deployed to production automatically after pushing to the default branch.
+### Устранение неполадок
 
-## Need help?
+- Убедитесь, что установлена Node.js версии 19 или выше, и что вы запускаете команду mint dev из каталога, содержащего файл docs.json (обычно это папка docs/).
+- Локальный просмотр отличается от продакшена: выполните `mint update` для обновления CLI.
 
-### Troubleshooting
+## Как внести вклад
 
-- If your dev environment isn't running: Run `mint update` to ensure you have the most recent version of the CLI.
-- If a page loads as a 404: Make sure you are running in a folder with a valid `docs.json`.
+1. **Fork and branch (Сделайте форк и ветку)**: Сделайте форк `base/docs` и создайте описательную ветку для ваших изменений.
+2. **Edit content in `docs/` (Редактируйте контент в `docs/`)**: Следуйте структуре и стилю, указанным ниже. Просматривайте изменения локально с помощью Mint CLI.
+3. **Open a pull request (Откройте pull request)**: Предоставьте четкое описание и ссылки на связанные страницы. Команда документации и сообщество проведут ревью.
 
-### Resources
-- [Mintlify documentation](https://mintlify.com/docs)
+> Совет: Отдавайте предпочтение небольшим, сфокусированным PR (Pull Request). Связывайте связанные руководства и ссылки непосредственно в вашем контенте.
+
+## Структура документации
+
+### Основной принцип: сохраняйте существующую структуру
+
+> Предупреждение: Не создавайте новые разделы верхнего уровня. Размещайте весь новый контент в существующих папках внутри `docs/`.
+
+Документация Base организована в установленные разделы (например: `get-started/`, `learn/`, `base-account/`, `base-app/`, `base-chain/`, `cookbook/`, `mini-apps/`, `onchainkit/`). Размещайте новый контент в наиболее подходящем существующем разделе.
+
+### Политика навигации
+
+> Примечание: Мы обычно не меняем глобальную навигацию (вкладки верхнего уровня) или разделы боковой панели, если нет четкой, широко полезной необходимости. Вклад должен быть сосредоточен на улучшении существующих страниц и добавлении новых страниц в текущих разделах.
+
+### Назначение и размещение разделов
+
+- **Quickstart (Быстрый старт)**: Полная настройка до первого успеха. Сохраняйте лаконичность и актуальность.
+- **Concepts (Концепции)**: Объяснения компонентов, архитектуры и философии дизайна.
+- **Guides (Руководства)**: Пошаговые, ориентированные на действие туториалы для конкретных задач.
+- **Examples (Примеры)**: Полные, запускаемые примеры, демонстрирующие реальное использование.
+- **Technical Reference (Техническая справка)**: Спецификации API/методов/компонентов с параметрами и типами возвращаемых значений.
+- **Contribute (Вклад)**: Информация для контрибьюторов и обновления процессов.
+
+#### Область применения Cookbook
+
+- Раздел `cookbook/` содержит руководства и паттерны, ориентированные на варианты использования, а не на документацию по конкретным продуктам.
+- Отдавайте предпочтение комплексным решениям, демонстрирующим, как создавать проекты на Base с использованием различных инструментов и сценариев.
+
+> Предупреждение: Избегайте разрастания подразделов:
+> - Размещайте все руководства на одном уровне внутри раздела Guides.
+> - Организуйте Reference по компонентам/функциям, а не по вариантам использования.
+> - Используйте перекрестные ссылки вместо добавления новых структурных слоев.
+
+## Стиль и форматирование
+
+### Стиль написания
+
+1. Будьте краткими и последовательными; используйте активный залог и второе лицо.
+2. Сосредоточьтесь на основном сценарии; кратко упоминайте альтернативы там, где это уместно.
+3. Используйте явные, описательные заголовки и имена файлов.
+4. Сохраняйте единообразную терминологию; вводите сокращения при первом использовании.
+
+### Контент, удобный для ИИ
+
+- Используйте ясный, однозначный язык и напрямую связывайте связанные страницы.
+- Предпочитайте маркированные списки для опций/шагов, когда они не являются последовательными.
+- Явно называйте и ссылайтесь на библиотеки и инструменты.
+- Используйте семантические, читаемые URL и избегайте неоднозначных сокращений.
+
+> Контрольный список:
+> - Поймёт ли большая языковая модель этот контент и сможет ли корректно следовать ему?
+> - Может ли инженер скопировать, вставить и запустить примеры как есть?
+
+### Форматирование Mintlify
+
+- Начинайте основные разделы с H2 (`##`) и подразделы с H3 (`###`).
+- Используйте блоки кода с указанием языка и необязательным именем файла.
+- Оберните изображения в <Frame> и добавьте `alt` текст.
+- Используйте callouts для выделения: `<Note>`, `<Tip>`, `<Warning>`, `<Info>`, `<Check>`.
+- Для процедур предпочитайте `<Steps>` / `<Step>`.
+- Для альтернатив используйте `<Tabs>` / `<Tab>`.
+- Для документации API используйте `<ParamField>`, `<ResponseField>` и примеры запросов/ответов.
+
+### Примеры кода
+
+- Предоставляйте полные, запускаемые примеры с реалистичными данными.
+- Включайте правильную обработку ошибок и граничные случаи.
+- Указывайте язык и имя файла, когда это полезно.
+- Показывайте ожидаемый вывод или шаги проверки.
+
+## Политика сторонних руководств
+
+> Предупреждение: Мы обычно не принимаем руководства, которые в основном документируют сторонний продукт. Исключения требуют четкого варианта использования, ориентированного на Base, и тесной интеграции с продуктами Base. Простое развертывание на Base или подключение к Base Account/Base App недостаточно.
+
+Если ваша цель - повысить видимость вашего продукта, пожалуйста, запросите включение на странице Base Ecosystem вместо этого. Смотрите инструкции по [обновлению страницы Base Ecosystem](https://github.com/base/web?tab=readme-ov-file#updating-the-base-ecosystem-page).
+
+## Контрольный список для проверки (перед отправкой PR)
+
+- [ ] Соответствует существующей структуре (без новых разделов верхнего уровня)
+- [ ] Только минимальные, необходимые подразделы
+- [ ] Единообразная терминология; сокращения вводятся при первом использовании
+- [ ] Примеры кода должны быть полными, корректно выполняться и проходить проверку.
+- [ ] Включены перекрестные ссылки на связанные руководства/примеры/справочники
+- [ ] Корректно использует компоненты Mintlify и иерархию заголовков
+- [ ] Доступные изображения с описательным `alt` текстом и фреймами
+- [ ] Удобно для ИИ: явный, богатый ссылками и легкий для понимания
+
+## Процесс отправки
+
+1. Создайте PR (pull request) в `https://github.com/base/docs` с вашими изменениями.
+2. Включите четкое описание изменений и затронутых страниц.
+3. Запросите ревью у команды документации.
+4. Учитывайте обратную связь и итерируйте.
+5. После одобрения изменения будут объединены и опубликованы.
+
+## Публикация изменений
+
+Основная команда просматривает открытые PR. Время обработки (SLA) составляет 2 недели — обычно в порядке очереди, за исключением срочных изменений.
+
+## Storybook для UI компонентов
+
+Смотрите `storybook/README.md` для деталей о локальном Storybook и документации компонентов.

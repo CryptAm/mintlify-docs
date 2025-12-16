@@ -1,0 +1,213 @@
+---
+title: "Sign in with Base"
+description: "Реализуйте аутентификацию Base Account, используя правильный поток SIWE с Wagmi"
+---
+
+Узнайте, как реализовать Sign in with Base с помощью Wagmi, получив доступ к провайдеру Base Account и следуя правильному потоку аутентификации SIWE (Sign-In With Ethereum).
+
+## Предварительные требования
+
+Перед тем как следовать этому руководству, убедитесь, что вы [настроили Wagmi с Base Account](/base-account/framework-integrations/wagmi/setup).
+
+## Обзор
+
+Чтобы реализовать Sign in with Base с Wagmi, вам необходимо:
+
+1. Получить коннектор Base Account из Wagmi
+2. Получить доступ к базовому провайдеру из коннектора
+3. Использовать `wallet_connect` с возможностями `signInWithEthereum`
+4. Проверить подпись на вашем бэкенде
+
+Этот процесс соответствует тому же потоку, что показан в [руководстве по аутентификации пользователей](/base-account/guides/authenticate-users), но интегрируется с системой коннекторов Wagmi.
+
+<Tip>
+Чтобы получить доступ к последней версии Base Account SDK в рамках Wagmi, вы можете использовать следующую команду для ее переопределения:
+
+```bash
+npm pkg set overrides.@base-org/account="latest"
+```
+Или вы можете использовать конкретную версию, добавив ее в `overrides`:
+```bash
+npm pkg set overrides.@base-org/account="2.2.0"
+```
+
+Убедитесь, что удалили папку `node_modules` и файл `package-lock.json`, а затем выполните новую установку, чтобы переопределения применились.
+</Tip>
+
+## Реализация
+
+### Примеры кода
+
+<CodeGroup>
+```ts Browser (Wagmi + SDK)
+import { useState } from 'react'
+import { useConnect, useAccount, useDisconnect } from 'wagmi'
+import { baseAccount } from 'wagmi/connectors'
+
+export function SignInWithBase() {
+  const [isLoading, setIsLoading] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+  const { isConnected, address } = useAccount()
+  const { connectAsync, connectors } = useConnect()
+  const { disconnect } = useDisconnect()
+
+  // Находим коннектор Base Account
+  const baseAccountConnector = connectors.find(
+    connector => connector.id === 'baseAccount'
+  )
+
+  const handleSignIn = async () => {
+    if (!baseAccountConnector) {
+      setError('Base Account connector not found')
+      return
+    }
+
+    setIsLoading(true)
+    setError(null)
+
+    try {
+      // 1 - получаем свежий nonce (генерируем локально или предварительно загружаем с бэкенда)
+      const nonce = window.crypto.randomUUID().replace(/-/g, '')
+      // ИЛИ предзагружаем с сервера
+      // const nonce = await fetch('/auth/nonce').then(r => r.text())
+
+      // 2 - подключаемся и получаем провайдер
+      await connectAsync({ connector: baseAccountConnector })
+      const provider = baseAccountConnector.provider
+
+      // 3 - аутентифицируемся с помощью wallet_connect
+      const authResult = await provider.request({
+        method: 'wallet_connect',
+        params: [{
+          version: '1',
+          capabilities: {
+            signInWithEthereum: { 
+              nonce, 
+              chainId: '0x2105' // Base Mainnet - 8453
+            }
+          }
+        }]
+      })
+
+      const { accounts } = authResult
+      const { address, capabilities } = accounts[0]
+      const { message, signature } = capabilities.signInWithEthereum
+
+      // 4 - проверяем на бэкенде
+      await fetch('/auth/verify', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ address, message, signature })
+      })
+    } catch (err: any) {
+      console.error(`err ${err}`)
+      setError(err.message || 'Sign in failed')
+    } finally {
+      setIsLoading(false)
+    }
+  }
+
+  if (isConnected) {
+    return (
+      <div className="flex items-center gap-4">
+        <span className="font-mono text-sm">{address}</span>
+        <button onClick={() => disconnect()}>Sign Out</button>
+      </div>
+    )
+  }
+
+  return (
+    <button onClick={handleSignIn} disabled={isLoading}>
+      {isLoading ? 'Signing in...' : 'Sign in with Base'}
+    </button>
+  )
+}
+```
+```ts Backend (Viem)
+import { createPublicClient, http } from 'viem';
+import { base } from 'viem/chains';
+
+const client = createPublicClient({ chain: base, transport: http() });
+
+export async function verifySig(req, res) {
+  const { address, message, signature } = req.body;
+  const valid = await client.verifyMessage({ address, message, signature });
+  if (!valid) return res.status(401).json({ error: 'Invalid signature' });
+  // создаем сессию / JWT
+  res.json({ ok: true });
+}
+```
+</CodeGroup>
+
+### 3. Использование готового компонента кнопки
+
+Вы также можете использовать официальный компонент кнопки [Sign In With Base](/base-account/reference/ui-elements/sign-in-with-base-button):
+
+```tsx
+// components/SignInButton.tsx
+import { SignInWithBaseButton } from '@base-org/account-ui/react'
+import { useConnect } from 'wagmi'
+
+export function SignInButton() {
+  const { connectAsync, connectors } = useConnect()
+
+  const handleSignIn = async () => {
+    const baseAccountConnector = connectors.find(
+      connector => connector.id === 'baseAccount'
+    )
+
+    if (!baseAccountConnector) return
+
+    try {
+      // Генерируем nonce
+      const nonce = window.crypto.randomUUID().replace(/-/g, '')
+
+      // Подключаемся и получаем провайдер
+      await connectAsync({ connector: baseAccountConnector })
+      const provider = baseAccountConnector.provider
+
+      // Выполняем аутентификацию SIWE
+      const authResult = await provider.request({
+        method: 'wallet_connect',
+        params: [{
+          version: '1',
+          capabilities: {
+            signInWithEthereum: { 
+              nonce, 
+              chainId: '0x2105'
+            }
+          }
+        }]
+      })
+
+      // Извлекаем и проверяем подпись
+      const { accounts } = authResult
+      const { address, capabilities } = accounts[0]
+      const { message, signature } = capabilities.signInWithEthereum
+
+      // Отправляем на бэкенд для проверки
+      await fetch('/auth/verify', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ address, message, signature })
+      })
+    } catch (error) {
+      console.error('Authentication failed:', error)
+    }
+  }
+
+  return (
+    <SignInWithBaseButton
+      colorScheme="light"
+      onClick={handleSignIn}
+    />
+  )
+}
+```
+
+<Warning>
+**Пожалуйста, следуйте руководству по бренду** 
+
+Если вы планируете использовать SignInWithBaseButton, пожалуйста, следуйте [руководству по Бренду](/base-account/reference/ui-elements/brand-guidelines) чтобы обеспечить единообразие в вашем приложении.
+
+</Warning>

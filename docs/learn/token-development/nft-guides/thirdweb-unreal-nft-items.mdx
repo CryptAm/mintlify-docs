@@ -1,0 +1,640 @@
+---
+title: 'Thirdweb и Unreal - NFT Предметы'
+slug: /thirdweb-unreal-nft-items
+description: Узнайте, как использовать NFT в качестве внутриигровых предметов с помощью Thirdweb и Unreal.
+author: briandoyle81
+---
+
+# Thirdweb и Unreal - NFT-предметы
+
+[thirdweb] предоставляет ряд контрактов и инструментов для разработки в ончейне. Их [Gaming SDK] обеспечивает бесшовное подключение, кроссплатформенную поддержку и множество других функций. Он совместим с [Unreal Engine] и может использоваться для добавления ончейн-элементов в ваши игры.
+
+В этом руководстве вы узнаете, как добавить использование NFT-предметов поверх демо-игры, которую вы создаете в их [Unreal Engine Quickstart]. А именно, вы будете использовать коллекцию NFT со случайными цветами, чтобы изменять цвет гоночной машины игрока.
+
+![Color changing car nft](/images/build-with-thirdweb/car-color-nft.gif)
+
+## Цели
+
+К концу этого руководства вы должны уметь:
+
+- Получать NFT пользователя в игре на Unreal Engine
+- Применять элементы из NFT к игровым объектам
+- Награждать игроков NFT за игровые достижения или действия
+
+## Предварительные требования
+
+### Токены ERC-721
+
+В этом руководстве предполагается, что вы умеете писать, тестировать и развертывать собственные токены ERC-721, используя язык программирования Solidity. Если вам нужно сначала изучить это, ознакомьтесь с нашими материалами в [Base Learn] или разделами, посвященными [ERC-721 Tokens]!
+
+### Unreal Engine
+
+В этом руководстве будет рассказано обо всем, что вам нужно знать для достижения учебных целей, но оно не научит вас создавать игру. Вам нужно будет предпринять дополнительные шаги, чтобы изучить [Unreal Engine] самостоятельно. Вам также необходимо настроить Visual Studio или Visual Studio Code для редактирования и компиляции файлов Unreal.
+
+### Ончейн-приложения
+
+В руководстве предполагается, что вы знакомы с основами развертывания приложения и подключения его к смарт-контракту. Если вы все еще изучаете эту часть, ознакомьтесь с нашими руководствами в [Base Learn] по [Building an Onchain App].
+
+## Обзор контракта
+
+В нашем руководстве по созданию [Simple Onchain NFTs], вы можете найти пример контракта NFT ERC-721. Это расширение реализации [OpenZeppelin ERC-721]. Когда пользователь выполняет минт, он получает NFT со случайным цветом. Метаданные и SVG-изображение полностью находятся в ончейне. Изображение представляет собой простой `rect` размером 1024*1024 с `fill` случайно сгенерированного цвета.
+
+Если пользователю не нравится цвет, он может его изменить, и NFT сменится на новый случайно выбранный цвет.
+
+Эти NFT не имеют ограничений на торговлю. Контракт включает утилити-функцию `getNftsOwned`, которая возвращает массив, содержащий `tokenId` и строку метаданных в кодировке base64 для всех токенов, которыми в данный момент владеет предоставленный `address`.
+
+## Начало работы с Unreal
+
+Продолжайте чтение ниже, чтобы получить несколько советов по выполнению руководства [Unreal Engine Quickstart] предоставленного thirdweb. Это руководство проведет вас через установку Unreal Engine и настройку основных компонентов [Gaming SDK] от thirdweb.
+
+Оно также проведет вас через настройку веб-сайта и бэкенда, необходимых для поддержки интеграции игры. Клиент в их примере использует Next.js, а сервер построен на Node и Express.
+
+### Настройка Engine
+
+Сначала вам нужно настроить [Engine]. Для тестирования вы можете [run it locally] с помощью контейнера [Docker].
+
+При необходимости установите или обновите [Docker] и [Postgres].
+
+Запустите Postgres:
+
+```shell
+docker run -p 5432:5432 -e POSTGRES_PASSWORD=postgres -d postgres
+```
+
+Убедитесь, что Docker Desktop запущен.
+
+Создайте [thirdweb API key]. При создании ключа API разрешите `localhost:3000` и `localhost:8000`. При развертывании вам нужно будет обновить разрешенные домены.
+
+Команда для запуска самого Engine сложна и имеет множество параметров. Вам нужно создать файл и запускать его из него. Создайте `thirdweb-engine.sh` в удобном месте и добавьте:
+
+```shell
+docker run \
+  -e ENCRYPTION_PASSWORD="<encryption_password>" \
+  -e THIRDWEB_API_SECRET_KEY="<thirdweb_secret_key>" \
+  -e ADMIN_WALLET_ADDRESS="<admin_wallet_address>" \
+  -e POSTGRES_CONNECTION_URL="postgresql://postgres:postgres@host.docker.internal:5432/postgres?sslmode=disable" \
+  -e ENABLE_HTTPS=true \
+  -p 3005:3005 \
+  --pull=always \
+  --cpus="0.5" \
+  thirdweb/engine:latest
+```
+
+Введите ваш `THIRDWEB_API_SECRET_KEY` и адрес кошелька, под которым вы входите в thirdweb, в качестве `ADMIN_WALLET_ADDRESS`. Вы можете увидеть полный список [environment variables] в документации, но сейчас вам не нужно задавать никакие другие.
+
+Дайте вашему скрипту разрешение на выполнение с помощью `chmod +x ./thirdweb-engine.sh` а затем запустите его командой `./thirdweb-engine.sh
+`.
+
+Запуск займет некоторое время, и вы можете игнорировать предупреждение `Chain Indexer Listener not started...`.
+
+Когда Engine запустится, перейдите по адресу `https://localhost:3005/json`. Нажмите через предупреждение о небезопасном соединении. Это позволит вашему браузеру подключиться к вашему экземпляру Engine.
+
+<Caution>
+
+У нас нет официальной рекомендации по браузеру, но во время наших тестов Chrome работал, а Brave - нет, при настройке и конфигурации Engine.
+
+</Caution>
+
+Перейдите в [thirdweb engine dashboard], и нажмите кнопку `Import`. Введите имя и локальный адрес для вашего экземпляра Engine:
+
+![Add engine instance](/images/build-with-thirdweb/import-image-instance.png)
+
+Далее вы должны добавить ваш кошелек в экземпляр Engine. Откройте экземпляр в панели управления, затем нажмите кнопку `Import` рядом с `Backend Wallets`. Введите ваш секретный ключ для кошелька.
+
+<Danger>
+
+Помните, что ключ кошелька дает полный доступ ко всем активам внутри него. Используйте разные кошельки для разработки и отдельных производственных задач. Не храните и не пополняйте производственный кошелек какими-либо активами, кроме минимально необходимой суммы для выполнения задачи.
+
+</Danger>
+
+**Обязательно пополните** этот кошель ETH на Base Sepolia. Он будет оплачивать газ за транзакции.
+
+<Caution>
+
+Ключ от вашего кошелька хранится в оперативной памяти самого Engine. Вам нужно будет добавлять его заново при каждом перезапуске Engine.
+
+</Caution>
+
+## Настройка клиента и сервера
+
+Склонируйте репозиторий [engine-express]. Перейдите в `client` и `server`, выполните `yarn`, чтобы установить зависимости, затем вернитесь в корневую директорию и снова выполните `yarn`.
+
+В папках `client` и `server` скопируйте или переименуйте файлы `.env.example` в `.env`.
+
+### Клиент
+
+В `.env` клиента:
+
+- Установите `NEXT_PUBLIC_THIRDWEB_CLIENT_ID` равным **Client ID**, соответствующему вашему [thirdweb API key]
+- Вам не нужно менять `NEXT_PUBLIC_BACKEND_URL`
+- Установите `NEXT_PUBLIC_THIRDWEB_AUTH_DOMAIN` как `localhost`
+
+В `.env` сервера:
+
+- Не меняйте `THIRDWEB_ENGINE_URL`. (Он **должен** быть `https`)
+- Установите `THIRDWEB_ENGINE_BACKEND_WALLET` таким же, как вы использовали при настройке Engine
+- Установите `THIRDWEB_AUTH_DOMAIN` как `localhost`
+- Установите `THIRDWEB_API_SECRET_KEY` равным **Secret Key**, соответствующему вашему [thirdweb API key]
+- Установите `THIRDWEB_AUTH_PRIVATE_KEY` равным приватному ключу, соответствующему вашему бэкенд-кошельку Engine
+
+Откройте `client/components/ThirdwebProvider.tsx`. Обновите `activeChain` на Base Sepolia.
+
+```tsx
+import { BaseSepoliaTestnet } from '@thirdweb-dev/chains';
+
+// Это идентификатор цепи, на которой будет работать ваше dApp.
+const activeChain = BaseSepoliaTestnet;
+```
+
+### Сервер
+
+Откройте `server/src/controllers/engineController.ts`.Обновите `const` в начале, чтобы загружать из переменных окружения:
+
+```tsx
+const ENGINE_URL = process.env.THIRDWEB_ENGINE_URL;
+const BACKEND_WALLET = process.env.THIRDWEB_ENGINE_BACKEND_WALLET;
+const ERC20_CONTRACT = process.env.ERC20_CONTRACT;
+const CHAIN = process.env.CHAIN;
+```
+
+Вам нужно будет развернуть свою собственную версию контракта [Token Drop]. Нажмите `Deploy Now`, затем введите имя, символ и изображение по вашему выбору.
+
+**Выберите `Base Sepolia Testnet` в качестве Сети / Цепи.**.
+
+Вы можете оставить `Recipient Address` как ваш подключенный адрес, и вам не нужно делать расширенную конфигурацию.
+
+Нажмите `Deploy Now`, и подтвердите транзакции для развертывания контракта и добавления его в вашу панель управления.
+
+Далее нажмите вкладку `Claim Conditions` в левой боковой панели. Затем нажмите кнопку `+ Add Phase` и выберите `Public`. Просмотрите параметры, но для этой демонстрации не меняйте их. Нажмите `Save Phases`.
+
+<Caution>
+
+Если позже в руководстве вы получите ошибку при попытке запросить токен, но не ошибку каждые четыре секунды при проверке баланса, это означает, что вы пропустили этот шаг.
+
+</Caution>
+
+Скопируйте адрес с панели управления:
+
+![Token Airdrop Dashboard](/images/build-with-thirdweb/token-airdrop-dashboard.png)
+
+Вернитесь к `.env` для вашего сервера и добавьте:
+
+```env
+ERC20_CONTRACT=0x... # Your Address
+CHAIN=84532 # Base Sepolia
+```
+
+Запустите клиент и сервер с помощью `yarn client` и `yarn server`. Перейдите по адресу `localhost:3000`, создайте пользователя и привяжите кошелек.
+
+## Настройка игры
+
+Клонируйте [Unreal Demo] от thirdweb и откройте его в Unreal Editor. Для этого нажмите вкладку `Recent Projects` в верхнем левом углу, затем `Browse` в правом нижнем углу.
+
+![Open Unreal Project](/images/build-with-thirdweb/open-unreal-project.png)
+
+Откройте папку, клонированную из репозитория, и выберите `unreal_demo.uproject`. Возможно, вам потребуется преобразовать проект в текущую версию Unreal. Нажмите кнопку `Open a copy`.
+
+Когда сцена загрузится, дважды щелкните на `Scene_Game` в правом верхнем углу.
+
+![Scene Game](/images/build-with-thirdweb/scene-game.png)
+
+Прежде чем играть, вам нужно выполнить некоторые настройки. Прокрутите вниз в `Outliner`, пока не найдете `ThirdWebManager`. Нажмите кнопку `Open Thirdweb Manager`, чтобы открыть файл в редакторе.
+
+![Open Thirdweb Manager](/images/build-with-thirdweb/open-thirdweb-manager.png)
+
+Затем нажмите зеленую кнопку воспроизведения в верхней части окна просмотра.
+
+![Play Button](/images/build-with-thirdweb/play-button.png)
+
+Войдите в систему, используя учетные данные, созданные на веб-сайте, и поиграйте минуту или две. Если вы получите ошибку 404, проверьте, что ваш Engine, клиент и сервер все еще запущены.
+
+<Caution>
+
+Демонстрация фактически не имеет подключенной базы данных для пользователей. Вам нужно будет заново создавать пользователя каждый раз при перезапуске сервера. Для продакшена вам нужно будет заменить это на реальную базу данных.
+
+</Caution>
+
+Если вы получите ошибку 500 `"No configured wallet found with address 0xABCD...."`, это потому, что вы не добавили свой кошелек в [thirdweb engine dashboard].
+
+В противном случае игра должна запуститься, и вы будете получать ERC20 NFT каждый раз, когда собираете один из оранжевых шаров на гоночной трассе.
+
+## Добавление смены цвета
+
+Ваша следующая цель - сделать так, чтобы игроки могли использовать свои NFT со случайными цветами в качестве скинов для гоночной машины. Вам нужно будет развернуть [contract provided below], настроить доступ к нему через сервер и Engine и, наконец, позволить использовать цвета из NFT для изменения цвета машины.
+
+### Развертывание контракта
+
+Вы также будете использовать платформу thirdweb для развертывания этого контракта. Откройте новую папку в редакторе и выполните:
+
+```shell
+npx thirdweb create contract
+```
+
+Затем:
+
+- Назовите проект - `random-color-nft`, или `.` если вы запускаете скрипт из папки, где должен быть проект
+- Выберите ваше предпочтение: `Forge` или `Hardhat`
+- Назовите контракт NFT - `RandomColorNFT`
+- Выберите `Empty Contract`
+
+Откройте `contracts/Contract.sol` и замените содержимое на [contract provided below].
+
+Вам нужно будет импортировать или установить контракты OpenZeppelin. Также, возможно, потребуется обновить конфигурацию для вашей среды разработки до `0.8.24`.
+
+Выполните `yarn build`.
+
+Выберите `y`, чтобы установить пакет thirdweb, и дождитесь завершения работы скрипта.
+
+Выполните `yarn deploy`.
+
+Если вы не связали свое устройство с вашим аккаунтом thirdweb, браузер откроет страницу с предложением установить соединение. Сделайте это сейчас.
+
+После того как скрипт поработает некоторое время, он откроет панель управления thirdweb с открытым интерфейсом развертывания. Выберите `Base Sepolia Testnet` в качестве сети, затем нажмите кнопку `Deploy Now`. Подпишите транзакцию и дождитесь развертывания контракта.
+
+### Добавление контракта на сервер
+
+Скопируйте адрес контракта в буфер обмена и вернитесь в `thirdweb-engine-express`. Откройте `server/.env` и добавьте:
+
+```env
+RANDOM_COLOR_NFT_CONTRACT=<your contract address>
+```
+
+Откройте `server/src/controllers/engineController.ts` и также добавьте его туда:
+
+```tsx
+const RANDOM_COLOR_NFT_CONTRACT = process.env.RANDOM_COLOR_NFT_CONTRACT;
+```
+
+Теперь, используя `claimERC20` в качестве шаблона, добавьте функцию `claimRandomColorNFT`. Она идентична, за исключением `url`, `body` и сообщения об ошибке:
+
+```tsx
+// Остальной код...
+const url = `${ENGINE_URL}/contract/${CHAIN}/${RANDOM_COLOR_NFT_CONTRACT}/write`;
+// Остальной код
+const body = {
+  functionName: 'mintTo',
+  args: [user.ethAddress],
+};
+// Остальной код
+res.status(400).json({ message: 'Error claiming RandomColorNFT' });
+```
+
+<Info>
+
+Для продакшена лучшей практикой было бы создать более обобщенную функцию, которая может обрабатывать несколько запросов к вашим контрактам. Мы пропустим это сейчас, чтобы не пришлось рефакторить существующие коллекционные предметы в игре.
+
+</Info>
+
+Далее вам нужно добавить маршрут для этой функции. Откройте `server/src/routes/engineRoutes.ts`. Импортируйте `claimRandomColorNFT` и добавьте для него маршрут:
+
+```tsx
+router.post('/claim-random-color-nft', claimRandomColorNFT);
+```
+
+### Получение NFT из игры
+
+Вернитесь в Unreal Editor и откройте `ThirdwebManager.cpp`:
+
+![Open ThirdwebManager.cpp](/images/build-with-thirdweb/open-thirdweb-manager.png).
+
+Аналогично тому, что вы делали на сервере, используйте существующий `PerformClaim()` в качестве шаблона, чтобы добавить функцию для `PerformNFTClaim()`. Единственное отличие - это имя функции и URL:
+
+```c++
+HttpRequest->SetURL(this->ServerUrl + "/engine/claim-random-color-nft");
+```
+
+<Info>
+
+Опять же, лучшей практикой было бы обобщить эту функцию, но вы можете пропустить это сейчас, чтобы не обновлять все коллекционные предметы.
+
+</Info>
+
+Далее вам нужно дать знать редактору об этой новой функции. Откройте `Source/unreal_demo/Public/ThirdwebManager.h`. Добавьте вашу новую функцию под той, что для `PerformClaim();`
+
+```c++
+// Функция для выполнения операции запроса NFT
+UFUNCTION(BlueprintCallable, Category = "Thirdweb")
+void PerformNFTClaim();
+```
+
+**Соберите ваш проект**
+
+После завершения компиляции вернитесь в UnrealEditor. В `Outliner` откройте папку `Collectibles` и нажмите `Edit Collectible`. В новом окне нажмите `File->Save As...` и сохраните копию как `CollectibleNFT`.
+
+Откройте `Content Drawer` внизу, найдите `CollectibleNFT` и перетащите один в сцену. Найдите его в `Outliner` и нажмите `Edit Collectible NFT`.
+
+Найдите вызов функции `Perform Claim` и замените его на `Perform NFT Claim`. **Обратите внимание**, что `Target` передается из `Get Actor of Class`.
+
+![Perform NFT Claim](/images/build-with-thirdweb/perform-nft-claim.png)
+
+Вам нужно будет отличать этот коллекционный предмет, поэтому нажмите на меш `Collectible` в дереве `Component` на левой стороне, затем на панели `Details` справа найдите раздел `Materials` и измените его на `MI_Solid_Blue`.
+
+Нажмите иконки вверху, чтобы `Compile` и сохранить ваш ассет.
+
+Из панели контента перетащите ваш ассет в окно просмотра.
+
+Теперь вы должны увидеть синий шар, парящий там, где вы его разместили.
+
+Убедитесь, что шар находится достаточно низко, чтобы через него можно было проехать, затем запустите игру. Соберите шар, затем проверьте в блок-эксплорере, что вы получили NFT.
+
+### Окрашивание машины
+
+В обозревателе контента откройте `All>Content>Vehicles>SportsCar>Materials`. Щелкните правой кнопкой мыши в пустом месте и выберите `Material>Material Parameter Collection`. Назовите свою коллекцию `NFT_MPS`. Откройте коллекцию, нажмите `+` чтобы добавить элемент в `Vector Parameters` и создайте цвет по вашему выбору. Ярко-красный - хороший вариант, чтобы ваше изменение было очень заметным.
+
+Снова щелкните правой кнопкой мыши в пустом месте и выберите `Create Basic Asset>Material`. Назовите ваш новый материал `M_NFT_Color`. Откройте его двойным щелчком.
+
+Щелкните правой кнопкой мыши на графе и добавьте ноду `Collection Parameter`. На панели `Details` слева выберите вашу коллекцию `NFT_MPS` и выберите первый вектор для `Parameter Name`.
+
+Подключите выход к `Base Color` ноды `M_NFT_Color`, затем сохраните и закройте редактор.
+
+Снова в обозревателе контента щелкните правой кнопкой мыши на ассете `M_NFT_Color` и выберите `Create Material Instance`. Назовите экземпляр `MI_NFT_Color`.
+
+Перейдите к мешу спортивной машины, расположенному в `VehicleTemplate>Blueprints>SportsCar` и дважды щелкните, чтобы открыть `SportsCar_pawn`. Выберите `Mesh` из дерева `Components` и вы должны увидеть машину в редакторе.
+
+На правой стороне измените материал `Element 2` на `MI_NFT_Color`. Машина теперь ярко-красная. Отлично! Прокатитесь на вашей новой красной машине.
+
+### Получение цветов NFT
+
+Вернитесь в `engine-express` и откройте `engineController.ts`. AДобавьте функцию `getNFTColors` которая использует конечную точку `read` для вызова функции `getNFTsOwned`.
+
+```tsx
+export const getNFTColors = async (req: Request, res: Response) => {
+  const { authToken } = req.body;
+  if (!authToken || !userTokens[authToken]) {
+    return res.status(400).json({ message: 'Invalid auth token' });
+  }
+  const user = userTokens[authToken];
+  try {
+    const url = `${ENGINE_URL}/contract/${CHAIN}/${RANDOM_COLOR_NFT_CONTRACT}/read?functionName=getNftsOwned&args=${user.ethAddress}`;
+    const headers = {
+      'x-backend-wallet-address': BACKEND_WALLET,
+      Authorization: `Bearer ${process.env.THIRDWEB_API_SECRET_KEY}`,
+    };
+
+    const response = await axiosInstance.get(url, { headers: headers });
+
+    // TODO:  Извлечь цвет из изображения
+
+    // TODO: Заменить ответ
+    res.json(response.data);
+  } catch (error) {
+    console.error(error);
+    res.status(400).json({ message: 'Error getting NFT data' });
+  }
+};
+```
+
+Вам также нужно будет добавить эту функцию в `engineRoutes.ts`:
+
+```tsx
+router.post('/get-nft-colors', getNFTColors);
+```
+
+Вернитесь в `engineController.ts`.
+
+Поскольку Unreal не поддерживает SVG, вам нужно извлечь цвет из метаданных вашего NFT и передать его для использования в созданном вами материале. Для начала добавьте тип для ответа и для JSON-метаданных:
+
+```tsx
+type NFTData = {
+  tokenId: bigint;
+  metadata: string;
+};
+
+type JSONMetadata = {
+  name: string;
+  description: string;
+  image: string;
+};
+```
+
+Вам также понадобятся вспомогательные функции для декодирования метаданных и SVG в кодировке base64, а затем получения цвета из SVG.
+
+```tsx
+function getJsonMetadata(nft: NFTData) {
+  const base64String = nft.metadata.split(',')[1];
+  const jsonString = atob(base64String);
+  return JSON.parse(jsonString) as JSONMetadata;
+}
+
+function getColorFromBase64StringSVG(base64String: string) {
+  const base64Data = base64String.split(',')[1];
+  const svgString = atob(base64Data);
+  const color = svgString.match(/fill=['"](#[0-9a-fA-F]{6})['"]/);
+  return color ? color[1] : '#000000';
+}
+```
+
+Используйте их для извлечения массива цветов и его возврата:
+
+```tsx
+const nfts = response.data.result.map((item: any) => {
+  return {
+    tokenId: item[0],
+    metadata: item[1],
+  };
+});
+
+const metadata = nfts.map((nft: NFTData) => getJsonMetadata(nft));
+const colors = metadata.map((m: JSONMetadata) => getColorFromBase64StringSVG(m.image));
+
+res.json(colors);
+// Удалите res.json(response.data);
+```
+
+<Info>
+
+Для тестирования с помощью Postman или аналогичного инструмента закомментируйте проверку действительного `authToken` и жестко задайте адрес, о котором известно, что у него есть NFT.
+
+</Info>
+
+### Получение цветов в игре
+
+Вернитесь к игре в редакторе кода и откройте `ThirdwebManager.cpp` и `ThirdwebManager.h`. Как и раньше, добавьте функцию для вызова конечной точки на вашем сервере. На этот раз для получения массива цветов. Вам нужно будет сделать немного больше для этой функции, чтобы установить внутриигровую переменную для цветов.
+
+Сначала вам нужно добавить новый тип multicast делегата для обработки ответа в `ThirdwebManager.h`:
+
+```c++
+// ThirdwebManager.h
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FOnNFTColorsResponse, bool, bWasSuccessful, const TArray<FString> &, ResponseArray);
+```
+
+И предоставить его редактору:
+
+```c++
+// ThirdwebManager.h
+// Этот делегат срабатывает в C++, и Blueprints могут привязываться к нему.
+UPROPERTY(BlueprintAssignable, Category = "Thirdweb", meta = (DisplayName = "OnNFTColorsResponse"))
+FOnNFTColorsResponse;;
+```
+
+Затем добавьте функцию в `ThirdwebManager.cpp`. Она похожа, но обращается к конечной точке для массива цветов NFT и использует только что созданный вами ответ. Также она ожидает, что ответ будет массивом строк, а не поиском свойства с именем `result`:
+
+```c++
+// ThirdwebManager.cpp
+void AThirdwebManager::GetNFTColors()
+{
+	TSharedRef<IHttpRequest, ESPMode::ThreadSafe> HttpRequest = FHttpModule::Get().CreateRequest();
+	HttpRequest->SetURL(this->ServerUrl + "/engine/get-nft-colors"); // Конечная точка для получения цветов NFT
+	HttpRequest->SetVerb("POST");
+	HttpRequest->SetHeader(TEXT("Content-Type"), TEXT("application/json"));
+
+	TSharedPtr<FJsonObject> JsonObject = MakeShareable(new FJsonObject);
+	JsonObject->SetStringField("authToken", AuthToken);
+
+	FString OutputString;
+	TSharedRef<TJsonWriter<>> Writer = TJsonWriterFactory<>::Create(&OutputString);
+	FJsonSerializer::Serialize(JsonObject.ToSharedRef(), Writer);
+
+	UE_LOG(LogTemp, Warning, TEXT("OutputString: %s"), *OutputString);
+
+	HttpRequest->SetContentAsString(OutputString);
+
+	HttpRequest->OnProcessRequestComplete().BindLambda([this](FHttpRequestPtr Request, FHttpResponsePtr Response, bool bWasSuccessful)
+		{
+		if (bWasSuccessful && Response.IsValid())
+		{
+			int32 StatusCode = Response->GetResponseCode();
+			if (StatusCode == 200)
+			{
+				TArray<TSharedPtr<FJsonValue>> JsonArray;
+				TSharedRef<TJsonReader<>> Reader = TJsonReaderFactory<>::Create(Response->GetContentAsString());
+				if (FJsonSerializer::Deserialize(Reader, JsonArray) && JsonArray.Num() > 0)
+				{
+					TArray<FString> ResponseArray;
+					for (const TSharedPtr<FJsonValue>& Value : JsonArray)
+					{
+						FString StringValue;
+						if (Value->TryGetString(StringValue))
+						{
+							ResponseArray.Add(StringValue);
+						}
+					}
+					this->OnNFTColorsResponse.Broadcast(true, ResponseArray);
+					UE_LOG(LogTemp, Warning, TEXT("Get NFT Color response: %s"), *Response->GetContentAsString());
+					return;
+				}
+				this->OnNFTColorsResponse.Broadcast(false, TArray<FString>());
+			}
+			else
+			{
+				FString ErrorMsg = FString::Printf(TEXT("HTTP Error: %d, Response: %s"), StatusCode, *(Response->GetContentAsString()));
+				TArray<FString> ErrorArray;
+				ErrorArray.Add(ErrorMsg);
+				this->OnNFTColorsResponse.Broadcast(false, ErrorArray);
+				UE_LOG(LogTemp, Warning, TEXT("ErrorMsg: %s"), *ErrorMsg);
+			}
+		}
+		else
+		{
+			TArray<FString> ErrorArray;
+			ErrorArray.Add(TEXT("Failed to connect to the server."));
+			this->OnNFTColorsResponse.Broadcast(false, ErrorArray);
+			UE_LOG(LogTemp, Warning, TEXT("Failed to connect to the server."));
+		} });
+
+	HttpRequest->ProcessRequest();
+}
+```
+
+Наконец, предоставьте эту функцию редактору.
+
+```c++
+// ThirdwebManager.h
+// Функция для выполнения операции получения цветов NFT
+UFUNCTION(BlueprintCallable, Category = "Thirdweb")
+void GetNFTColors();
+```
+
+Скомпилируйте и перезагрузите проект в редакторе.
+
+В обозревателе контента найдите и откройте `Content>_Thirdweb>Blueprints>Canvas_HUD`.
+
+Под текстовым полем `Tokens` перетащите новый виджет `Text`. Установите имя вверху как `Label_Colors` и отметьте `Is Variable`. Измените `Content` на `Colors`. Если вы поместите его на правую сторону, переместите `Anchor` в правый верхний угол.
+
+В правом верхнем углу нажмите вкладку `Graph`. Добавьте ноду `Sequence`, чтобы разделить поток после `Get Actor Of Class`. Следуя той же схеме, что и в потоке получения ответа о балансе, добавьте тот, который получает цвета NFT.
+
+Сначала создайте ноду `Bind Event to OnNFTColorsResponse` затем создайте ноду `Custom Event` перетащив из `Event`.
+
+На данный момент просто возьмите последний цвет в массиве и установите его в HUD. Чтобы получить его, перетащите от `Response Array` в `OnNFTColorResponseReceived` и добавьте ноду `Last Index`. Снова перетащите от `Response Array` и добавьте ноду `Get (Ref)`. Подключите выход `Last Index` ко входу `Get`. Оттуда перетащите от выхода `Get` и добавьте ноду `To Text (String)`.
+
+Перетащите из исполнительного (белого) коннектора `OnNFTColorResponseReceived` и добавьте `Branch`, подключив `Was Successful` к `Condition`. Для состояния `True` перетащите и добавьте `SetText (Text)`. Щелкните правой кнопкой мыши и добавьте ссылку на `Label Colors` и перетащите ее в `Target` ноды `SetText`. Подключите `Return Value` ноды `To Text (String)` к `In Text`.
+
+Наконец, перетащите от `Bind Event to OnNFTColorsResponse` и добавьте ноду `Set Timer by Function Name`. Подключите `Return Value` ноды `Get Actor Of Class` к `Object`. Установите `Function Name` как `GetNFTColors`, а `Time` как `2.0`.
+
+В итоге у вас должно получиться что-то вроде этого:
+
+![Get NFT Colors](/images/build-with-thirdweb/get-nft-colors.png)
+
+Скомпилируйте блюпринт, затем запустите игру. Вы должны увидеть последний цвет в массиве в HUD и полный список, выводимый в консоль каждые две секунды.
+
+<Caution>
+
+Если у вас есть ошибка в вашей функции `GetNFTColors`, которая предотвращает вызов `.Broadcast`, ничто в ветке NFT Colors этого блюпринта не запустится, включая вывод в консоль.
+
+</Caution>
+
+### Изменение цвета машины
+
+Теперь, когда у вас есть цвета, вы можете использовать их для изменения цвета вашей машины! Пока вы можете просто установить для машины последний цвет, но самостоятельно вы захотите добавить виджет интерфейса, чтобы позволить игроку выбрать свой цвет.
+
+<Info>
+
+Если вы действительно хотите сделать что-то сложное, вы могли бы изменить контракт, чтобы он генерировал `event`, содержащий цвет нового сминченного NFT, извлечь его из квитанции и оптимистично сделать его доступным для игрока на несколько секунд раньше.
+
+</Info>
+
+Unreal не использует hex-цвета, поэтому вам нужно преобразовать вашу hex-строку в линейный цвет и сохранить его в `Material Parameter Collection`, который вы создали ранее.
+
+Преобразовать hex-код с помощью блюпринта очень сложно. К счастью, у Unreal есть полезное сообщество, которое создало множество утилит, включая [conversion function].
+
+<Danger>
+
+Копирование и вставка кода для игрового движка не так опасно, как копирование и вставка неизвестного кода смарт-контракта, но вы работаете на пересечении этих миров. Обязательно проверяйте и убедитесь, что понимаете все, что находите в Интернете.
+
+</Danger>
+
+В обозревателе контента добавьте `Blueprints>Blueprint Function Library` под названием `ColorUtils`. В ней добавьте функцию с именем `HexStringToColor`.
+
+Скопируйте код с сайта сообщества и вставьте его в функцию. Подключите ноду `Hex String to Color`  к ноде `SET` присоединенной к `Make Array`, затем от `SET` к `Return Node`.
+
+Скомпилируйте, и вы получите ошибку. Найдите и щелкните правой кнопкой мыши на ошибке в ноде `Hex Code`, затем выберите `Create local variable`. Перекомпилируйте, и ошибка устранится.
+
+Вам также нужно ввести строку, которую вы хотите преобразовать. Выберите ноду `Hex String to Color` и нажмите кнопку `+` рядом с `Inputs`, расположенную на панели справа. Назовите ее `hexString` и задайте тип `string`. `Hex String` теперь появится как значение в ноде `Hex String to Color`. Подключите ее к входу `Source String` в ноде `Replace`.
+
+Скомпилируйте еще раз, затем сохраните и закройте `ColorUtils`.
+
+Вернитесь в `Canvas_HUD` и откройте `Graph`. Перетащите из ноды `SetText`, которая добавляет цвет в HUD, и добавьте ноду `Hex String to Color`. Функция ожидает значения альфа-канала в hex-коде. Чтобы добавить это, подключите второй выход массива строк `GET` к функции `Append` и добавьте `ff` на вход `B`. Подключите `Return Value` ко входу `Hex String` в `Hex String to Color`.
+
+Наконец, добавьте `Set Vector Parameter Value`. Выберите `NFT_MPS` для коллекции и `Vector` для `Parameter Name`. Подключите выход `Liner Color` ноды `Hex String to Color` ко входу `Parameter Value`.
+
+![Hex to linear color](/images/build-with-thirdweb/hex-to-linear-color.png)
+
+Скомпилируйте, сохраните и закройте `Canvas_HUD`. Запустите игру. Ваша машина начнет красной, но после ответа от сервера она окрасится в цвет вашего последнего NFT! Поезжайте и соберите NFT-коллекционный предмет, и она снова изменит цвет!
+
+## Заключение
+
+В этом руководстве вы узнали, как настроить Engine от Thirdweb и использовать его для подключения игры на Unreal Engine к Base. Вы также узнали, как использовать их платформу для развертывания и управления вашими контрактами. Наконец, вы узнали, как создавать игровые элементы, чтобы позволить игрокам собирать новые NFT и использовать их для персонализации своих игровых предметов.
+
+[Base Learn]: https://docs.base.org/learn/welcome
+[ERC-721 Tokens]: https://docs.base.org/learn/erc-721-token/erc-721-standard-video
+[OpenZeppelin ERC-721]: https://docs.openzeppelin.com/contracts/2.x/api/token/erc721
+[OpenZeppelin]: https://www.openzeppelin.com/
+[Unreal Engine]: https://www.unrealengine.com/en-US
+[thirdweb]: https://thirdweb.com/
+[Gaming SDK]: https://portal.thirdweb.com/solutions/gaming/overview
+[Unreal Engine Quickstart]: https://portal.thirdweb.com/solutions/gaming/unreal-engine/quickstart
+[contract provided below]: #random-color-nft-contract
+[Engine]: https://github.com/thirdweb-dev/engine
+[run it locally]: https://portal.thirdweb.com/engine/self-host
+[Docker]: https://www.docker.com/
+[Postgres]: https://www.postgresql.org/
+[thirdweb API key]: https://thirdweb.com/dashboard/settings/api-keys
+[environment variables]: https://portal.thirdweb.com/engine/self-host#environment-variables
+[engine-express]: https://github.com/thirdweb-example/engine-express
+[Token Drop]: https://thirdweb.com/thirdweb.eth/DropERC20
+[Unreal Demo]: https://github.com/thirdweb-example/unreal_demo
+[thirdweb engine dashboard]: https://thirdweb.com/dashboard/engine
+[wallet best practices]: https://portal.thirdweb.com/engine/features/backend-wallets#best-practices
+[conversion function]: https://blueprintue.com/blueprint/vm4ujcqe/
+[Simple Onchain NFTs]: /tutorials/simple-onchain-nfts
+

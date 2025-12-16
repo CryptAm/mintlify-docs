@@ -1,0 +1,303 @@
+---
+title: 'Создание динамических NFT'
+description: Руководство, которое учит создавать динамические NFT, эволюционирующие на основе ончейн- или оффчейн-действий.
+authors:
+  - lukecd
+tags: ['nft']
+difficulty: intermediate
+hide_table_of_contents: false
+ 
+---
+
+# Создайте динамический NFT в сети Base с Irys
+
+В этом руководстве вы создадите динамический NFT, используя [mutability features].
+
+![Overview](/images/dynamic-nfts/all-characters.png)
+
+Динамические NFT - это NFT, метаданные которых развиваются со временем. Они часто используются в:
+
+- Игровых проектах, где внутриигровые активы эволюционируют по мере прогресса игрока
+- Программах лояльности, где NFT эволюционируют по мере накопления пользователем очков
+
+## Цели
+
+К концу этого руководства вы должны уметь:
+
+- Постоянно загружать данные в ончейн-среду с помощью Irys
+- Создавать метаданные NFT и использовать их для создания NFT
+- «Изменять» (мутировать) метаданные NFT, используя возможности изменяемости Irys
+
+## Предварительные требования
+
+1. **Настройте Coinbase Wallet:** Вам понадобится веб3-кошелек; вы будете использовать его для развертывания NFT-контракта, а также для подписи и оплаты загрузок в Irys. Мы рекомендуем использовать [Coinbase Wallet].
+
+2. **Пополнение кошелька:** Вам нужно будет пополнить ваш кошелек некоторым количеством токенов Base Sepolia. Вы можете сделать это бесплатно, используя [Base Faucet].
+
+## О Irys
+
+[Irys] - это «цепочка данных» (datachain), блокчейн, оптимизированный для хранения данных. Данные, загруженные в Irys:
+
+- Постоянные и неизменяемые
+- Находятся в ончейн-среде
+- Устойчивы к цензуре
+- Агностичны к блокчейну
+- Неограничены (вы можете загружать файлы любого размера)
+
+Когда вы храните активы вашего NFT на Irys и создаете его с помощью смарт-контракта в сети Base, вы можете гарантировать, что NFT будет доступен вечно. Создатели могут быть уверены, что их работы будут существовать бесконечно, а коллекционеры - что их NFT сохранятся навсегда.
+
+### Irys + Base
+
+Irys использует модель «заплати один раз - храни вечно» и принимает оплату за хранение с использованием нескольких токенов, включая ETH в сети Base.
+
+## "Изменяемость"
+
+Данные в Irys постоянны и неизменяемы, но вы можете использовать Irys для имитации изменчивости и создания динамических NFT, которые эволюционируют на основе ончейн- или оффчейн-действий.
+
+![Overview](/images/dynamic-nfts/mutable-references.png)
+
+Используя возможности изменяемости Irys, вы создаете единственный статический URL, который связан с серией транзакций. Затем вы можете добавить новую транзакцию в серию в любое время, и URL всегда будет указывать на самую последнюю транзакцию.
+
+Вы сминтите ваш NFT, используя URL в изменяемом стиле, а затем будете отправлять обновления по этому URL. Сам URL не изменится, но метаданные, на которые он указывает, будут меняться.
+
+## О проекте
+
+Это руководство фокусируется на создании NFT SuperMon, похожего на тот, что используется в веб3-игре, который будет эволюционировать в процессе игры. NFT начинается с базового внешнего вида и может быть «улучшено» дважды. Вы будете использовать Irys CLI для «мутации» метаданных, имитируя автоматические изменения, которые происходили бы через взаимодействие игроков в реальной игре.
+
+## Смарт-контракт
+
+Вы создаете NFT, а значит, вам нужен смарт-контракт. Вот простой, который вы можете использовать для создания NFT, который вы будете создавать.
+
+```solidity filename="SuperMon.sol"
+// SPDX-License-Identifier: MIT
+pragma solidity ^0.8.0;
+
+// Импортируем контракты ERC721 и ERC721URIStorage от OpenZeppelin
+// Эти URL совместимы с Remix IDE
+import "@openzeppelin/contracts/token/ERC721/ERC721.sol";
+import "@openzeppelin/contracts/token/ERC721/extensions/ERC721URIStorage.sol";
+import "@openzeppelin/contracts/access/Ownable.sol";
+
+contract SuperMon is ERC721URIStorage {
+    uint256 private _tokenIdCounter;
+
+    // В конструкторе нет аргументов, владельцем будет развертывающий контракт
+    constructor() ERC721("SuperMon", "SMON") {
+        _tokenIdCounter = 0;
+    }
+
+    // Функция для минта (создания) нового NFT
+    function mint(address to, string memory uri) public {
+        uint256 tokenId = _tokenIdCounter;
+        _tokenIdCounter += 1;
+        _safeMint(to, tokenId);
+        _setTokenURI(tokenId, uri);
+    }
+}
+
+```
+
+Разверните смарт-контракт, используя [Remix].
+
+## Irys CLI
+
+Вы будете использовать [Irys CLI] для загрузки изображений и метаданных.
+
+### Установка CLI
+
+Установите Irys CLI глобально, используя флаг `-g`. В зависимости от вашей настройки, возможно, потребуется использовать sudo.
+
+```bash
+npm i -g @irys/cli
+```
+
+Или:
+
+```bash
+sudo npm i -g @irys/cli
+```
+
+### Использование приватных ключей
+
+При выполнении CLI-команд, связанных с пополнением и подписью, необходимо предоставить приватный ключ. Используйте флаг `-w` для указания приватного ключа вместе с флагом `-t`, чтобы указать, что вы используете ETH в сети Base.
+
+```console
+irys -w <base-private-key> -t base-eth
+```
+
+## Загрузка изображений
+
+![All NFTs](/images/dynamic-nfts/all-characters.png)
+
+[Download a zip containing PNGs] для каждого уровня, и сохраните их на локальном диске.
+
+Далее пополните Irys на 0.1 [Base Sepolia ETH] чтобы оплатить ваши загрузки.
+
+> Во всех этих примерах CLI обязательно замените значение параметра `-w` на свой собственный приватный ключ.
+
+```console
+irys fund 100000000000000000 \
+  -n devnet \
+  -t base-eth \
+  -w 6dd5e....54a120201cb6a \
+  --provider-url https://sepolia.base.org
+```
+
+> Команда `fund` принимает значение в атомарных единицах, 0.1 ETH равно 100000000000000000 в атомарных единицах.
+
+Далее используйте Irys CLI для загрузки каждого из изображений в Devnet Irys.
+
+> Загрузки в devnet Irys хранятся около ~60 дней и оплачиваются бесплатными токенами, доступными через [faucets].
+
+```console
+irys upload image-level-1.png \
+  -n devnet \
+  -t base-eth \
+  -w 6dd5e....54a120201cb6a \
+  --provider-url https://sepolia.base.org
+
+irys upload image-level-2.png \
+  -n devnet \
+  -t base-eth \
+  -w 6dd5e....54a120201cb6a \
+  --provider-url https://sepolia.base.org
+
+irys upload image-level-3.png \
+  -n devnet \
+  -t base-eth \
+  -w 6dd5e....54a120201cb6a \
+  --provider-url https://sepolia.base.org
+```
+
+## Загрузка метаданных
+
+Создайте три файла метаданных, аналогичные приведенным ниже. Убедитесь, что изменили значение поля `image`, чтобы оно соответствовало URL, сгенерированным на предыдущем шаге.
+
+```json filename="metadata-level-1.json"
+{
+  "name": "SuperMon",
+  "symbol": "SMON",
+  "image": "https://gateway.irys.xyz/3JE8cucmpLkXK1t84QwqDRv25FTB2EJWCUgpWdtvuJZd",
+  "description": "Super dooper, changing shapes, changing power",
+  "attributes": [
+    {
+      "trait_type": "supermon-level",
+      "value": "1"
+    }
+  ]
+}
+```
+
+```json filename="metadata-level-2.json"
+{
+  "name": "SuperMon",
+  "symbol": "SMON",
+  "image": "https://gateway.irys.xyz/3JE8cucmpLkXK1t84QwqDRv25FTB2EJWCUgpWdtvuJZd",
+  "description": "Super dooper, changing shapes, changing power",
+  "attributes": [
+    {
+      "trait_type": "supermon-level",
+      "value": "2"
+    }
+  ]
+}
+```
+
+```json filename="metadata-level-3.json"
+{
+  "name": "SuperMon",
+  "symbol": "SMON",
+  "image": "https://gateway.irys.xyz/3JE8cucmpLkXK1t84QwqDRv25FTB2EJWCUgpWdtvuJZd",
+  "description": "Super dooper, changing shapes, changing power",
+  "attributes": [
+    {
+      "trait_type": "supermon-level",
+      "value": "3"
+    }
+  ]
+}
+```
+
+И загрузите **только первый файл**, используя Irys CLI.
+
+```console
+irys upload metadata-level-1.json \
+  -n devnet \
+  -t base-eth \
+  -w 6dd5e....54a120201cb6a \
+  --provider-url https://sepolia.base.org
+```
+
+CLI вернет URL, похожий на `https://gateway.irys.xyz/94TNg3UUKyZ96Dj8eSo9DVkBiivAz9jT39jjMFeTFvm3`. Чтобы преобразовать его в URL в изменяемом стиле, интерполируйте его, добавив `/mutable/` после домена и перед идентификатором транзакции.
+
+Ваш окончательный URL будет похож на `https://gateway.irys.xyz/mutable/94TNg3UUKyZ96Dj8eSo9DVkBiivAz9jT39jjMFeTFvm3`.
+
+## Минт NFT
+
+Чтобы создать ваш NFT в Remix:
+
+1. Вернитесь в Remix.
+2. В разделе «Deployed Contracts» найдите ваш контракт и разверните его, чтобы увидеть его функции.
+3. В функции Mint введите адрес кошелька, на который вы хотите создать NFT, и URL метаданных (например, `https://gateway.irys.xyz/mutable/94TNg3UUKyZ96Dj8eSo9DVkBiivAz9jT39jjMFeTFvm3`) из предыдущего шага.
+4. Нажмите "Transact".
+
+![Image Level 3](/images/dynamic-nfts/open-sea-mockup.jpg)
+
+Теперь вы можете просмотреть NFT на [Opensea Testnet].
+
+## Мутация метаданных
+
+Чтобы теперь «изменить» NFT, загрузите новую версию метаданных, пометив ее как имеющую `Root-TX`, равный идентификатору транзакции вашей первой транзакции. В моем примере я передаю значение`94TNg3UUKyZ96Dj8eSo9DVkBiivAz9jT39jjMFeTFvm3`, однако обязательно измените это значение, чтобы оно соответствовало вашему уникальному идентификатору транзакции.
+
+```console
+irys upload metadata-level-2.json \
+  -n devnet \
+  -t base-eth \
+  -w 6dd5e....54a120201cb6a \
+  --tags Root-TX 94TNg3UUKyZ96Dj8eSo9DVkBiivAz9jT39jjMFeTFvm3 \
+  --provider-url https://rpc.sepolia.org
+```
+
+Вернитесь на Opensea и запросите обновление метаданных.
+
+![Image Level 3](/images/dynamic-nfts/refresh-metadata.png)
+
+Подождите несколько минут, и ваше обновленное NFT должно стать видимым.
+
+## Бесплатная загрузка метаданных
+
+Загрузки размером менее 100 КиБ бесплатны в Irys, чего более чем достаточно для большинства файлов метаданных. Это означает, что проекты могут позволить пользователям «эволюционировать» свои NFT без необходимости платить комиссию за газ.
+
+## Кэширование
+
+Кошельки и NFT-сайты обычно кэшируют метаданные для оптимизации производительности, что может повлиять на видимость обновлений динамических NFT. Хотя OpenSea предлагает функцию, позволяющую пользователям вручную запрашивать обновление метаданных, не все платформы предоставляют такой уровень контроля. При создании проектов с динамическими NFT обязательно тщательно тестируйте и понимайте влияние кэширования на вашу платформу.
+
+## Irys SDK
+
+В этом руководстве использовался Irys CLI для постоянной загрузки данных. У Irys также есть JS-SDK, который можно использовать на [server] и в [browser].
+
+## Заключение
+
+В этом руководстве вы узнали, как постоянно загружать данные в Irys с помощью их CLI и как создать динамический NFT. Данные в Irys находятся в ончейн-среде, постоянны и неизменяемы. Когда изображения и метаданные вашего NFT находятся на Irys, вы можете гарантировать своим пользователям, что NFT будет доступен вечно.
+
+Динамические NFT часто используются в игровых проектах, подобных тому, что мы создали в этом руководстве. Однако существует бесчисленное множество других применений. Например:
+
+- **Программы накопления очков**: Создайте NFT, представляющее участие пользователя в программе очков. По мере того как пользователь зарабатывает больше очков, NFT эволюционирует.
+- **Спортивные NFT**: Создайте NFT спортивной команды, который меняется каждый раз, когда команда выигрывает важную игру.
+- **Праздничные NFT**: Создайте NFT, который меняется в зависимости от сезона, чтобы представлять различные праздники.
+- **Отслеживание активности**: Создайте NFT для здоровья и хорошего самочувствия, которое меняется на основе данных с трекера активности.
+
+[Irys]: https://www.irys.xyz/
+[Base Faucet]: https://docs.base.org/docs/tools/network-faucets/
+[faucets]: https://docs.base.org/docs/tools/network-faucets/
+[Base Sepolia]: https://docs.base.org/docs/tools/network-faucets/
+[browser]: https://docs.irys.xyz/build/d/irys-in-the-browser
+[Coinbase Wallet]: https://chrome.google.com/webstore/detail/coinbase-wallet-extension/hnfanknocfeofbddgcijnmhnfnkdnaad?hl=e
+[Download a zip containing PNGs]: https://gateway.irys.xyz/MoOvEzePMwFgc_v6Gw3U8ovV6ostgrkWb9tS4baAJhc
+[Irys CLI]: https://docs.irys.xyz/build/d/storage-cli/installation
+[mutability features]: https://docs.irys.xyz/build/d/features/mutability
+[Opensea Testnet]: https://testnets.opensea.io/account
+[Remix]: https://docs.base.org/tutorials/deploy-with-remix
+[server]: https://docs.irys.xyz/build/d/quickstart
+
+

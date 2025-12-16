@@ -1,0 +1,369 @@
+---
+title: Уведомления 
+description: Регулярно повторно вовлекайте пользователей, отправляя внутриприложенные уведомления через Base app
+---
+
+## Обзор
+
+Когда пользователь включает уведомления для вашего мини-приложения, Base app генерирует уникальный `token` (токен) и `url` (URL) уведомления, которые отправляются на ваш сервер через вебхук.
+
+Этот `token` предоставляет вашему приложению разрешение на отправку внутриприложенных уведомлений этому конкретному пользователю.
+
+Для отправки уведомления выполните `POST`-запрос на `url` с `token` уведомления пользователя и вашим контентом.
+
+Вы будете получать события вебхука, когда пользователи включают или отключают уведомления для вашего приложения. При отключении токен уведомления становится недействительным и больше не должен использоваться.
+
+## Поведение клиентских приложений
+
+Разные клиентские приложения обрабатывают ответы вебхука по-разному:
+
+**Farcaster app**: Активирует токены уведомлений немедленно, не дожидаясь успешного ответа вебхука.
+ 
+**Base app**: Ждёт успешного ответа вебхука перед активацией токенов.
+
+<Note>
+Если ваш вебхук обрабатывает сохранение токенов и отправляет уведомления синхронно перед возвратом ответа, токены могут работать в Farcaster, но не активироваться в Base app.
+</Note>
+
+
+<Panel>
+![notification-image-iphone](/images/minikit/notifications-sample.png)
+<Info>
+Токены уведомлений уникальны для каждого клиентского приложения. Это означает, что пользователь может иметь отдельные настройки уведомлений для вашего мини-приложения в разных клиентах (например, Farcaster, Base app). Удаление вашего мини-приложения в одном клиенте не влияет на его статус в других клиентах.
+</Info>
+
+</Panel>
+## Реализация
+<Steps>
+  <Step title="Создайте сервер вебхука">
+    Создайте сервер вебхука для обработки событий вебхука.
+
+    <Info>
+    Объект `data`, возвращаемый `parseWebhookEvent`, содержит три ключевых поля:
+    - **`fid`**: FID пользователя
+    - **`appFid`**: FID клиента (Base app — 309857)
+    - **`event`**: Полезная нагрузка события с типом и деталями уведомления
+  
+    Всегда используйте `fid` и `appFid` вместе для идентификации уникальной комбинации пользователь-клиент.
+    </Info> 
+
+    ```ts app/api/webhook/route.ts expandable highlight={20-50}
+
+  import {
+      parseWebhookEvent,
+      verifyAppKeyWithNeynar,
+    } from "@farcaster/miniapp-node";
+
+    export async function POST(request: NextRequest) {
+      const requestJson = await request.json();
+
+      // Разобрать и верифицировать событие вебхука
+      let data;
+      try {
+        data = await parseWebhookEvent(requestJson, verifyAppKeyWithNeynar);
+        // События подписаны ключом приложения пользователя с JSON-подписью Farcaster.
+      } catch (e: unknown) {
+        // Обработать ошибки верификации (неправильные данные, неверный ключ приложения и т.д.)
+        // Вернуть соответствующие ответы об ошибках с кодами состояния 400, 401 или 500
+      }
+
+
+      // Извлечь данные вебхука
+
+      const fid = data.fid;
+      const appFid = data.appFid; // The FID of the client app that the user added the Mini App to
+      const event = data.event;
+
+  // Обработать разные типы событий
+  
+    try {
+      switch (event.event) {
+        case "miniapp_added":
+          if (event.notificationDetails) {
+           setUserNotificationDetails(fid, appFid, event.notificationDetails);
+           sendMiniAppNotification(fid, appFid, "Welcome to Base Mini Apps", "Mini app is now added to your client");
+              fid,
+              appFid,
+              title: "Welcome to Base Mini Apps",
+              body: "Mini app is now added to your client",
+            });
+          }
+          break;
+
+        case "miniapp_removed":
+         // Удалить детали уведомлений
+          await deleteUserNotificationDetails(fid, appFid);
+          break;
+
+        case "notifications_enabled":
+          // Сохранить новые детали уведомлений и отправить подтверждение
+           setUserNotificationDetails(fid, appFid, event.notificationDetails);
+           sendMiniAppNotification({
+            fid,
+            appFid,
+            title: "Ding ding ding",
+            body: "Notifications are now enabled",
+          });
+          break;
+
+        case "notifications_disabled":
+             // Удалить детали уведомлений
+          await deleteUserNotificationDetails(fid, appFid);
+          break;
+      }
+    } catch (error) {
+      console.error("Error processing webhook:", error);
+    }
+
+        return response; 
+      
+    ```
+  </Step>
+  <Step title="Добавьте URL вебхука в ваш манифест">
+    Добавьте URL вебхука в ваш файл манифеста
+
+    ```json app/.well-known/farcaster.json highlight={16}
+    {
+      "accountAssociation": {
+        "header": "eyJmaWQiOjU0NDgsInR5cGUiOiJjdXN0b2R5Iiwia2V5IjoiMHg2MWQwMEFENzYwNjhGOEQ0NzQwYzM1OEM4QzAzYUFFYjUxMGI1OTBEIn0",
+        "payload": "eyJkb21haW4iOiJleGFtcGxlLmNvbSJ9",
+        "signature": "MHg3NmRkOWVlMjE4OGEyMjliNzExZjUzOTkxYTc1NmEzMGZjNTA3NmE5OTU5OWJmOWFmYjYyMzAyZWQxMWQ2MWFmNTExYzlhYWVjNjQ3OWMzODcyMTI5MzA2YmJhYjdhMTE0MmRhMjA4MmNjNTM5MTJiY2MyMDRhMWFjZTY2NjE5OTFj"
+      },
+      "miniapp": {
+        "version": "1",
+        "name": "Example App",
+        "iconUrl": "https://example.com/icon.png",
+        "homeUrl": "https://example.com",
+        "imageUrl": "https://example.com/image.png",
+        "buttonTitle": "Check this out",
+        "splashImageUrl": "https://example.com/splash.png",
+        "splashBackgroundColor": "#eeccff",
+        "webhookUrl": "https://example.com/api/webhook"
+      }
+    }
+
+    ```
+  </Step>
+  <Step title="Предложите пользователям добавить ваше мини-приложение">
+    Используйте хук `addMiniApp()` для предложения пользователям добавить ваше мини-приложение
+
+  <Warning>
+  **Важно: Время ответа вебхука**
+  Вебхуки должны отвечать в течение 10 секунд, чтобы избежать таймаутов от Base app. Если вы столкнулись с ошибкой "Не удалось добавить мини-приложение", возможно, ваш вебхук слишком долго отвечает.
+  </Warning>
+
+    ```tsx page.tsx highlight={11, 25-27}
+    "use client";
+
+    import { sdk } from "@farcaster/miniapp-sdk";
+    import { useCallback, useState } from "react";
+
+    export default function AddMiniApp() {
+      const [result, setResult] = useState("");
+
+      const handleAddMiniApp = useCallback(async () => {
+        try {
+          const response = await sdk.actions.addMiniApp();
+          
+          if (response.notificationDetails) {
+            setResult("Mini App added with notifications enabled!");
+          } else {
+            setResult("Mini App added without notifications");
+          }
+        } catch (error) {
+          setResult(`Error: ${error}`);
+        }
+      }, []);
+
+      return (
+        <div>
+          <button onClick={handleAddMiniApp}>
+            Add Mini App
+          </button>
+          {result && <p>{result}</p>}
+        </div>
+      );
+    }
+    ```
+
+  </Step>
+  <Step title="Сохраните токен и URL из события вебхука">
+    `token` и `url` необходимо безопасно сохранить в базу данных, чтобы их можно было найти, когда вы захотите отправить уведомление конкретному пользователю.
+
+    ```json miniapp_added_payload.json highlight={4-5}
+    {
+      "event": "notifications_enabled",
+      "notificationDetails": {
+        "url": "https://api.farcaster.xyz/v1/frame-notifications",
+        "token": "a05059ef2415c67b08ecceb539201cbc6"
+      }
+    }
+    ```
+
+    
+  </Step>
+  <Step title="Отправляйте уведомления">
+    Отправляйте уведомления, выполняя `POST`-запрос на `url`, связанный с `token` пользователя
+
+    ```ts sendNotification.ts highlight={15-28}
+    export async function sendMiniAppNotification({
+      fid,
+      appFid,
+      title,
+      body,
+    }: {
+      fid: number;
+      appFid: number;
+      title: string;
+      body: string;
+    }): Promise<sendMiniAppNotificationResult> {
+      const notificationDetails = await getUserNotificationDetails(fid, appFid);
+      if (!notificationDetails) {
+        return { state: "no_token" };
+      }
+
+      const response = await fetch(notificationDetails.url, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          notificationId: crypto.randomUUID(),
+          title,
+          body,
+          targetUrl: appUrl,
+          tokens: [notificationDetails.token],
+        } satisfies SendNotificationRequest),
+      });
+
+      const responseJson = await response.json();
+
+      if (response.status === 200) {
+        const responseBody = sendNotificationResponseSchema.safeParse(responseJson);
+        if (responseBody.success === false) {
+          // Неправильно сформированный ответ
+          return { state: "error", error: responseBody.error.errors };
+        }
+
+        if (responseBody.data.result.rateLimitedTokens.length) {
+          // Превышен лимит запросов
+          return { state: "rate_limit" };
+        }
+
+        return { state: "success" };
+      } else {
+        // Ответ с ошибкой
+        return { state: "error", error: responseJson };
+      }
+    }
+    ```
+  </Step>
+</Steps>
+
+## Схема
+
+### Схема запроса отправки уведомления
+
+<Card>
+<ParamField path="notificationId" type="string" required>
+Идентификатор, который комбинируется с FID для формирования идемпотентного ключа. Когда пользователь открывает мини-приложение из уведомления, этот ID будет включён в объект контекста. **Максимальная длина 128 символов.**
+</ParamField>
+
+<ParamField path="title" type="string" required>
+Заголовок уведомления. **Максимальная длина 32 символа.**
+</ParamField>
+
+<ParamField path="body" type="string" required>
+Тело уведомления. **Максимальная длина 128 символов.**
+</ParamField>
+
+<ParamField path="targetUrl" type="string" required>
+URL для открытия, когда пользователь нажимает на уведомление. **Максимальная длина 1024 символа.**
+<Note>Должен быть на том же домене, что и мини-приложение.</Note>
+
+</ParamField>
+
+<ParamField path="tokens" type="string[]" required>
+Массив токенов уведомлений для отправки. **Максимум 100 токенов.**
+</ParamField>
+</Card>
+
+### Схема ответа отправки уведомления
+
+<Card>
+<ParamField path="successfulTokens" type="string[]" required>
+Токены, для которых уведомление успешно отправлено.
+</ParamField>
+
+<ParamField path="invalidTokens" type="string[]" required>
+Токены, которые больше не действительны и никогда не должны использоваться снова. Это может произойти, если пользователь отключил уведомления, но по какой-то причине сервер мини-приложения не имеет записи об этом.
+</ParamField>
+
+<ParamField path="rateLimitedTokens" type="string[]" required>
+Токены, для которых превышен лимит запросов. Сервер мини-приложения может попробовать позже.
+</ParamField>
+</Card>
+
+
+
+## События
+
+События мини-приложений используют следующую структуру объекта:
+
+* **`type`**: тип события уведомления
+* **`notificationDetails.url`**: URL, по которому приложение должно отправлять уведомление.
+* **`notificationDetails.token`**: Секретный токен, сгенерированный Base app и предоставленный серверу уведомлений. Токен уникален для каждой тройки (клиент Farcaster, мини-приложение, FID пользователя).
+
+<Note>Если пользователи не видят опцию включения уведомлений при вызове `addMiniApp()`, проверьте, что ваш файл манифеста содержит действительный `webhookUrl`.</Note>
+
+### `miniapp_added`
+
+Отправляется, когда пользователь добавляет мини-приложение в свой клиент Farcaster (независимо от того, было ли это вызвано предложением `addMiniApp()`).
+
+
+
+```json miniapp_added_payload.json
+{
+  "event": "miniapp_added",
+  "notificationDetails": {
+    "url": "https://api.farcaster.xyz/v1/frame-notifications",
+    "token": "a05059ef2415c67b08ecceb539201cbc6"
+  }
+}
+```
+
+### `miniapp_removed`
+
+Отправляется, когда пользователь удаляет мини-приложение, что означает, что любые токены уведомлений для этого FID и клиентского приложения (на основе подписавшего запрос) следует считать недействительными:
+
+
+```json miniapp_removed_payload
+{
+  "event": "miniapp_removed"
+}
+```
+
+### `notifications_enabled`
+
+Отправляется, когда пользователь включает уведомления (например, после их отключения). Полезная нагрузка включает новый `token` и `url`:
+
+```json notifications_enabled_payload
+{
+  "event": "notifications_enabled",
+  "notificationDetails": {
+    "url": "https://api.farcaster.xyz/v1/frame-notifications",
+    "token": "a05059ef2415c67b08ecceb539201cbc6"
+  }
+}
+```
+
+### `notifications_disabled`
+
+Отправляется, когда пользователь отключает уведомления, например, через панель настроек в клиентском приложении. Любые токены уведомлений для этого FID и клиентского приложения (на основе подписавшего запрос) следует считать недействительными:
+
+```json notifications_disabled_json
+{
+  "event": "notifications_disabled"
+}
+```
+

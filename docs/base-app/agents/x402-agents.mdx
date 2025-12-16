@@ -1,0 +1,501 @@
+---
+title: 'Создание автономных платежных агентов с x402'
+description: Узнайте, как интегрировать платежный протокол x402 с чат-агентами XMTP для обеспечения автономных экономических транзакций
+sidebarTitle: 'x402 и агенты'
+---
+
+x402 - это революционный открытый платежный протокол, разработанный Coinbase, который обеспечивает мгновенные автоматические платежи стейблкоинами напрямую через HTTP. Он позволяет ИИ-агентам автономно оплачивать услуги без подписок или API-ключей, открывая возможность создания по-настоящему автономных, монетизированных чат-агентов, способных логически мыслить, совершать транзакции и предоставлять ценность бесшовно.
+
+## Что такое x402?
+
+x402 трансформирует способ взаимодействия агентов с платными услугами, встраивая платежи непосредственно в HTTP-запросы. Вместо управления API-ключами или подписками ваши агенты могут платить ровно за то, что они используют, когда они это используют.
+
+### Ключевые преимущества
+
+- **Автономные экономические транзакции** - Агенты могут совершать транзакции без вмешательства человека
+- **Монетизация по факту использования** - Платите только за реально используемые услуги
+- **Минимальная настройка** - Часто требуется всего одна строка middleware
+- **Мгновенное исполнение** - Платежи проверяются в блокчейне в реальном времени
+
+## Поток протокола
+
+Понимание потока платежей x402 важно для создания автономных агентов:
+
+<Steps>
+<Step title="Начальный запрос">
+  Клиент запрашивает доступ к защищенному ресурсу.
+</Step>
+
+<Step title="Ответ "Требуется оплата"">
+  Сервер возвращает статус HTTP 402 с деталями платежа, включая:
+  - Сумму платежа
+  - Адрес получателя
+  - Референс платежа
+</Step>
+
+<Step title="Исполнение платежа">
+  Клиент отправляет платежную полезную нагрузку через HTTP-заголовок (например, `X-PAYMENT`).
+  
+  <Note>
+  Платежный фасилитатор автоматически обрабатывает проверку исполнения в блокчейне.
+  </Note>
+</Step>
+
+<Step title="Доставка контента">
+  Клиент повторяет исходный запрос, и сервер отвечает:
+  - Запрошенным контентом 
+  - Подтверждением платежа в заголовке (например, `X-PAYMENT-RESPONSE`)
+</Step>
+</Steps>
+
+## Интеграция x402 с агентами XMTP
+
+Комбинирование x402 с чат-агентами XMTP создаёт мощных автономных экономических агентов. Вот как реализовать эту интеграцию:
+
+### Архитектура агента
+
+Ваш агент должен обрабатывать три основных сценария:
+
+1. **Бесплатные запросы** - Стандартные запросы, не требующие оплаты
+2. **Платежные запросы** - Премиум-функции, которые запускают платежи x402
+3. **Сбои платежей** - Корректная обработка при неудачных платежах
+
+### Базовая реализация
+
+Вот как ваш агент обрабатывает платежные запросы с использованием SDK агента:
+
+```typescript
+import { Agent } from '@xmtp/agent-sdk';
+import { PaymentFacilitator } from '@coinbase/x402-sdk';
+
+// Создать агента
+const agent = await Agent.createFromEnv({
+  env: 'production',
+});
+
+// Обрабатывать текстовые сообщения с премиум-функциями
+agent.on('text', async (ctx) => {
+  const message = ctx.message.content;
+  
+  // Проверить, запрашивает ли пользователь премиум-функцию
+  if (message.includes('floor price')) {
+    await handlePremiumRequest(ctx);
+  }
+});
+
+// Инициализировать платежный фасилитатор
+const facilitator = new PaymentFacilitator({
+  privateKey: process.env.XMTP_WALLET_KEY!,
+  network: process.env.NETWORK || 'base'
+});
+
+// Агент обрабатывает платежные запросы
+async function handlePremiumRequest(ctx: any) {
+  try {
+    const endpoint = "/premium-api/nft-floor-price";
+    const response = await fetch(endpoint);
+
+    // Проверить, требуется ли оплата
+    if (response.status === 402) {
+      const paymentDetails = await response.json();
+      
+      // Уведомить пользователя о требовании оплаты
+      await ctx.sendText(`💰 Payment required: ${paymentDetails.amount} USDC. Processing...`);
+      
+      // Выполнить платеж
+      const payment = await facilitator.createPayment({
+        amount: paymentDetails.amount,
+        recipient: paymentDetails.recipient,
+        reference: paymentDetails.reference,
+        currency: 'USDC'
+      });
+      
+      // Повторить запрос с платежом
+      const retryResponse = await fetch(endpoint, {
+        headers: { "X-PAYMENT": payment.payload }
+      });
+
+      if (retryResponse.ok) {
+        const data = await retryResponse.json();
+        await ctx.sendText(`📊 NFT floor price: ${data.floorPrice} ETH`);
+      } else {
+        await ctx.sendText("❌ Payment processed but service unavailable. Please try again.");
+      }
+    } else if (response.ok) {
+      // Обработать ответ бесплатного уровня
+      const data = await response.json();
+      await ctx.sendText(`📊 NFT floor price: ${data.floorPrice} ETH`);
+    }
+  } catch (error) {
+    await ctx.sendText("❌ Unable to fetch data. Please try again later.");
+  }
+}
+```
+
+### Настройка окружения
+
+Убедитесь, что настроили переменные окружения:
+
+```bash
+XMTP_WALLET_KEY= # приватный ключ кошелька
+XMTP_DB_ENCRYPTION_KEY= # ключ шифрования для локальной базы данных
+XMTP_ENV=production # local, dev, production
+NETWORK=base # блокчейн-сеть для платежей
+```
+
+### Полный пример агента
+
+Вот полная реализация, объединяющая XMTP с x402:
+
+<CodeGroup>
+```typescript Complete Agent
+import { Agent } from '@xmtp/agent-sdk';
+import { PaymentFacilitator } from '@coinbase/x402-sdk';
+
+// Инициализировать платежный фасилитатор
+const facilitator = new PaymentFacilitator({
+  privateKey: process.env.XMTP_WALLET_KEY!,
+  network: process.env.NETWORK || 'base'
+});
+
+// Создать агента
+const agent = await Agent.createFromEnv({
+  env: 'production', // Base app работает только в production
+});
+
+// Обрабатывать текстовые сообщения
+agent.on('text', async (ctx) => {
+  const content = ctx.message.content.toLowerCase();
+
+  // Маршрутизировать сообщения на основе контента
+  if (content.includes('floor price')) {
+    await handleFloorPriceRequest(ctx, content);
+  } else if (content.includes('market data')) {
+    await handleMarketDataRequest(ctx, content);
+  } else {
+    await ctx.sendText("Hi! I can help with:\n• NFT floor prices\n• Market data\n\nJust ask!");
+  }
+});
+
+// Обрабатывать запросы floor NFT
+async function handleFloorPriceRequest(ctx: any, content: string) {
+  // Извлечь название коллекции из сообщения
+  const collection = extractCollection(content);
+  
+  if (!collection) {
+    await ctx.sendText("Please specify an NFT collection name.");
+    return;
+  }
+
+  try {
+    const response = await fetch(`/api/nft-floor/${collection}`);
+    
+    if (response.status === 402) {
+      await processPaymentAndRetry(
+        ctx,
+        `/api/nft-floor/${collection}`,
+        `📊 Floor price for ${collection}:`
+      );
+    } else if (response.ok) {
+      const data = await response.json();
+      await ctx.sendText(`📊 ${collection} floor price: ${data.floorPrice} ETH`);
+    }
+  } catch (error) {
+    await ctx.sendText("❌ Unable to fetch floor price data.");
+  }
+}
+
+// Обрабатывать запросы рыночных данных
+async function handleMarketDataRequest(ctx: any, content: string) {
+  const symbol = extractSymbol(content);
+  
+  if (!symbol) {
+    await ctx.sendText("Please specify a token symbol (e.g., BTC, ETH).");
+    return;
+  }
+
+  try {
+    const response = await fetch(`/api/market-data/${symbol}`);
+    
+    if (response.status === 402) {
+      await processPaymentAndRetry(
+        ctx,
+        `/api/market-data/${symbol}`,
+        `💹 Market data for ${symbol.toUpperCase()}:`
+      );
+    } else if (response.ok) {
+      const data = await response.json();
+      await ctx.sendText(`💹 ${symbol.toUpperCase()} - Price: $${data.price} | 24h: ${data.change24h}%`);
+    }
+  } catch (error) {
+    await ctx.sendText("❌ Unable to fetch market data.");
+  }
+}
+
+// Обработать платеж и повторить запрос
+async function processPaymentAndRetry(ctx: any, endpoint: string, successPrefix: string) {
+  try {
+    // Начальный запрос для получения деталей платежа
+    const response = await fetch(endpoint);
+    const paymentDetails = await response.json();
+    
+    // Уведомить пользователя о платеже
+    await ctx.sendText(`💰 Payment required: ${paymentDetails.amount} USDC. Processing...`);
+    
+    // Выполнить платеж
+    const payment = await facilitator.createPayment({
+      amount: paymentDetails.amount,
+      recipient: paymentDetails.recipient,
+      reference: paymentDetails.reference,
+      currency: 'USDC'
+    });
+    
+    // Повторить с платежом
+    const retryResponse = await fetch(endpoint, {
+      headers: { "X-PAYMENT": payment.payload }
+    });
+    
+    if (retryResponse.ok) {
+      const data = await retryResponse.json();
+      await ctx.sendText(`${successPrefix} ${JSON.stringify(data, null, 2)}`);
+    } else {
+      await ctx.sendText("❌ Payment processed but service error occurred.");
+    }
+  } catch (error) {
+    await ctx.sendText(`❌ Payment failed: ${error.message}`);
+  }
+}
+
+// Извлечь название коллекции из сообщения
+function extractCollection(content: string): string | null {
+  const words = content.toLowerCase().split(' ');
+  const collectionIndex = words.findIndex(word => 
+    ['cryptopunks', 'bayc', 'azuki', 'pudgypenguins'].includes(word)
+  );
+  return collectionIndex !== -1 ? words[collectionIndex] : null;
+}
+
+// Извлечь символ токена из сообщения
+function extractSymbol(content: string): string | null {
+  const words = content.toLowerCase().split(' ');
+  const symbolIndex = words.findIndex(word => 
+    ['btc', 'eth', 'usdc', 'base'].includes(word)
+  );
+  return symbolIndex !== -1 ? words[symbolIndex] : null;
+}
+
+// Запустить агента
+agent.on('start', () => {
+  console.log('Autonomous Payment Agent started!');
+  console.log(`Agent address: ${agent.address}`);
+});
+
+await agent.start();
+```
+
+```typescript Server Setup
+import express from 'express';
+import { paymentMiddleware } from '@coinbase/x402-middleware';
+
+const app = express();
+
+// Применить x402 middleware
+app.use(paymentMiddleware(process.env.PAYMENT_ADDRESS, {
+  "/api/nft-floor/*": "$0.01",
+  "/api/market-data/*": "$0.005"
+}));
+
+// Защищённые конечные точки (endpoint)
+app.get('/api/nft-floor/:collection', (req, res) => {
+  // This endpoint is now payment-gated
+  const mockData = {
+    collection: req.params.collection,
+    floorPrice: (Math.random() * 10).toFixed(3),
+    currency: 'ETH',
+    timestamp: new Date().toISOString()
+  };
+  
+  res.json(mockData);
+});
+
+app.get('/api/market-data/:symbol', (req, res) => {
+  const mockData = {
+    symbol: req.params.symbol,
+    price: (Math.random() * 1000).toFixed(2),
+    change24h: ((Math.random() - 0.5) * 20).toFixed(2),
+    volume: Math.floor(Math.random() * 1000000)
+  };
+  
+  res.json(mockData);
+});
+
+app.listen(3000, () => {
+  console.log('x402-enabled API server running on port 3000');
+});
+```
+</CodeGroup>
+
+## Реальные примеры
+
+Несколько проектов успешно реализовали x402 с агентами XMTP:
+
+### Stableburn x402
+
+Рабочая реализация, демонстрирующая:
+- Интеграцию XMTP v4
+- Функциональность AgentKit
+- Микроплатежи на основе x402 ($0.001–$0.005 за запрос)
+- Автоматическое сжигание выручки через свопы токенов в блокчейне
+
+<Card title="Stableburn x402" icon="fire" href="https://github.com/example/stableburn-x402">
+  Автономный агент, который монетизирует премиум-конечные точки с помощью микроплатежей
+</Card>
+
+### Crossmint Worldstore Agent
+
+Чат-агент XMTP для покупок, включающий:
+- Интеграцию платежей x402
+- Бесплатные по газу транзакции USDC с EIP-3009
+- Интеграцию с сетью Base
+- Интерактивные типы контента в чате
+
+<Card title="Worldstore Agent" icon="shopping-cart" href="https://github.com/Crossmint/worldstore-agent">
+  Агент для покупок со встроенными платежами x402 и функциональностью коммерции
+</Card>
+
+## Рекомендации
+
+### Рекомендации по UX платежей
+
+<Tip>
+Всегда информируйте пользователей о требованиях к оплате перед выполнением транзакций. Прозрачность создаёт доверие к вашему агенту.
+</Tip>
+
+- **Понятное ценообразование** - Отображайте точные затраты заранее
+- **Подтверждение платежа** - Подтверждайте успешные платежи
+- **Корректные сбои** - Элегантно обрабатывайте ошибки платежей
+- **Коммуникация ценности** - Объясняйте, что пользователи получают за свой платеж
+
+### Обработка ошибок
+
+Реализуйте комплексную обработку ошибок для распространённых сценариев:
+
+```typescript
+async function robustPaymentHandler(ctx: any, endpoint: string) {
+  try {
+    const response = await fetch(endpoint);
+    
+    if (response.status === 402) {
+      const paymentDetails = await response.json();
+      
+      // Проверить детали платежа
+      if (!paymentDetails.amount || !paymentDetails.recipient) {
+        await ctx.sendText("❌ Invalid payment request from service.");
+        return;
+      }
+      
+      // Проверить, разумна ли сумма
+      if (parseFloat(paymentDetails.amount) > 1.0) {
+        await ctx.sendText(`⚠️ High payment amount: ${paymentDetails.amount} USDC. Skipping for safety.`);
+        return;
+      }
+      
+      // Обработать платеж с таймаутом
+      const paymentPromise = facilitator.createPayment({
+        amount: paymentDetails.amount,
+        recipient: paymentDetails.recipient,
+        reference: paymentDetails.reference,
+        currency: 'USDC'
+      });
+      const timeoutPromise = new Promise((_, reject) => 
+        setTimeout(() => reject(new Error('Payment timeout')), 30000)
+      );
+      
+      const payment = await Promise.race([paymentPromise, timeoutPromise]);
+      
+      // Повторить с платежом
+      const retryResponse = await fetch(endpoint, {
+        headers: { "X-PAYMENT": payment.payload }
+      });
+      
+      if (retryResponse.ok) {
+        const data = await retryResponse.json();
+        await ctx.sendText(`✅ Payment successful! ${JSON.stringify(data)}`);
+      } else {
+        await ctx.sendText("❌ Payment processed but service unavailable.");
+      }
+    }
+  } catch (error) {
+    if (error.message.includes('timeout')) {
+      await ctx.sendText("⏱️ Payment timed out. Please try again.");
+    } else if (error.message.includes('insufficient funds')) {
+      await ctx.sendText("💸 Insufficient funds for payment.");
+    } else {
+      await ctx.sendText(`❌ Payment error: ${error.message}`);
+    }
+  }
+}
+```
+
+### Соображения безопасности
+
+<Warning>
+Никогда не раскрывайте приватные ключи в вашем коде. Всегда используйте переменные окружения и безопасные практики управления ключами.
+</Warning>
+
+- **Управление ключами** - Используйте безопасные переменные окружения
+- **Лимиты платежей** - Установите максимальные пороги платежей
+- **Ограничение частоты** - Предотвращайте атаки спамом платежей
+- **Аудит транзакций** - Логируйте все платежные активности
+- **Валидация сети** - Проверяйте исполнение в блокчейне
+
+## Ресурсы
+
+<CardGroup cols={2}>
+<Card title="Документация протокола x402" icon="book" href="https://docs.cdp.coinbase.com/x402/welcome">
+  Полная спецификация протокола x402 и руководство по реализации
+</Card>
+
+<Card title="x402.org" icon="globe" href="https://www.x402.org">
+  Официальный сайт протокола x402 с примерами и инструментами
+</Card>
+
+<Card title="Coinbase SDK" icon="code" href="https://github.com/coinbase/x402-sdk">
+  Официальный SDK x402 от Coinbase для JavaScript/TypeScript
+</Card>
+
+<Card title="Документация XMTP" icon="message-circle" href="https://docs.xmtp.org">
+  Документация протокола XMTP для интеграции обмена сообщениями
+</Card>
+</CardGroup>
+
+## Следующие шаги
+
+Готовы создать своего автономного платежного агента? Вот ваша дорожная карта:
+
+<Steps>
+<Step title="Настройте среду разработки">
+  Установите SDK x402 и SDK агента XMTP:
+  ```bash
+  npm i @xmtp/agent-sdk @coinbase/x402-sdk
+  ```
+</Step>
+
+<Step title="Реализуйте базового агента">
+  Начните с простого агента XMTP, следуя нашему [руководству по началу работы](/base-app/agents/getting-started).
+</Step>
+
+<Step title="Добавьте платежную функциональность">
+  Интегрируйте обработку платежей x402, используя примеры выше.
+</Step>
+
+<Step title="Тщательно протестируйте">
+  Протестируйте платежные потоки в тестовой сети перед развертыванием в продакшн.
+</Step>
+
+<Step title="Разверните и отслеживайте">
+  Разверните своего агента и отслеживайте платежные транзакции и взаимодействия пользователей.
+</Step>
+</Steps>
+
+Будущее автономных агентов уже здесь. С помощью x402 и XMTP вы можете создавать агентов, которые действительно работают независимо в цифровой экономике.

@@ -1,0 +1,215 @@
+---
+title: "subscription.getStatus"
+description: "Проверить статус и детали существующей подписки"
+---
+
+Определено в [Base Account SDK](https://github.com/base/account-sdk)
+
+<Info>
+Функция `subscription.getStatus` извлекает текущий статус и детали подписки, созданной с разрешениями на расходы (spend permissions). Используйте эту функцию для проверки активности подписки, просмотра оставшихся списаний и определения следующего платежного периода.
+</Info>
+
+## Параметры
+
+<ParamField body="id" type="string" required>
+Идентификатор подписки (хэш разрешения), возвращенный из subscribe().
+
+**Формат:** `^0x[0-9a-fA-F]{64}$`
+</ParamField>
+
+<ParamField body="testnet" type="boolean">
+Должен соответствовать настройке testnet, использованной в исходном вызове subscribe. По умолчанию: false
+</ParamField>
+
+## Возвращает
+
+<ResponseField name="result" type="SubscriptionStatus">
+Информация о статусе подписки, включая текущее состояние и детали платежей.
+
+<Expandable title="Свойства SubscriptionStatus">
+<ResponseField name="isSubscribed" type="boolean">
+Активна ли подписка (не отменена).
+</ResponseField>
+
+<ResponseField name="recurringCharge" type="string">
+Сумма периодического списания в USD.
+</ResponseField>
+
+<ResponseField name="remainingChargeInPeriod" type="string">
+Оставшаяся сумма, которая может быть списана в текущем периоде.
+</ResponseField>
+
+<ResponseField name="currentPeriodStart" type="Date">
+Дата начала текущего платежного периода.
+</ResponseField>
+
+<ResponseField name="nextPeriodStart" type="Date">
+Дата начала следующего платежного периода.
+</ResponseField>
+
+<ResponseField name="periodInDays" type="number">
+Период подписки в днях.
+</ResponseField>
+</Expandable>
+</ResponseField>
+
+<RequestExample>
+```typescript Basic Status Check
+import { base } from '@base-org/account';
+
+const status = await base.subscription.getStatus({
+  id: '0x71319cd488f8e4f24687711ec5c95d9e0c1bacbf5c1064942937eba4c7cf2984',
+  testnet: false
+});
+
+console.log(`Active: ${status.isSubscribed}`);
+console.log(`Recurring amount: $${status.recurringCharge}`);
+console.log(`Remaining this period: $${status.remainingChargeInPeriod}`);
+console.log(`Next payment: ${status.nextPeriodStart}`);
+```
+
+```typescript Check Before Charging
+import { base } from '@base-org/account';
+
+// Проверить, можно ли списать средства с подписки
+const status = await base.subscription.getStatus({
+  id: subscriptionId,
+  testnet: false
+});
+
+if (!status.isSubscribed) {
+  console.log("Subscription has been cancelled");
+  return;
+}
+
+const remainingAmount = parseFloat(status.remainingChargeInPeriod || '0');
+const chargeAmount = parseFloat(status.recurringCharge);
+
+if (remainingAmount >= chargeAmount) {
+  console.log(`Can charge full amount: $${chargeAmount}`);
+  // Продолжить со списанием
+} else if (remainingAmount > 0) {
+  console.log(`Can only charge remaining: $${remainingAmount}`);
+  // Списать частичную сумму
+} else {
+  console.log(`No remaining charge until ${status.nextPeriodStart}`);
+  // Ждать следующего периода
+}
+```
+</RequestExample>
+
+<ResponseExample>
+```typescript Active Subscription
+{
+  isSubscribed: true,
+  recurringCharge: "9.99",
+  remainingChargeInPeriod: "9.99",
+  currentPeriodStart: "2024-01-15T00:00:00.000Z",
+  nextPeriodStart: "2024-02-14T00:00:00.000Z",
+  periodInDays: 30
+}
+```
+
+```typescript Partially Charged Subscription
+{
+  isSubscribed: true,
+  recurringCharge: "19.99",
+  remainingChargeInPeriod: "5.50",
+  currentPeriodStart: "2024-01-01T00:00:00.000Z",
+  nextPeriodStart: "2024-01-31T00:00:00.000Z",
+  periodInDays: 30
+}
+```
+
+```typescript Cancelled Subscription
+{
+  isSubscribed: false,
+  recurringCharge: "9.99",
+  remainingChargeInPeriod: "0",
+  currentPeriodStart: "2024-01-15T00:00:00.000Z",
+  nextPeriodStart: "2024-02-14T00:00:00.000Z",
+  periodInDays: 30
+}
+```
+
+```typescript Fully Charged Period
+{
+  isSubscribed: true,
+  recurringCharge: "49.99",
+  remainingChargeInPeriod: "0",
+  currentPeriodStart: "2024-01-01T00:00:00.000Z",
+  nextPeriodStart: "2024-02-01T00:00:00.000Z",
+  periodInDays: 31
+}
+```
+</ResponseExample>
+
+## Паттерны использования
+
+<Tabs>
+<Tab title="Проверить перед списанием">
+Всегда проверяйте статус подписки перед попыткой списания:
+
+```typescript
+const status = await base.subscription.getStatus({ id, testnet });
+
+if (status.isSubscribed && parseFloat(status.remainingChargeInPeriod!) > 0) {
+  const chargeCalls = await base.subscription.prepareCharge({
+    id,
+    amount: status.remainingChargeInPeriod!,
+    testnet
+  });
+}
+```
+</Tab>
+
+<Tab title="Запланировать следующее списание">
+Используйте статус для планирования следующего списания:
+
+```typescript
+const status = await base.subscription.getStatus({ id, testnet });
+
+if (status.nextPeriodStart) {
+  const nextChargeDate = new Date(status.nextPeriodStart);
+  scheduleJob(nextChargeDate, () => chargeSubscription(id));
+}
+```
+</Tab>
+
+<Tab title="Показать пользователю">
+Показывайте детали подписки пользователям:
+
+```typescript
+const status = await base.subscription.getStatus({ id, testnet });
+
+return (
+  <div>
+    <p>Status: {status.isSubscribed ? 'Active' : 'Cancelled'}</p>
+    <p>Monthly charge: ${status.recurringCharge}</p>
+    <p>Next billing date: {new Date(status.nextPeriodStart).toLocaleDateString()}</p>
+  </div>
+);
+```
+</Tab>
+</Tabs>
+
+## Обработка ошибок
+
+Функция может генерировать ошибки для некорректных идентификаторов подписок или проблем с сетью:
+
+```typescript
+try {
+  const status = await base.subscription.getStatus({
+    id: subscriptionId,
+    testnet: false
+  });
+  // Обработать статус
+} catch (error) {
+  console.error(`Failed to get subscription status: ${error.message}`);
+  // Обработать ошибку соответствующим образом
+}
+```
+
+import PolicyBanner from "/snippets/PolicyBanner.mdx";
+
+<PolicyBanner />

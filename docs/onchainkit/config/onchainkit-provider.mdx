@@ -1,0 +1,150 @@
+---
+title: "<OnchainKitProvider />"
+---
+
+
+Предоставляет React Context OnchainKit для приложения.
+
+## Использование
+
+```tsx app.tsx
+// @noErrors: 2304 - Cannot find name 'MyComponent'
+import { base } from 'viem/chains';
+import { OnchainKitProvider } from '@coinbase/onchainkit';
+
+const App = () => {
+  return (
+    <OnchainKitProvider
+      config={{
+        appearance: {
+          name: 'OnchainKit Playground',
+          logo: 'https://onchainkit.xyz/favicon/48x48.png?v4-19-24',
+          mode: 'auto',
+          theme: 'default',
+        },
+      }}
+      chain={base}
+    >
+      <MyComponent />
+    </OnchainKitProvider>
+  );
+};
+```
+
+## Свойства (Props)
+
+[`OnchainKitProviderReact`](/onchainkit/config/types#onchainkitproviderreact)
+
+| Свойство                       | Описание                                                                                                                                                                                    | Обязательно |
+| -------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------- |
+| [`chain`](#chain)          | Цепь (chain), которую поддерживает ваш проект OnchainKit.                                                                                                                                               | Да      |
+| [`apiKey`](#apikey)        | Client API Key из Coinbase Developer Platform.                                                                                                                                               | Нет       |
+| [`rpcUrl`](#rpc-url)       | RPC URL для ончейн-запросов.                                                                                                                                                                  | Нет       |
+| [`projectId`](#project-id) | ID вашего проекта в Coinbase Developer Platform.                                                                                                                                                   | Нет       |
+| [`config`](#config)        | - `config.appearance` — Настройка внешнего вида вашего проекта OnchainKit <br /> - `config.paymaster` — URL Paymaster для спонсирования газа <br /> - `config.wallet` — Настройки кошелька | Нет       |
+| [`schemaId`](#schema-id)   | _[Будет удалено]_ ID схемы для аттестаций Ethereum Attestation Service (EAS).                                                                                           | Нет       |
+| [`address`](#address)      | _[Будет удалено]_ Это свойство больше не используется.                                                                                                                                           | Нет       |
+
+### Chain
+
+`chain` определяет цепь, на которой будет работать ваш проект OnchainKit.
+
+Это свойство обязательно для всех компонентов OnchainKit.
+
+Мы рекомендуем импортировать данные о цепях из [viem](https://viem.sh/docs/chains/introduction).
+
+### `apiKey`
+
+`apiKey` - это ваш Client API Key из Coinbase Developer Platform.
+
+Это свойство требуется для большинства компонентов OnchainKit, включая:
+
+- [`<Checkout>`](/onchainkit/checkout/checkout)
+- [`<NFTCard>`](/onchainkit/mint/nft-card)
+- [`<NFTMintCard>`](/onchainkit/mint/nft-mint-card)
+- [`<Swap>`](/onchainkit/swap/swap)
+- [`<Transaction>`](/onchainkit/transaction/transaction)
+
+Вы можете получить [Client API Key](https://portal.cdp.coinbase.com/projects/project-id/api-keys/client-key)
+из Coinbase Developer Platform.
+
+<Frame>
+<img
+  alt="Копирование Client API Key в OnchainKit"
+  src="/images/onchainkit/copy-api-key-guide.png"
+  height="364"
+/>
+</Frame>
+
+### RPC URL
+
+`rpcUrl` требуется для любых ончейн-запросов. Если вы предоставите свой собственный RPC URL,
+OnchainKit будет использовать его.
+
+Если вы не предоставляете свой собственный RPC URL, вы должны предоставить apiKey, который
+позволяет OnchainKit использовать
+[Coinbase Developer Platform Node](https://portal.cdp.coinbase.com/products/node).
+
+### Project ID
+
+`projectId` - это ID вашего проекта в Coinbase Developer Platform.
+
+Это свойство требуется для компонента `<FundButton />`.
+
+Вы можете получить Project ID из [Coinbase Developer Platform](https://portal.cdp.coinbase.com/projects).
+
+<Frame>
+<img
+  alt="Копирование Project ID в OnchainKit"
+  src="/images/onchainkit/copy-project-id.png"
+  height="364"
+/>
+</Frame>
+
+### Config
+
+`config` это объект, который можно использовать для настройки внешнего вида и поведения
+компонентов OnchainKit.
+
+Это свойство имеет три ключа: `appearance`, `paymaster`, и `wallet`.
+
+#### Appearance
+
+`appearance` управляет внешним видом компонентов OnchainKit и имеет следующие свойства:
+
+- `name` — Название вашего проекта OnchainKit
+- `logo` — URL логотипа для вашего проекта OnchainKit
+- `mode` — Режим компонентов OnchainKit. Может быть `auto`, `dark`, или `light`.
+- `theme` — Тема компонентов OnchainKit. Может быть `base`, `cyberpunk`, `default`, `hacker`, или пользовательской темой.
+
+Изучите варианты внешнего вида в [OnchainKit Playground](https://onchainkit.xyz/playground).
+
+#### Paymaster
+
+`paymaster` представляет собой URL Paymaster, который позволяет вам спонсировать газ для ваших пользователей.
+
+Вы можете настроить свой Paymaster и получить URL Paymaster в
+[Coinbase Developer Platform](https://portal.cdp.coinbase.com/products/bundler-and-paymaster).
+
+#### Wallet
+
+`wallet` настраивает опыт подключения кошелька и имеет следующие свойства:
+
+- `display` — Режим отображения интерфейса кошелька. Может быть:
+  - `'modal'` — Показывает подключение кошелька в модальном окне с агрегацией кошельков
+  - `'classic'` — Показывает подключение кошелька в классическом встроенном стиле
+- `termsUrl` — URL ваших условий использования
+- `privacyUrl` — URL вашей политики конфиденциальности
+
+### Address _[Будет удалено]_
+
+`address` больше не используется и будет удален в будущей версии
+OnchainKit.
+
+### Schema ID _[Будет удалено]_
+
+`schemaId` больше не используется, так как OnchainKit теперь по умолчанию использует аттестации Coinbase
+для компонента `<Badge />`.
+
+Это свойство будет удалено в будущей версии OnchainKit.
+

@@ -1,0 +1,193 @@
+---
+title: "Builder Codes (скоро)" 
+sidebarTitle: "Builder Codes"
+description: "Интегрируйте Builder Codes для атрибуции ончейн-активности вашего приложения или кошелька."
+---
+
+<Warning>
+Base начнет выпускать Builder Codes через Base.dev **в начале декабря**. Мы опубликовали эту документацию заранее, чтобы дать командам время на изучение реализации.
+</Warning>
+
+Builder Codes позволяют вам атрибутировать ончейн-активность вашему приложению или кошельку, открывая доступ к аналитике, вознаграждениям и будущим стимулам. Это руководство охватывает шаги по реализации как для разработчиков приложений, так и для поставщиков кошельков.
+
+## Для разработчиков приложений
+
+Интеграция Builder Codes требует добавления суффикса - предоставляемого Base - к данным вашей транзакции.
+
+<Steps>
+  <Step title="Получите ваш Builder Code">
+    При регистрации на **base.dev** вы получите **Builder Code**. Это случайная строка (например, `k3p9da`), которую вы будете использовать для генерации суффикса атрибуции.
+  </Step>
+
+  <Step title="Добавьте суффикс к транзакциям">
+    Рекомендуемый способ присоединения суффикса — использование `wallet_sendCalls` (ERC-5792). Это передает суффикс через capability, позволяя кошельку автоматически обрабатывать его присоединение как для пользователей EOA, так и для пользователей Смарт-Аккаунтов (ERC-4337).
+
+    <Tabs>
+      <Tab title="Wagmi (Рекомендуется)">
+        Используйте хук `useSendCalls` из функционала Wagmi, чтобы передать capability `dataSuffix`.
+
+        ```typescript lines highlight={14-16}
+        import { useSendCalls } from 'wagmi'
+        import { Attribution } from 'ox/erc8021'
+        
+        // Your builder code provided by base.dev
+        const builderCode = "abcd1234" 
+        const dataSuffix = Attribution.toDataSuffix({
+            codes: [builderCode]
+        })
+
+        function SendTx() {
+          const { sendCalls } = useSendCalls()
+
+          async function submit() {
+            await sendCalls({
+              calls: [
+                {
+                  to: "0xYourContract",
+                  data: "0xYourCalldata"
+                }
+              ],
+              capabilities: {
+                dataSuffix: dataSuffix
+              }
+            })
+          }
+
+          return <button onClick={submit}>Send</button>
+        }
+        ```
+      </Tab>
+      <Tab title="Viem">
+        Если вы используете Viem напрямую, передайте `dataSuffix` в объекте `capabilities`.
+
+        ```typescript lines highlight={11-13}
+        import { walletClient } from './client'
+        import { Attribution } from 'ox/erc8021'
+        
+        // Ваш builder code, предоставленный base.dev
+        const builderCode = "abcd1234" 
+        const dataSuffix = Attribution.toDataSuffix({
+            codes: [builderCode]
+        })
+
+        await walletClient.sendCalls({
+          calls: [
+            {
+              to: "0xYourContract",
+              data: "0xYourCalldata"
+            }
+          ],
+          capabilities: {
+            dataSuffix: dataSuffix
+          }
+        })
+        ```
+      </Tab>
+      <Tab title="Устаревший способ (writeContract)">
+        Если вы ограничены использованием `writeContract` (только EOA), вы должны вручную добавить суффикс к `calldata`. Это **не рекомендуется**, так как не поддерживает смарт-аккаунты автоматически.
+
+        ```typescript lines highlight={15}
+        import { encodeFunctionData } from 'viem'
+        import { Attribution } from 'ox/erc8021'
+        
+        // Ваш builder code, предоставленный base.dev
+        const builderCode = "abcd1234" 
+        const dataSuffix = Attribution.toDataSuffix({
+            codes: [builderCode]
+        })
+
+        // 1. Закодируйте ваш вызов функции
+        const encoded = encodeFunctionData({
+          abi,
+          functionName: "yourFn",
+          args: [a, b, c],
+        })
+
+        // 2. Вручную добавьте суффикс (удалив префикс '0x' из суффикса)
+        const dataWithSuffix = encoded + dataSuffix.slice(2)
+
+        // 3. Отправьте транзакцию
+        await sendTransaction({
+          to: "0xYourContract",
+          data: dataWithSuffix,
+        })
+        ```
+      </Tab>
+    </Tabs>
+  </Step>
+</Steps>
+
+После добавления суффикса ваше приложение полностью соответствует стандарту ERC-8021.
+
+---
+
+## Для разработчиков кошельков
+
+Провайдеры кошельков должны поддерживать capability `dataSuffix`, чтобы включить атрибуцию. Это означает, что кошелёк должен принять `capability` и добавить суффикс к `calldata` перед подписанием.
+
+<Steps>
+  <Step title="Поддержите capability dataSuffix">
+    Ваш кошелек должен принимать строку `dataSuffix` в объекте `capabilities` метода `wallet_sendCalls`.
+
+    ```typescript lines
+    interface DataSuffixCapability {
+      dataSuffix: string; // байты в hex-кодировке, предоставленные приложением
+    }
+    ```
+  </Step>
+
+  <Step title="Добавьте суффикс к Calldata">
+    При создании транзакции или Пользовательской Операции извлеките `dataSuffix` и добавьте его к `calldata`.
+
+    <Tabs>
+      <Tab title="Транзакции EOA">
+        Добавьте к `tx.data`.
+
+        ```typescript lines
+        // Минимальный пример для EOA
+        function applySuffixToEOA(tx, capabilities) {
+          const suffix = capabilities.find(c => c.dataSuffix)?.dataSuffix
+          if (!suffix) return tx
+
+          return {
+            ...tx,
+            // Добавьте байты суффикса (удалите префикс 0x из суффикса, если tx.data его имеет)
+            data: tx.data + suffix.slice(2) 
+          }
+        }
+        ```
+      </Tab>
+      <Tab title="ERC-4337 User Operations">
+        Добавьте к `userOp.callData` (не к `calldata` на уровне транзакции).
+
+        ```typescript lines
+        // Минимальный пример для ERC-4337
+        function applySuffixToUserOp(userOp, capabilities) {
+          const suffix = capabilities.find(c => c.dataSuffix)?.dataSuffix
+          if (!suffix) return userOp
+
+          return {
+            ...userOp,
+            // Добавьте байты суффикса к пользовательской операции `calldata`
+            callData: userOp.callData + suffix.slice(2)
+          }
+        }
+        ```
+      </Tab>
+    </Tabs>
+  </Step>
+  <Step title="(Опционально) Добавьте атрибуцию кошелька">
+    Кошельки также могут включать свой собственный код атрибуции (свой собственный суффикс ERC-8021), просто добавляя суффикс кошелька перед суффиксом приложения.
+
+    *   **Не требуется взаимодействие с приложениями:** Кошелек обрабатывает это независимо.
+    *   **Поддержка нескольких кодов::** ERC-8021 изначально поддерживает несколько кодов атрибуции.
+
+    **Пример:**
+
+    ```typescript
+    finalSuffix = walletSuffix + appSuffix
+    ```
+
+    Это гарантирует, что и приложение, и кошелек получат ончейн-атрибуцию.
+  </Step>
+</Steps>

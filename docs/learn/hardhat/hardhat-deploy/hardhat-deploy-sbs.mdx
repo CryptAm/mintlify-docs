@@ -1,0 +1,261 @@
+---
+title: Развертывание смарт-контрактов
+description: Развертывайте смарт-контракты с помощью hardhat deploy и hardhat
+hide_table_of_contents: false
+---
+
+# Развертывание смарт-контрактов
+
+В этой статье вы узнаете, как развертывать смарт-контракты в нескольких блокчейн-сетях с помощью Hardhat и Hardhat deploy.
+
+---
+
+## Цели обучения
+
+После изучения этого урока вы сможете:
+
+- Развернуть смарт-контракт в тестовой сети Base Sepolia с помощью hardhat-deploy
+- Развернуть смарт-контракт в тестовой сети Sepolia с помощью hardhat-deploy
+- Использовать BaseScan для просмотра развернутого смарт-контракта
+
+---
+
+## Обзор
+
+Возможности Hardhat позволяют разработчикам легко развертывать смарт-контракты в любой блокчейн, просто создавая `tasks` или `scripts`. Однако из-за архитектуры Hardhat, которая позволяет расширять его путем создания плагинов, вы можете полагаться на существующие решения, разработанные сообществом.
+
+[Hardhat deploy](https://github.com/wighawag/hardhat-deploy) - это плагин, разработанный сообществом, который позволяет легко развертывать ваши смарт-контракты.
+
+## Настройка Hardhat deploy
+
+Для установки:
+
+1. Выполните `npm install -D hardhat-deploy`. Затем импортируйте hardhat-deploy в `hardhat.config.ts`:
+
+```tsx
+import 'hardhat-deploy';
+```
+
+2. Создайте папку с именем deploy а внутри нее создайте новый файл с именем `001_deploy_lock.ts`.
+
+3. Включите следующее:
+
+```tsx
+import { HardhatRuntimeEnvironment } from 'hardhat/types';
+import { DeployFunction } from 'hardhat-deploy/types';
+
+const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
+  // код здесь
+};
+export default func;
+```
+
+4. Измените файл `tsconfig.json`, чтобы он выглядел так:
+
+```json
+{
+  "compilerOptions": {
+    "target": "es2020",
+    "module": "commonjs",
+    "esModuleInterop": true,
+    "forceConsistentCasingInFileNames": true,
+    "strict": true,
+    "skipLibCheck": true,
+    "resolveJsonModule": true
+  },
+  "include": ["./hardhat.config.ts", "./scripts", "./deploy", "./test"]
+}
+```
+
+5. Перед реализацией функциональности развертывания настройте учетную запись развертывающего в файле `hardhat.config.ts`. Развертывание Hardhat включает способ именования учетных записей в конфигурационном файле.
+
+6. Выполните следующее, что добавляет псевдоним для учетной записи 0 вашего окружения:
+
+```tsx
+const config: HardhatUserConfig = {
+  solidity: '0.8.23',
+  namedAccounts: {
+    deployer: 0,
+  },
+};
+```
+
+7. Реализуйте функцию развертывания, включив следующее в файл `001_deploy_lock.ts`:
+
+```tsx
+import { HardhatRuntimeEnvironment } from 'hardhat/types';
+import { DeployFunction } from 'hardhat-deploy/types';
+import { ethers } from 'hardhat';
+
+const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
+  const { deploy } = hre.deployments;
+  // Теперь мы можем использовать deployer
+  const { deployer } = await hre.getNamedAccounts();
+
+  // Значение, которое мы хотим заблокировать
+  const VALUE_LOCKED = hre.ethers.parseEther('0.01');
+
+  // Время разблокировки после развертывания
+  const UNLOCK_TIME = 10000;
+
+  // Мы используем ethers для получения текущей временной метки
+  const blockNumber = await ethers.provider.getBlockNumber();
+  const lastBlockTimeStamp = (await ethers.provider.getBlock(blockNumber))?.timestamp as number;
+
+  // Мы говорим, что хотим развернуть наш контракт Lock, используя учетную запись
+  // deployer и передавая значение и аргументы.
+  await deploy('Lock', {
+    from: deployer,
+    args: [lastBlockTimeStamp + UNLOCK_TIME],
+    value: VALUE_LOCKED.toString(),
+  });
+};
+
+export default func;
+
+// Этот тег поможет нам в следующем разделе программно запустить этот файл развертывания
+func.tags = ['DeployAll'];
+```
+
+## Тестирование вашего развертывания
+
+Самый простой способ протестировать ваше развертывание - изменить тест.
+
+Перейдите в `Lock.ts` и включите в импорты следующее:
+
+```tsx
+import { ethers, deployments } from 'hardhat';
+```
+
+`deployments` позволит вам выполнять файлы развертывания из вашего теста.
+
+Измените функцию `before`, чтобы она выглядела следующим образом:
+
+```tsx
+before(async () => {
+  lastBlockTimeStamp = await time.latest();
+
+  const signers = await ethers.getSigners();
+  ownerSigner = signers[0];
+  otherUserSigner = signers[1];
+
+  await deployments.fixture(['DeployAll']);
+  const lockDeployment = await deployments.get('Lock');
+
+  lockInstance = Lock__factory.connect(lockDeployment.address, ownerSigner);
+});
+```
+
+Обратите внимание, как вы выполняете `deployments.fixture` и передаете тег, который соответствует указанному в файле развертывания (`001_deploy_lock.ts`).
+
+Затем файл развертывания выполняется, и вы можете повторно использовать эту функциональность и просто использовать адрес вновь развернутого контракта с помощью:
+
+```tsx
+const lockDeployment = await deployments.get('Lock');
+```
+
+Повторно используйте `Lock__factory`, но используйте функцию connect и передайте адрес вновь созданного контракта плюс подписанта. Затем запустите `npx hardhat test`, и вы должны получить тот же результат:
+
+```
+  Lock
+    ✔ должен получить значение unlockTime
+    ✔ должен иметь правильный баланс эфира
+    ✔ должен иметь правильного владельца
+    ✔ не должен позволять выводить до времени разблокировки (51ms)
+    ✔ не должен позволять выводить не владельцу
+    ✔ должен позволять выводить владельцу
+
+  6 проходящих (2s)
+```
+
+## Развертывание в тестовую сеть
+
+Развертывание в реальную тестовую сеть включает настройку параметров сети в конфигурационном файле Hardhat. Вам нужно включить такие параметры, как:
+
+- The JSON RPC URL
+- Учетная запись, которую вы хотите использовать
+- Реальный тестовый эфир или нативный токен блокчейна для оплаты газа
+
+Включите следующее в файл `hardhat.config.ts`:
+
+```tsx
+const config: HardhatUserConfig = {
+  solidity: '0.8.18',
+  namedAccounts: {
+    deployer: 0,
+  },
+  networks: {
+    base_sepolia: {
+      url: 'https://sepolia.base.org',
+      accounts: {
+        mnemonic: process.env.MNEMONIC ?? '',
+      },
+    },
+    sepolia: {
+      url: `https://eth-sepolia.g.alchemy.com/v2/${process.env.ALCHEMY_SEPOLIA_KEY ?? ''}`,
+      accounts: {
+        mnemonic: process.env.MNEMONIC ?? '',
+      },
+    },
+  },
+};
+```
+
+Вы настроили 2 сети:
+
+- base_sepolia
+- sepolia
+
+Вам также нужно создать файл `.env` со следующими переменными:
+
+```
+MNEMONIC="<REPLACE WITH YOUR MNEMONIC>"
+ALCHEMY_SEPOLIA_KEY=<REPLACE WITH YOUR API KEY>
+```
+
+Чтобы гарантировать загрузку переменных окружения, вам нужно установить другой пакет под названием `dotenv`:
+
+```bash
+npm install -D dotenv
+```
+
+Затем включите следующее в файл `hardhat.config.ts`:
+
+```tsx
+import dotenv from 'dotenv';
+
+dotenv.config();
+```
+
+Разверните в Base следующей командой:
+
+```bash
+npx hardhat deploy --network base_sepolia
+```
+
+После выполнения команды появляется папка deployments с недавно созданным развертыванием для `base_sepolia`:
+
+![New deployment](/images/learn/hardhat-deploying/new-deploy.png)
+
+Если вы хотите развернуть в другую сеть, измените имя сети следующим образом:
+
+```bash
+npx hardhat deploy --network sepolia
+```
+
+<Info>
+Убедитесь, что у вас есть правильные переменные окружения для JSON RPC URL. Например, для Sepolia используйте `ALCHEMY_SEPOLIA_KEY`.
+</Info>
+
+## Заключение
+
+В этом уроке вы узнали, как развертывать смарт-контракты с помощью Hardhat и Hardhat-deploy. Вы настроили Hardhat для легкого развертывания в несколько сетей и создали файлы развертывания для абстрагирования этой задачи.
+
+---
+
+## Смотрите также
+
+[Solidity Docs](https://docs.soliditylang.org/en/v0.8.17/)
+[Remix Project]: https://remix-project.org/
+[Hardhat]: https://hardhat.org/
+[Hardhat Deploy]: https://github.com/wighawag/hardhat-deploy

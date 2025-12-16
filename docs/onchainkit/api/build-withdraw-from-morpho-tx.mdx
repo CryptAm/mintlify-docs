@@ -1,0 +1,28 @@
+---
+title: buildWithdrawFromMorphoTx
+---
+
+
+Функция `buildWithdrawFromMorphoTx` используется для создания [Calls](/onchainkit/transaction/types#calls) для вывода актива из Morpho. Эти вызовы можно передать в компонент `<Transaction />` для отправки транзакции.
+
+## Использование
+
+```tsx code
+import { buildWithdrawFromMorphoTx } from '@coinbase/onchainkit/earn';
+
+const calls = await buildWithdrawFromMorphoTx({
+  vaultAddress: '0x...', // Адрес vault Morpho в Base
+  amount: 1000000000000000000n, // Количество токенов для вывода
+  recipientAddress: '0x...', // Адрес получателя
+});
+```
+
+
+## Возвращает
+
+[`Call[]`](/onchainkit/transaction/types#calls)
+
+## Параметры
+
+[`WithdrawFromMorphoParams`](/onchainkit/earn/types#withdrawfrommorphoparams)
+

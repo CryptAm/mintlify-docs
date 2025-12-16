@@ -1,0 +1,197 @@
+---
+title: "wallet_connect"
+description: "Подключить кошелек и запросить доступ к аккаунтам"
+---
+
+Специфичный метод Coinbase Wallet для установления подключения
+
+<Info>
+Запрашивает подключение кошелька к dApp и предоставление доступа к аккаунтам. Аналогично `eth_requestAccounts`, но предоставляет дополнительные возможности подключения.
+</Info>
+
+## Параметры
+
+<ParamField body="options" type="object">
+Опциональный объект конфигурации для подключения.
+
+<Expandable title="Свойства Options">
+<ParamField body="version" type="string">
+Версия wallet connect для использования.
+</ParamField>
+
+<ParamField body="jsonrpc" type="string">
+Версия JSON-RPC (обычно "2.0").
+</ParamField>
+
+<ParamField body="capabilities" type="object">
+пциональные возможности для запроса во время подключения, например signInWithEthereum для аутентификации.
+
+<Expandable title="Доступные возможности">
+<ParamField body="signInWithEthereum" type="object">
+Запрашивает аутентификацию SIWE (Sign-In With Ethereum) во время подключения.
+
+<Expandable title="Свойства signInWithEthereum">
+<ParamField body="nonce" type="string" required>
+Уникальная случайная строка для предотвращения атак повторного использования (replay attacks).
+</ParamField>
+
+<ParamField body="chainId" type="string" required>
+Идентификатор цепи в виде шестнадцатеричной строки (например, "0x2105" для Base Mainnet).
+</ParamField>
+</Expandable>
+</ParamField>
+</Expandable>
+</ParamField>
+</Expandable>
+</ParamField>
+
+## Возвращает
+
+<ResponseField name="result" type="object">
+Объект результата подключения, содержащий информацию об аккаунтах и результаты запрошенных возможностей.
+
+<Expandable title="Свойства результата">
+<ResponseField name="accounts" type="array">
+Массив объектов подключенных аккаунтов.
+
+<Expandable title="Свойства объекта аккаунта">
+<ResponseField name="address" type="string">
+Адрес аккаунта.
+</ResponseField>
+
+<ResponseField name="capabilities" type="object">
+Результаты возможностей, если они были запрошены во время подключения.
+
+<Expandable title="Результаты возможностей">
+<ResponseField name="signInWithEthereum" type="object">
+Результат аутентификации SIWE, если был запрошен.
+
+<Expandable title="Результат signInWithEthereum">
+<ResponseField name="message" type="string">
+Сообщение в формате SIWE, которое было подписано.
+</ResponseField>
+
+<ResponseField name="signature" type="string">
+Криптографическая подпись сообщения.
+</ResponseField>
+</Expandable>
+</ResponseField>
+</Expandable>
+</ResponseField>
+</Expandable>
+</ResponseField>
+
+<ResponseField name="chainId" type="string">
+Текущий идентификатор цепи в виде шестнадцатеричной строки (hex).
+</ResponseField>
+
+<ResponseField name="isConnected" type="boolean">
+Подключен ли кошелек.
+</ResponseField>
+</Expandable>
+</ResponseField>
+
+<RequestExample>
+```json Basic Connection
+{
+  "id": 1,
+  "jsonrpc": "2.0",
+  "method": "wallet_connect",
+  "params": [{}]
+}
+```
+
+```json With Options
+{
+  "id": 1,
+  "jsonrpc": "2.0",
+  "method": "wallet_connect",
+  "params": [{
+    "version": "1.0",
+    "jsonrpc": "2.0"
+  }]
+}
+```
+
+```json With signInWithEthereum Capability
+{
+  "id": 1,
+  "jsonrpc": "2.0",
+  "method": "wallet_connect",
+  "params": [{
+    "version": "1",
+    "capabilities": {
+      "signInWithEthereum": {
+        "nonce": "abc123def456",
+        "chainId": "0x2105"
+      }
+    }
+  }]
+}
+```
+</RequestExample>
+
+<ResponseExample>
+```json Basic Connection Response
+{
+  "id": 1,
+  "jsonrpc": "2.0",
+  "result": {
+    "accounts": [{
+      "address": "0x407d73d8a49eeb85d32cf465507dd71d507100c1"
+    }],
+    "chainId": "0x2105",
+    "isConnected": true
+  }
+}
+```
+
+```json signInWithEthereum Response
+{
+  "id": 1,
+  "jsonrpc": "2.0",
+  "result": {
+    "accounts": [{
+      "address": "0x407d73d8a49eeb85d32cf465507dd71d507100c1",
+      "capabilities": {
+        "signInWithEthereum": {
+          "message": "localhost:3000 wants you to sign in with your Ethereum account:\n0x407d73d8a49eeb85d32cf465507dd71d507100c1\n\nSign in with Ethereum to the app.\n\nURI: http://localhost:3000\nVersion: 1\nChain ID: 8453\nNonce: abc123def456\nIssued At: 2024-01-15T10:30:00Z",
+          "signature": "0x1234567890abcdef..."
+        }
+      }
+    }],
+    "chainId": "0x2105",
+    "isConnected": true
+  }
+}
+```
+</ResponseExample>
+
+## Обработка ошибок
+
+| Код  | Сообщение                      | Описание    |
+| ---- | ------------------------------ | ----------- |
+| 4001 | User rejected the request      | Пользователь отклонил запрос на подключение |
+| 4100 | Requested method not supported | Метод не поддерживается кошельком |
+| 4200 | Wallet not available           | Кошелек не установлен или недоступен |
+| -32602 | Invalid params                 | Некорректный nonce или chainId в возможности signInWithEthereum |
+
+<Warning>
+Это специфичный метод Coinbase Wallet, который может быть недоступен в других кошельках.
+</Warning>
+
+<Info>
+После успешного подключения кошелек будет генерировать события подключения и предоставлять доступ к информации об аккаунтах.
+</Info>
+
+<Tip>
+При использовании возможности `signInWithEthereum` всегда генерируйте новый уникальный nonce для каждой попытки аутентификации, чтобы предотвратить атаки повторного использования (replay attacks). Подпись можно проверить на вашем бэкенде с использованием библиотек, таких как viem.
+</Tip>
+
+## Использование с возможностями
+
+Вы можете использовать `wallet_connect` с возможностью [`signInWithEthereum`](/base-account/reference/core/capabilities/signInWithEthereum.mdx) capability для аутентификации пользователя.
+
+import PolicyBanner from "/snippets/PolicyBanner.mdx";
+
+<PolicyBanner />

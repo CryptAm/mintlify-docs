@@ -1,0 +1,98 @@
+---
+title: Импорты
+sidebarTitle: Пошаговое руководство
+description: Научитесь импортировать код в ваш контракт.
+hide_table_of_contents: false
+---
+
+В этом уроке мы научимся импортировать код, написанный другими, в ваши контракты. Мы также изучим библиотеку смарт-контрактов [OpenZeppelin].
+
+---
+
+## Цели
+
+К концу этого урока вы сможете:
+
+- Импортировать и использовать код из другого файла
+- Использовать контракты OpenZeppelin в Remix
+
+---
+
+## OpenZeppelin
+
+[OpenZeppelin] имеет надежную [библиотеку][library] хорошо [задокументированных][documented] смарт-контрактов. Они включают в себя ряд реализаций токенов, соответствующих стандартам, и набор утилит. Все контракты прошли аудит и, следовательно, безопаснее в использовании, чем случайный код, который можно найти в интернете (все равно следует проводить собственный аудит перед выпуском в продакшн).
+
+### Документация
+
+[Документация][docs] начинается с инструкций по установке, к которым мы вернемся, когда перейдем к локальной разработке. Вам **не нужно** ничего устанавливать, чтобы использовать эти контракты в Remix.
+
+Найдите документацию по `EnumerableSet` в разделе _Utils_. Эта библиотека позволит вам создавать [sets] of `bytes32`, `address`, и `uint256`. Поскольку они являются перечисляемыми (enumerated), вы можете итерироваться по ним. Отлично!
+
+### Реализация EnumerableSet от OpenZeppelin
+
+Создайте новый файл для работы и добавьте `pragma` и идентификатор лицензии.
+
+В Remix вы можете импортировать библиотеки прямо из GitHub!
+
+```solidity
+import "https://github.com/OpenZeppelin/openzeppelin-contracts/blob/master/contracts/utils/structs/EnumerableSet.sol";
+```
+
+Вы должны увидеть, как `EnumerableSet.sol` появится в файлах вашей рабочей среды, вложенный глубоко в набор папок.
+
+### Попробуйте сами
+
+Добавьте контракт с именем `SetExploration`. Ознакомьтесь с обширными комментариями внутри самого контракта.
+
+Чтобы использовать `EnumerableSet`, вам нужно использовать ключевое слово [`using`]. Эта директива присоединяет все методы библиотеки к типу. Это позволяет вам вызывать метод на переменной с точечной нотацией, а сама переменная будет передана в качестве первого аргумента.
+
+Следуйте шаблону из примера в комментариях, но назовите переменную `visitors`:
+
+```
+using EnumerableSet for EnumerableSet.AddressSet;
+
+EnumerableSet.AddressSet private visitors;
+```
+
+Добавьте функцию с именем `registerVisitor`, которая использует функцию `add` библиотеки для добавления отправителя сообщения в набор `visitors`.
+
+<Tip>
+Также есть функция `_add` которая является приватной (private).
+</Tip>
+
+
+<Accordion title="Показать код">
+
+```solidity
+function registerVisitor() public {
+    visitors.add(msg.sender);
+}
+```
+
+</Accordion>
+
+Добавьте еще одну функцию для возврата `numberOfVisitors`. Благодаря `using` можно чисто вызвать функцию `length`:
+
+<Accordion title="Показать код">
+
+```solidity
+function numberOfVisitors() public view returns (uint) {
+    return visitors.length();
+}
+```
+</Accordion>
+
+---
+
+## Заключение
+
+В этом уроке вы импортировали библиотеку из [OpenZeppelin] и реализовали некоторые ее функции. Вы также узнали, как использовать ключевое слово `using`.
+
+---
+
+[OpenZeppelin]: https://www.openzeppelin.com/
+[library]: https://github.com/OpenZeppelin/openzeppelin-contracts
+[documented]: https://docs.openzeppelin.com/contracts/4.x/
+[docs]: https://docs.openzeppelin.com/contracts/4.x/
+[sets]: https://en.wikipedia.org/wiki/Set_(abstract_data_type)
+[`using`]: https://docs.soliditylang.org/en/v0.8.17/contracts.html#using-for

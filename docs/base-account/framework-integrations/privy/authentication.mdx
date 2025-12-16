@@ -1,0 +1,289 @@
+---
+title: "Аутентификация (Sign In With Base)"
+description: "Управляйте аутентификацией пользователей с помощью Privy и Base Account"
+---
+
+import { GithubRepoCard } from "/snippets/GithubRepoCard.mdx";
+
+Узнайте, как обрабатывать потоки аутентификации с Privy и Base Account, включая как аутентификацию, управляемую Privy, так и пользовательскую проверку на бэкенде.
+
+## Обзор
+
+Privy обрабатывает первоначальный поток аутентификации, управляя сессиями пользователей и подключениями кошельков. Вы также можете реализовать дополнительные уровни аутентификации для повышенной безопасности или пользовательских требований.
+
+Фрагменты кода в этом руководстве основаны на следующем примере проекта:
+<GithubRepoCard
+  title="Base Account Privy Template"
+  githubUrl="https://github.com/base/base-account-privy"
+/>
+
+## Поток аутентификации
+
+Privy управляет основной аутентификацией до того, как пользователи войдут в ваше приложение:
+
+<div style={{ display: 'flex', justifyContent: 'center'}}>
+  <img src="/images/base-account/privy-base-auth.gif" alt="Privy Base Auth" style={{ width: '600px', height: 'auto' }} />
+</div>
+
+## Пользовательская аутентификация
+
+Для дополнительной безопасности или пользовательских требований к аутентификации вы можете реализовать проверку на бэкенде с использованием Sign-In with Ethereum (SIWE) и SDK Base Account.
+
+### Настройка
+
+Следуйте руководству [настройки](/base-account/framework-integrations/privy/setup) чтобы настроить Privy с Base Account.
+
+### Фронтенд-компонент (Sign In With Base)
+
+Мы используем компонент [`SignInWithBaseButton`](/base-account/reference/ui-elements/sign-in-with-base-button) из пакета `@base-org/account-ui/react`, чтобы обеспечить соответствие руководству по бренду.
+
+<CodeGroup>
+```tsx Authentication Component (components/sections/authentication.tsx) expandable
+"use client";
+
+import { useState } from "react";
+import { useBaseAccountSdk } from "@privy-io/react-auth";
+import { SignInWithBaseButton } from "@base-org/account-ui/react";
+
+export const Authentication = () => {
+  const { baseAccountSdk } = useBaseAccountSdk();
+  const [loading, setLoading] = useState(false);
+  const [verificationResult, setVerificationResult] = useState<any>(null);
+
+  const provider = baseAccountSdk?.getProvider();
+
+  const handleSignInWithBase = async () => {
+    if (!provider) return;
+
+    try {
+      setLoading(true);
+
+      // Получаем свежий nonce с бэкенда
+      const nonceResponse = await fetch("/api/auth/nonce");
+      const { nonce } = await nonceResponse.json();
+
+      // Переключаемся на сеть Base
+      await provider.request({
+        method: "wallet_switchEthereumChain",
+        params: [{ chainId: "0x2105" }],
+      });
+
+      // Подключаемся и аутентифицируемся с помощью SIWE
+      const response = (await provider.request({
+        method: "wallet_connect",
+        params: [{
+          version: "1",
+          capabilities: {
+            signInWithEthereum: {
+              nonce,
+              chainId: "0x2105",
+            },
+          },
+        }],
+      })) as {
+        accounts: {
+          address: string;
+          capabilities: {
+            signInWithEthereum: { signature: string; message: string };
+          };
+        }[];
+      };
+
+      const { address } = response.accounts[0];
+      const { message, signature } = response.accounts[0].capabilities.signInWithEthereum;
+
+      // Проверяем на бэкенде
+      const verifyResponse = await fetch("/api/auth/verify", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ address, message, signature }),
+      });
+
+      const result = await verifyResponse.json();
+      setVerificationResult(result);
+    } catch (error) {
+      console.error("Sign in error:", error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <div>
+      <SignInWithBaseButton onClick={handleSignInWithBase} />
+      {verificationResult && (
+        <div>✅ Backend Verified! Address: {verificationResult.address}</div>
+      )}
+    </div>
+  );
+};
+
+export default Authentication;
+```
+</CodeGroup>
+
+### Использование компонента аутентификации
+
+Добавьте компонент Authentication на вашу страницу, чтобы включить функциональность Sign In with Base:
+
+<CodeGroup>
+```tsx Page Implementation (app/page.tsx)
+import Authentication from "@/components/sections/authentication";
+
+export default function Home() {
+  return (
+    <main className="flex min-h-screen flex-col items-center justify-center p-24">
+      <div className="z-10 w-full max-w-5xl items-center justify-between font-mono text-sm">
+        <h1 className="text-4xl font-bold text-center mb-8">
+          Base Account with Privy
+        </h1>
+        
+        <div className="flex flex-col items-center space-y-4">
+          <Authentication />
+        </div>
+      </div>
+    </main>
+  );
+}
+```
+
+```tsx Alternative: Protected Page (app/dashboard/page.tsx)
+"use client";
+
+import { usePrivy } from "@privy-io/react-auth";
+import Authentication from "@/components/sections/authentication";
+
+export default function Dashboard() {
+  const { authenticated } = usePrivy();
+
+  if (!authenticated) {
+    return (
+      <div className="flex min-h-screen items-center justify-center">
+        <div className="text-center">
+          <h1 className="text-2xl font-bold mb-4">Access Required</h1>
+          <p className="mb-6">Please authenticate to access the dashboard.</p>
+          <Authentication />
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="min-h-screen p-8">
+      <h1 className="text-3xl font-bold mb-6">Dashboard</h1>
+      <p>Welcome to your authenticated dashboard!</p>
+      {/* Your protected content here */}
+    </div>
+  );
+}
+```
+</CodeGroup>
+
+### Реализация бэкенда
+
+<Warning>
+**Только для разработки**: Эта реализация бэкенда не готова для продакшена. Система управления nonce требует правильного постоянного хранения и улучшений безопасности для использования в производственной среде.
+</Warning>
+
+<CodeGroup>
+```ts Nonce Generation (app/api/auth/nonce/route.ts)
+import { NextResponse } from 'next/server';
+import crypto from 'crypto';
+import { nonceStore } from '@/lib/nonce-store';
+
+export async function GET() {
+  try {
+    const nonce = crypto.randomBytes(16).toString('hex');
+    nonceStore.add(nonce);
+    
+    return NextResponse.json({ nonce });
+  } catch (error) {
+    return NextResponse.json(
+      { error: 'Failed to generate nonce' },
+      { status: 500 }
+    );
+  }
+}
+```
+
+```ts Signature Verification (app/api/auth/verify/route.ts) expandable
+import { NextRequest, NextResponse } from 'next/server';
+import { createPublicClient, http } from 'viem';
+import { base } from 'viem/chains';
+import { nonceStore } from '@/lib/nonce-store';
+
+const client = createPublicClient({ 
+  chain: base, 
+  transport: http() 
+});
+
+export async function POST(request: NextRequest) {
+  try {
+    const { address, message, signature } = await request.json();
+
+    // Извлекаем nonce из сообщения SIWE
+    const nonce = message.match(/Nonce: (\w+)/)?.[1];
+    
+    if (!nonce || !nonceStore.consume(nonce)) {
+      return NextResponse.json(
+        { error: 'Invalid or reused nonce' },
+        { status: 400 }
+      );
+    }
+
+    // Проверяем подпись с помощью viem
+    const valid = await client.verifyMessage({ 
+      address: address as `0x${string}`, 
+      message, 
+      signature: signature as `0x${string}` 
+    });
+
+    if (!valid) {
+      return NextResponse.json(
+        { error: 'Invalid signature' },
+        { status: 401 }
+      );
+    }
+
+    return NextResponse.json({ 
+      success: true, 
+      address,
+      timestamp: new Date().toISOString()
+    });
+
+  } catch (error) {
+    return NextResponse.json(
+      { error: 'Internal server error' },
+      { status: 500 }
+    );
+  }
+}
+```
+
+```ts Nonce Store (lib/nonce-store.ts) expandable
+// Простое хранилище nonce в памяти
+// В продакшене используйте Redis или базу данных
+class NonceStore {
+  private nonces = new Set<string>();
+
+  add(nonce: string): void {
+    this.nonces.add(nonce);
+  }
+
+  consume(nonce: string): boolean {
+    return this.nonces.delete(nonce);
+  }
+}
+
+export const nonceStore = new NonceStore();
+```
+</CodeGroup>
+
+### Рекомендации для продакшена
+
+Для развертывания в продакшен улучшите реализацию бэкенда следующим образом:
+
+**Постоянное хранение**: Используйте Redis или базу данных вместо хранения в памяти
+**Ограничение запросов (Rate limiting)**: Реализуйте ограничение частоты запросов для генерации nonce
+**Управление сессиями**: Создавайте правильные JWT-токены или куки сессий
+**Срок действия nonce**: Добавьте истечение срока действия nonce на основе меток времени

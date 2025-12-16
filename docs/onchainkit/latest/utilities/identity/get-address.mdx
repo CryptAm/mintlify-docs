@@ -1,0 +1,69 @@
+---
+title: getAddress
+---
+
+Утилита `getAddress` предназначена для получения адреса из провайдера ончейн-идентификации по заданному имени.
+
+## Использование
+
+Получение ENS имени из основной сети (mainnet)
+
+<CodeGroup>
+```tsx code
+import { getAddress } from '@coinbase/onchainkit/identity';
+
+const address = await getAddress({ name: 'zizzamia.eth' });
+
+````
+
+```ts return value
+0x02feeb0AdE57b6adEEdE5A4EEea6Cf8c21BeB6B1
+````
+
+</CodeGroup>
+
+Получение Basename из цепи Base
+
+<CodeGroup>
+```tsx code
+import { getAddress } from '@coinbase/onchainkit/identity';
+import { base } from 'viem/chains';
+
+const address = await getAddress({ name: 'zizzamia.base.eth', chain: base });
+
+````
+
+```ts return value
+0x02feeb0AdE57b6adEEdE5A4EEea6Cf8c21BeB6B1
+````
+
+</CodeGroup>
+
+## Возвращает
+
+```typescript
+type GetAddressReturnType = Address | null;
+
+type Address = `0x${string}`;
+```
+
+## Параметры
+
+```typescript
+type GetAddressParams = {
+  /** Имя для разрешения (резолва) */
+  name: string | Basename;
+  /** Необязательная цепь для разрешения домена */
+  chain?: Chain;
+};
+
+type Basename = BaseMainnetName | BaseSepoliaName;
+type BaseMainnetName = `${string}.base.eth`;
+type BaseSepoliaName = `${string}.basetest.eth`;
+
+type Chain = {
+  id: number;
+  name: string;
+  // ... другие свойства цепи
+};
+```

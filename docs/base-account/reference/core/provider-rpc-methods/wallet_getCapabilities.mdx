@@ -1,0 +1,347 @@
+---
+title: "wallet_getCapabilities"
+description: "Получить поддерживаемые возможности кошелька для указанного аккаунта"
+---
+
+Определено в [EIP-5792](https://eips.ethereum.org/EIPS/eip-5792)
+
+<Info>
+Возвращает возможности кошелька для указанного аккаунта. Возможности указывают, какую дополнительную функциональность поддерживает кошелек помимо стандартных RPC методов, например, атомарные пакетные транзакции, транзакции без газа (gasless), вспомогательные средства и функции аутентификации.
+</Info>
+
+## Параметры
+
+<ParamField body="account" type="string" required>
+Адрес аккаунта для проверки возможностей. 
+Формат: `^0x[0-9a-fA-F]{40}$`
+</ParamField>
+
+## Возвращает
+
+<ResponseField name="result" type="object">
+Объект, в котором каждый ключ — это идентификатор цепи (в виде шестнадцатеричной строки), а каждое значение — объект, содержащий возможности, поддерживаемые в этой цепи.
+
+<Expandable title="Capabilities by chain">
+<ResponseField name="[chainId]" type="object">
+Объект возможностей для конкретной цепи (например, "0x2105" для Base Mainnet).
+
+<Expandable title="Доступные возможности">
+<ResponseField name="auxiliaryFunds" type="object">
+Указывает доступ кошелька к средствам помимо проверки баланса в блокчейне (MagicSpend).
+
+<Expandable title="Свойства auxiliaryFunds">
+<ResponseField name="supported" type="boolean">
+Доступны ли вспомогательные средства для этого аккаунта в этой цепи.
+</ResponseField>
+</Expandable>
+</ResponseField>
+
+<ResponseField name="atomic" type="object">
+Указывает поддержку атомарного выполнения пакетных транзакций.
+
+<Expandable title="Свойства atomic">
+<ResponseField name="supported" type="string">
+Уровень поддержки атомарного выполнения: "supported", "ready" или "unsupported".
+</ResponseField>
+</Expandable>
+</ResponseField>
+
+<ResponseField name="paymasterService" type="object">
+Указывает поддержку транзакций без газа (gasless) через сервисы paymaster.
+
+<Expandable title="Свойства paymasterService">
+<ResponseField name="supported" type="boolean">
+Поддерживаются ли сервисы paymaster для этого аккаунта в этой цепи.
+</ResponseField>
+</Expandable>
+</ResponseField>
+
+<ResponseField name="flowControl" type="object">
+Указывает поддержку возможностей управления потоком.
+
+<Expandable title="Свойства flowControl">
+<ResponseField name="supported" type="boolean">
+Поддерживается ли управление потоком для этого аккаунта в этой цепи.
+</ResponseField>
+</Expandable>
+</ResponseField>
+
+<ResponseField name="datacallback" type="object">
+Указывает поддержку возможностей обратного вызова данных.
+
+<Expandable title="Свойства datacallback">
+<ResponseField name="supported" type="boolean">
+Поддерживаются ли обратные вызовы данных для этого аккаунта в этой цепи.
+</ResponseField>
+</Expandable>
+</ResponseField>
+</Expandable>
+</ResponseField>
+</Expandable>
+</ResponseField>
+
+## Пример использования
+
+<RequestExample>
+```json Request
+{
+  "id": 1,
+  "jsonrpc": "2.0",
+  "method": "wallet_getCapabilities",
+  "params": ["0x407d73d8a49eeb85d32cf465507dd71d507100c1"]
+}
+```
+
+```typescript SDK Usage
+import { createBaseAccountSDK } from '@base-org/account';
+
+const provider = createBaseAccountSDK().getProvider();
+
+// Получить возможности для адреса пользователя
+const capabilities = await provider.request({
+  method: 'wallet_getCapabilities',
+  params: ['0x407d73d8a49eeb85d32cf465507dd71d507100c1']
+});
+
+// Проверить конкретные возможности
+const baseCapabilities = capabilities["0x2105"]; // Base Mainnet
+const hasAuxiliaryFunds = baseCapabilities?.auxiliaryFunds?.supported;
+const supportsAtomic = baseCapabilities?.atomic?.supported === "supported";
+const hasPaymaster = baseCapabilities?.paymasterService?.supported;
+
+console.log('Capabilities:', {
+  hasAuxiliaryFunds,
+  supportsAtomic,
+  hasPaymaster
+});
+```
+</RequestExample>
+
+<ResponseExample>
+```json Full Capabilities Response
+{
+  "id": 1,
+  "jsonrpc": "2.0",
+  "result": {
+    "0x2105": {
+      "auxiliaryFunds": {
+        "supported": true
+      },
+      "atomic": {
+        "supported": "supported"
+      },
+      "paymasterService": {
+        "supported": true
+      },
+      "flowControl": {
+        "supported": false
+      },
+      "datacallback": {
+        "supported": false
+      }
+    },
+    "0x14A34": {
+      "auxiliaryFunds": {
+        "supported": false
+      },
+      "atomic": {
+        "supported": "ready"
+      },
+      "paymasterService": {
+        "supported": true
+      }
+    }
+  }
+}
+```
+
+```json Limited Capabilities Response
+{
+  "id": 1,
+  "jsonrpc": "2.0",
+  "result": {
+    "0x2105": {
+      "auxiliaryFunds": {
+        "supported": false
+      },
+      "atomic": {
+        "supported": "unsupported"
+      },
+      "paymasterService": {
+        "supported": false
+      }
+    }
+  }
+}
+```
+</ResponseExample>
+
+## Паттерны обнаружения возможностей
+
+### Проверить одну возможность
+
+```typescript
+async function checkAuxiliaryFunds(userAddress: string): Promise<boolean> {
+  try {
+    const capabilities = await provider.request({
+      method: 'wallet_getCapabilities',
+      params: [userAddress]
+    });
+
+    return capabilities["0x2105"]?.auxiliaryFunds?.supported || false;
+  } catch (error) {
+    console.error('Failed to check capabilities:', error);
+    return false;
+  }
+}
+```
+
+### Проверить несколько возможностей
+
+```typescript
+async function getWalletCapabilities(userAddress: string) {
+  const capabilities = await provider.request({
+    method: 'wallet_getCapabilities',
+    params: [userAddress]
+  });
+
+  const baseCapabilities = capabilities["0x2105"] || {};
+
+  return {
+    hasAuxiliaryFunds: baseCapabilities.auxiliaryFunds?.supported || false,
+    hasAtomicBatch: baseCapabilities.atomic?.supported === "supported",
+    hasPaymaster: !!baseCapabilities.paymasterService?.supported,
+    hasFlowControl: !!baseCapabilities.flowControl?.supported,
+    hasDataCallback: !!baseCapabilities.datacallback?.supported
+  };
+}
+```
+
+### Условное построение транзакции
+
+```typescript
+async function buildTransaction(userAddress: string, calls: any[]) {
+  const capabilities = await provider.request({
+    method: 'wallet_getCapabilities',
+    params: [userAddress]
+  });
+
+  const baseCapabilities = capabilities["0x2105"] || {};
+  
+  const txParams: any = {
+    version: '1.0',
+    chainId: '0x2105',
+    from: userAddress,
+    calls
+  };
+
+  // Добавить возможность gasless, если поддерживается
+  if (baseCapabilities.paymasterService?.supported) {
+    txParams.capabilities = {
+      paymasterService: {
+        url: "https://paymaster.base.org/api/v1/sponsor"
+      }
+    };
+  }
+
+  // Использовать атомарное выполнение, если поддерживается и есть несколько вызовов
+  if (calls.length > 1 && baseCapabilities.atomic?.supported === "supported") {
+    txParams.atomicRequired = true;
+  }
+
+  return txParams;
+}
+```
+
+## Обработка ошибок
+
+| Код  | Сообщение | Описание    |
+| ---- | --------- | ----------- |
+| -32602 | Invalid params | Некорректный формат адреса аккаунта |
+| 4100 | Method not supported | Кошелек не поддерживает wallet_getCapabilities |
+| 4200 | Wallet not available | Кошелек не установлен или недоступен |
+
+<Warning>
+Возможности специфичны для цепи и аккаунта. Всегда проверяйте возможности для конкретной комбинации цепи и аккаунта, которую вы используете.
+</Warning>
+
+<Info>
+Не все кошельки поддерживают все возможности. Используйте обнаружение возможностей для постепенного улучшения пользовательского опыта, а не для блокировки функциональности, когда возможности недоступны.
+</Info>
+
+## Интеграция с другими методами
+
+### С wallet_sendCalls
+
+Используйте возможности для улучшения выполнения транзакций:
+
+```typescript
+const capabilities = await provider.request({
+  method: 'wallet_getCapabilities',
+  params: [userAddress]
+});
+
+// Использовать возможности в wallet_sendCalls
+const result = await provider.request({
+  method: 'wallet_sendCalls',
+  params: [{
+    version: '1.0',
+    chainId: '0x2105',
+    from: userAddress,
+    atomicRequired: capabilities["0x2105"]?.atomic?.supported === "supported",
+    calls: [{
+      to: '0x...',
+      value: '0x0',
+      data: '0x...'
+    }],
+    capabilities: {
+      paymasterService: capabilities["0x2105"]?.paymasterService?.supported ? {
+        url: "https://paymaster.base.org/api/v1/sponsor"
+      } : undefined
+    }
+  }]
+});
+```
+
+### С wallet_connect
+
+Обнаружение возможностей не влияет на wallet_connect, но вы можете использовать результаты для информирования потока аутентификации:
+
+```typescript
+const capabilities = await provider.request({
+  method: 'wallet_getCapabilities',
+  params: [userAddress]
+});
+
+// signInWithEthereum всегда доступен с wallet_connect
+const { accounts } = await provider.request({
+  method: 'wallet_connect',
+  params: [{
+    version: '1',
+    capabilities: {
+      signInWithEthereum: { 
+        nonce: generateNonce(), 
+        chainId: '0x2105'
+      }
+    }
+  }]
+});
+```
+
+## Рекомендации
+
+1. **Всегда проверяйте сначала**: Вызывайте wallet_getCapabilities перед использованием расширенных функций
+2. **Кэшируйте результаты**: Возможности обычно не меняются часто, рассмотрите кэширование
+3. **Плавные откаты**: Реализуйте поведение отката, когда возможности не поддерживаются
+4. **Специфичность цепи**: Проверяйте возможности для каждой цепи, которую поддерживает ваше приложение
+5. **Постепенное улучшение**: Используйте возможности для улучшения UX, а не для блокировки базовой функциональности
+
+## Связанная документация
+
+- [Обзор возможностей](/base-account/reference/core/capabilities/overview) - Полное руководство по использованию возможностей
+- [wallet_sendCalls](/base-account/reference/core/provider-rpc-methods/wallet_sendCalls) - Выполнение транзакций с возможностями
+- [wallet_connect](/base-account/reference/core/provider-rpc-methods/wallet_connect) - Подключение с возможностями аутентификации
+
+import PolicyBanner from "/snippets/PolicyBanner.mdx";
+
+<PolicyBanner />

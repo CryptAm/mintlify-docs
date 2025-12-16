@@ -1,0 +1,116 @@
+---
+title: "wallet_watchAsset"
+description: "Добавить токен в список отслеживаемых активов кошелька"
+---
+
+Определено в [EIP-747](https://eips.ethereum.org/EIPS/eip-747)
+
+<Info>
+Запрашивает у кошелька отслеживание указанного токена в кошельке пользователя. После добавления токен будет отображаться в списке токенов кошелька.
+</Info>
+
+## Параметры
+
+<ParamField body="type" type="string" required>
+Тип актива. В настоящее время поддерживается только "ERC20".
+</ParamField>
+
+<ParamField body="options" type="object" required>
+Объект параметров токена.
+
+<Expandable title="Свойства Options">
+<ParamField body="address" type="string" required>
+Адрес контракта токена (42-символьный шестнадцатеричный адрес).
+</ParamField>
+
+<ParamField body="symbol" type="string" required>
+Тикер или сокращенное обозначение токена, до 11 символов.
+</ParamField>
+
+<ParamField body="decimals" type="number" required>
+Количество десятичных знаков токена (decimals).
+</ParamField>
+
+<ParamField body="image" type="string">
+URL строки изображения логотипа токена (опционально).
+</ParamField>
+</Expandable>
+</ParamField>
+
+## Возвращает
+
+<ResponseField name="result" type="boolean">
+Возвращает `true`, если токен был успешно добавлен в список отслеживания.
+</ResponseField>
+
+<RequestExample>
+```json ERC20 Token
+{
+  "id": 1,
+  "jsonrpc": "2.0",
+  "method": "wallet_watchAsset",
+  "params": {
+    "type": "ERC20",
+    "options": {
+      "address": "0xA0b86a33E6776e1e627E5C82dF4C0cf77B8bb0c9",
+      "symbol": "USDC",
+      "decimals": 6,
+      "image": "https://cryptologos.cc/logos/usd-coin-usdc-logo.png"
+    }
+  }
+}
+```
+
+```json Custom Token
+{
+  "id": 1,
+  "jsonrpc": "2.0",
+  "method": "wallet_watchAsset",
+  "params": {
+    "type": "ERC20",
+    "options": {
+      "address": "0x6b175474e89094c44da98b954eedeac495271d0f",
+      "symbol": "DAI",
+      "decimals": 18
+    }
+  }
+}
+```
+</RequestExample>
+
+<ResponseExample>
+```json Success Response
+{
+  "id": 1,
+  "jsonrpc": "2.0",
+  "result": true
+}
+```
+
+```json User Rejected
+{
+  "id": 1,
+  "jsonrpc": "2.0",
+  "error": {
+    "code": 4001,
+    "message": "User rejected the request"
+  }
+}
+```
+</ResponseExample>
+
+## Обработка ошибок
+
+| Код  | Сообщение                      | Описание    |
+| ---- | ------------------------------ | ----------- |
+| 4001 | User rejected the request      | Пользователь отклонил добавление токена |
+| 4100 | Requested method not supported | Метод не поддерживается кошельком |
+| -32602 | Invalid params                 | Некорректные параметры токена |
+
+<Warning>
+Всегда проверяйте адрес контракта токена и убедитесь, что это легитимный токен, чтобы предотвратить добавление пользователями вредоносных токенов.
+</Warning>
+
+<Info>
+Токен появится в списке токенов кошелька пользователя в случае успешного добавления.
+</Info>

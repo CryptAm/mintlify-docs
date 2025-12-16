@@ -1,0 +1,67 @@
+---
+title: fetchOnrampTransactionStatus
+---
+
+
+Утилита fetchOnrampTransactionStatus получает статус транзакций пополнения (onramp) для конкретного пользователя. Это полезно для отслеживания прогресса покупки криптовалюты и отображения истории транзакций.
+
+## Использование
+
+<CodeGroup>
+```tsx code
+import { fetchOnrampTransactionStatus } from '@coinbase/onchainkit/fund';
+
+const transactions = await fetchOnrampTransactionStatus({
+  partnerUserId: 'user123',
+  nextPageKey: '',
+  pageSize: '10',
+  apiKey: 'your-api-key', // Требуется при использовании без OnchainKitProvider или в не-React окружении
+});
+```
+
+```json return value
+{
+  "transactions": [
+    {
+      "id": "tx123",
+      "status": "ONRAMP_TRANSACTION_STATUS_SUCCESS",
+      "purchaseAmount": { "value": "0.1", "currency": "ETH" },
+      "paymentAmount": { "value": "200.00", "currency": "USD" },
+      "network": "ethereum",
+      "createdAt": "2024-01-01T12:00:00Z"
+    }
+  ],
+  "nextPageKey": "next_page_token",
+  "totalCount": "1"
+}
+```
+</CodeGroup>
+
+## Параметры
+
+```typescript
+{
+  /**
+   * Уникальный идентификатор, который будет ассоциирован с любыми транзакциями,
+   * созданными пользователем во время его сессии Onramp. Вы можете использовать это
+   * с API статуса транзакций для проверки статуса транзакции пользователя.
+   * См. https://docs.cdp.coinbase.com/onramp/docs/api-reporting#buy-transaction-status
+   */
+  partnerUserId: string; // Ваш уникальный идентификатор пользователя
+  nextPageKey: string;   // Токен для пагинации
+  pageSize: string;      // Количество транзакций на странице
+  /**
+   * Опциональный API-ключ для Coinbase Onramp. Если не предоставлен, будет использован
+   * API-ключ из OnchainKitProvider. Требуется при использовании утилиты без
+   * OnchainKitProvider или в не-React окружении.
+   */
+  apiKey?: string;
+}
+```
+
+## Возвращает
+
+`Promise<OnrampTransactionStatusResponseData>` - Возвращает промис, который разрешается в данные о статусе транзакций.
+
+Смотрите [`OnrampTransactionStatusResponseData`](/onchainkit/fund/types#onramptransactionstatusresponsedata) для полных деталей типа ответа.
+

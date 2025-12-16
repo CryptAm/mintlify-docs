@@ -1,0 +1,51 @@
+---
+title: "eth_blockNumber"
+description: "Получение номера самого последнего блока"
+---
+
+Определено в [Ethereum JSON-RPC Specification](https://ethereum.org/en/developers/docs/apis/json-rpc/)
+
+<Info>
+Возвращает номер самого последнего блока.
+</Info>
+
+## Параметры
+
+Этот метод не принимает параметров.
+
+## Возвращает
+
+<ResponseField name="result" type="string">
+Строка в шестнадцатеричном формате, представляющая целое число текущего номера блока, на котором находится клиент.
+</ResponseField>
+
+<RequestExample>
+```json Request
+{
+  "id": 1,
+  "jsonrpc": "2.0",
+  "method": "eth_blockNumber",
+  "params": []
+}
+```
+</RequestExample>
+
+<ResponseExample>
+```json Success Response
+{
+  "id": 1,
+  "jsonrpc": "2.0",
+  "result": "0x4b7"
+}
+```
+</ResponseExample>
+
+## Обработка ошибок
+
+| Код  | Сообщение                      | Описание    |
+| ---- | ------------------------------ | ----------- |
+| 4100 | Requested method not supported | Метод не поддерживается кошельком |
+
+<Info>
+Результат - номер блока в шестнадцатеричном формате. Конвертируйте в десятичный формат, чтобы получить фактический номер блока.
+</Info>

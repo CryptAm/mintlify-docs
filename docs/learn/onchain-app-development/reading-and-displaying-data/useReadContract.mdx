@@ -1,0 +1,458 @@
+---
+title: Хук `useReadContract`
+description: Узнайте, как вызывать функции view и pure из смарт-контракта.
+hide_table_of_contents: false
+---
+
+# Хук `useReadContract`
+
+Хук `useReadContract` - это метод [wagmi] для вызова функций `pure` и `view` из ваших смарт-контрактов. Как и `useAccount`, `useReadContract` содержит ряд полезных свойств, позволяющих вам управлять отображением информации для ваших пользователей.
+---
+
+## Цели
+
+К концу этого руководства вы должны уметь:
+
+- Реализовать хук wagmi `useReadContract` для получения данных из смарт-контракта
+- Преобразовывать данные, полученные из смарт-контракта, в информацию, отображаемую пользователю
+- Определить особенности чтения данных из автоматически сгенерированных геттеров
+
+---
+
+## Настройка контракта
+
+Для этого руководства вы продолжите работу над проектом, который начали для [`useAccount` hook]. Вы будете работать с усовершенствованной версией контракта, который вы могли создать, если выполняли [ERC 20 Tokens Exercise]. Ниже приведен пример, который вы можете использовать, если у вас еще нет своего!
+
+Контракт создает очень простой DAO, в котором пользователи могут создавать вопросы и голосовать за них, против них или воздерживаться. Любой может получить (`claim`) 100 токенов. Это небезопасная система для демонстрационных целей, поскольку было бы тривиально получить большое количество токенов с помощью нескольких кошельков, затем перевести их на один адрес и использовать его для доминирования в голосовании.
+
+Но это значительно упрощает тестирование!
+
+<Warning>
+Если вы используете свой собственный контракт, пожалуйста, повторно разверните его со следующими функциями `view`:
+
+```solidity
+function numberOfIssues() public view returns(uint) {
+    return issues.length;
+}
+
+function getAllIssues() public view returns(ReturnableIssue[] memory) {
+    ReturnableIssue[] memory allIssues = new ReturnableIssue[](issues.length);
+
+    for(uint i = 0; i < issues.length; i++) {
+        allIssues[i] = getIssue(i);
+    }
+
+    return allIssues;
+}
+```
+
+**Вам также нужно сделать функцию `getIssue public`. В исходной спецификации требовалось, чтобы она была `external`.**
+</Warning>
+
+### Создание демонстрационных вопросов
+
+Для начала вам нужно поместить некоторые данные в ваш контракт, чтобы можно было прочитать их с фронтенда. Откройте [Sepolia BaseScan], найдите ваш контракт, подключитесь с вашим кошельком и вызовите функцию `claim`.
+
+Добавьте следующие два вопроса:
+
+```text
+_issueDesc: We should enable light mode by default.
+_quorum: 2
+```
+
+```text
+_issueDesc: We should make inverted mouse controls the default selection.
+_quorum: 2
+```
+
+Переключитесь на **другой адрес кошелька**. Получите ваши токены с новым адресом и добавьте еще один вопрос:
+
+```text
+_issueDesc: Two spaces, not four, not tabs!
+_quorum: 2
+```
+
+Вызовите функцию `getAllIssues` на вкладке `Read Contract`, чтобы убедиться, что все три вопроса присутствуют.
+
+---
+
+## Чтение из вашего смарт-контракта
+
+Чтобы иметь возможность читать из вашего развернутого смарт-контракта, вам понадобятся две части информации: адрес и . Они используются в качестве параметров в хуке `useReadContract`.
+
+Если вы используете [Hardhat], обе эти информации удобно находятся в json-файле в папке `deployments/<network>`, названном в честь вашего контракта. Например, наш контракт называется `FEWeightedVoting`, поэтому файл - `deployments/base-sepolia/FEWeightedVoting.json`.
+
+Если вы используете что-то другое, это должно производить аналогичный артефакт или отдельные артефакты с и адресом. Если это так, внесите необходимые изменения при импорте этих данных.
+
+В любом случае добавьте папку с именем `deployments` и поместите копию файла(ов) артефакта внутрь.
+
+### Использование хука `useReadContract`
+
+Добавьте файл для нового компонента с именем `IssueList.tsx`. Вы можете начать с:
+
+```tsx
+import { useReadContract } from 'wagmi';
+
+export function IssueList() {
+  return (
+    <div>
+      <h2>All Issues</h2>
+      <div>{/* TODO: Список каждого вопроса */}</div>
+    </div>
+  );
+}
+```
+
+Вам нужно будет выполнить некоторую подготовительную работу, чтобы TypeScript мог легче интерпретировать данные, возвращаемые из вашего контракта. Добавьте интерфейс с именем `Issue`, который соответствует типу `ReturnableIssue`:
+
+```tsx
+interface Issue {
+  voters: string[];
+  issueDesc: string;
+  votesFor: bigint;
+  votesAgainst: bigint;
+  votesAbstain: bigint;
+  totalVotes: bigint;
+  quorum: bigint;
+  passed: boolean;
+  closed: boolean;
+}
+```
+
+<Warning>
+Будьте очень осторожны здесь! `bigint` — это название типа, `BigInt` - это название конструктора для этого типа. Если вы неправильно используете конструктор в качестве типа, большая часть вашего кода все равно будет работать, но в других частях могут возникать очень запутанные ошибки.
+</Warning>
+
+Теперь импортируйте `useState` и добавьте переменную состояния для хранения вашего списка `Issue`.
+
+```tsx
+const [issues, setIssues] = useState<Issue[]>([]);
+```
+
+Вам также нужно будет импортировать артефакт контракта:
+
+```tsx
+import contractData from '../deployments/FEWeightedVoting.json';
+```
+
+Наконец, момент, которого вы ждали: время читать из вашего контракта! Добавьте экземпляр хука [`useReadContract`].  Он работает аналогично хуку [`useAccount`]. Сконфигурируйте его:
+
+```tsx
+const {
+  data: issuesData,
+  isError: issuesIsError,
+  isPending: issuesIsPending,
+} = useReadContract({
+  address: contractData.address as `0x${string}`,
+  abi: contractData.abi,
+  functionName: 'getAllIssues',
+});
+```
+
+Вы можете использовать `useEffect`, чтобы сделать что-то, когда вызов завершится и появятся данные. Пока просто выведите их в консоль:
+
+```tsx
+useEffect(() => {
+  if (issuesData) {
+    const issuesList = issuesData as Issue[];
+    console.log('issuesList', issuesList);
+    setIssues(issuesList);
+  }
+}, [issuesData]);
+```
+
+Добавьте экземпляр вашего нового компонента в `index.tsx`:
+
+```tsx
+<main className={styles.main}>
+  <ConnectButton />
+  <ConnectionWindow />
+  <IssueList />
+</main>
+```
+
+Запустите ваше приложение, и вы должны увидеть ваш список вопросов, полученный из блокчейна и выведенный в консоль!
+
+![Issues Console Log](/images/learn/reading-and-displaying-data/issues-console-log.png)
+
+Разбирая хук, вы:
+
+- Переименовали свойства, декомпозированные из `useReadContract`, чтобы они были специфичными для нашей функции. Это полезно, если вы собираетесь читать более чем из одной функции в файле.
+- Сконфигурировали хук с адресом и ABI для вашего контракта.
+- Использовали `useEffect`, чтобы дождаться возврата данных из блокчейна, вывести их в консоль и установить список `Issue` в состоянии.
+
+### Отображение данных
+
+Теперь, когда данные находятся в состоянии, вы можете отобразить их через ваш компонент. Одна из стратегий отображения списка элементов - скомпилировать массив `ReactNode` в функции рендеринга.
+
+```tsx
+function renderIssues() {
+  return issues.map((issue) => (
+    <div key={issue.issueDesc}>
+      <h3>{issue.issueDesc}</h3>
+      <p>{'Voters: ' + issue.voters.toString()}</p>
+      <p>{'Votes For: ' + issue.votesFor.toString()}</p>
+      <p>{'Votes Against: ' + issue.votesAgainst.toString()}</p>
+      <p>{'Votes Abstain: ' + issue.votesAbstain.toString()}</p>
+      <p>{'Quorum: ' + issue.quorum.toString()}</p>
+      <p>{'Passed: ' + issue.passed}</p>
+      <p>{'Closed: ' + issue.closed}</p>
+    </div>
+  ));
+}
+```
+
+Затем вызовите функцию рендеринга в return вашего компонента:
+
+```tsx
+return (
+  <div>
+    <h2>All Issues</h2>
+    <div>{renderIssues()}</div>
+  </div>
+);
+```
+
+Теперь вы увидите ваш список вопросов, отрендеренный в браузере! Поздравляем, вы наконец-то установили содержательную связь между вашим смарт-контрактом и фронтендом!
+
+### Особенность с автоматическими геттерами
+
+Помните, как компилятор Solidity создает автоматические геттеры для всех ваших публичных переменных состояния? Эта функция очень полезна, но она может создавать ошеломляющие результаты, когда вы используете ее для `struct`, которые содержат `mapping`. Помните, вложенные отображения не могут быть возвращены за пределы блокчейна. `EnumerableSet` защищает вас от этой проблемы, потому что он имеет приватные переменные внутри, что предотвращает установку `issues` как `public`. Если бы мы вместо этого использовали отображение, мы потеряли бы эту защиту:
+
+```solidity
+  // Код только для демо
+  struct Issue {
+      mapping(address => bool) voters;
+      string issueDesc;
+      uint votesFor;
+      uint votesAgainst;
+      uint votesAbstain;
+      uint totalVotes;
+      uint quorum;
+      bool passed;
+      bool closed;
+  }
+```
+
+Повторно разверните с указанным выше изменением и добавьте второй `useReadContract`, чтобы получить отдельный вопрос, используя геттер:
+
+```tsx
+// Плохой код для примера, не используйте
+const {
+  data: getOneData,
+  isError: getOneIsError,
+  isPending: getOneIsPending,
+} = useReadContract({
+  address: contractData.address as `0x${string}`,
+  abi: contractData.abi,
+  functionName: 'issues',
+  args: [1],
+});
+
+useEffect(() => {
+  if (getOneData) {
+    console.log('getOneData', getOneData);
+    const issueOne = getOneData as Issue;
+    console.log('Issue One', issueOne);
+  }
+}, [getOneData]);
+```
+
+Все кажется работающим просто отлично, но почему `issueOne.desc` равен undefined? Вы же видите его прямо там, в логе!
+
+![Missing Data](/images/learn/reading-and-displaying-data/missing-data.png)
+
+Если присмотреться, вы увидите, что `voters` отсутствует в данных в логах. Что происходит, так это то, что поскольку вложенное `mapping` не может быть возвращено за пределы блокчейна, оно просто не возвращается. TypeScript затем получает `data` и делает все возможное, чтобы преобразовать его `as` в `Issue`. Поскольку `voters` отсутствует, это преобразование завершится неудачей, и он выполняет JavaScript-трюк, просто добавляя дополнительные свойства к объекту.
+
+Взгляните на рабочий пример выше, где вы получали список. Обратите внимание, что ключи в вашем типе `Issue` есть в том логе, но отсутствуют здесь. Присвоение не удалось, и все свойства `Issue` равны `null`.
+
+---
+
+## Заключение
+
+В этом руководстве вы узнали, как использовать хук `useReadContract` для вызова функций `pure` и `view` из ваших смарт-контрактов. Затем вы преобразовали эти данные в состояние React и отобразили их пользователю. Наконец, вы исследовали сложный крайний случай, когда наличие вложенного `mapping` может вызвать запутанную ошибку при использовании автоматически сгенерированного геттера.
+
+---
+
+## Пример простого контракта DAO
+
+Используйте этот контракт, если у вас нет своего из [ERC 20 Tokens Exercise]. Вы также можете использовать это, если хотите схитрить, чтобы получить этот значок. Хотя делать это было бы глупо!
+
+<Warning>
+Если вы используете свой собственный контракт, повторно разверните его с функциями `numberOfIssues` и `getAllIssues` из нижней части контракта ниже. Они понадобятся нам для нашего первого решения по получению всех `Issues` в контракте.
+
+**Вам также нужно сделать функцию `getIssue public`. В исходной спецификации требовалось, чтобы она была `external`.**
+</Warning>
+
+```Solidity
+// SPDX-License-Identifier: MIT
+
+pragma solidity ^0.8.17;
+
+import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
+import "@openzeppelin/contracts/utils/structs/EnumerableSet.sol";
+
+contract FEWeightedVoting is ERC20 {
+    using EnumerableSet for EnumerableSet.AddressSet;
+
+    mapping(address => bool) claimed;
+    uint public maxSupply = 1000000;
+    uint totalClaimed;
+
+    uint constant claimAmount = 100;
+
+    error TokensClaimed();
+    error AllTokensClaimed();
+    error NoTokensHeld();
+    error QuorumTooHigh(uint);
+    error AlreadyVoted();
+    error VotingClosed();
+
+    enum Vote {
+        AGAINST,
+        FOR,
+        ABSTAIN
+    }
+
+    struct Issue {
+        EnumerableSet.AddressSet voters;
+        string issueDesc;
+        uint votesFor;
+        uint votesAgainst;
+        uint votesAbstain;
+        uint totalVotes;
+        uint quorum;
+        bool passed;
+        bool closed;
+    }
+
+    // EnumerableSets являются отображениями и не могут быть возвращены за пределы контракта
+    struct ReturnableIssue {
+        address[] voters;
+        string issueDesc;
+        uint votesFor;
+        uint votesAgainst;
+        uint votesAbstain;
+        uint totalVotes;
+        uint quorum;
+        bool passed;
+        bool closed;
+    }
+
+    Issue[] issues;
+
+    constructor(
+        string memory _name,
+        string memory _symbol
+    ) ERC20(_name, _symbol) {
+        // Burn Issue 0
+        issues.push();
+    }
+
+    function claim() public {
+        if (claimed[msg.sender] == true) {
+            revert TokensClaimed();
+        }
+
+        if (totalSupply() >= maxSupply) {
+            revert AllTokensClaimed();
+        }
+
+        _mint(msg.sender, claimAmount);
+        claimed[msg.sender] = true;
+    }
+
+    function createIssue(
+        string memory _issueDesc,
+        uint _quorum
+    ) public returns (uint) {
+        if (balanceOf(msg.sender) == 0) {
+            revert NoTokensHeld();
+        }
+
+        if (_quorum > totalSupply()) {
+            revert QuorumTooHigh(_quorum);
+        }
+
+        Issue storage newIssue = issues.push();
+        newIssue.issueDesc = _issueDesc;
+        newIssue.quorum = _quorum;
+        return issues.length - 1;
+    }
+
+    function getIssue(uint _id) public view returns (ReturnableIssue memory) {
+        Issue storage issue = issues[_id];
+        return
+            ReturnableIssue(
+                issue.voters.values(),
+                issue.issueDesc,
+                issue.votesFor,
+                issue.votesAgainst,
+                issue.votesAbstain,
+                issue.totalVotes,
+                issue.quorum,
+                issue.closed,
+                issue.passed
+            );
+    }
+
+    function vote(uint _issueId, Vote _vote) public {
+        Issue storage issue = issues[_issueId];
+        if (issue.voters.contains(msg.sender)) {
+            revert AlreadyVoted();
+        }
+        if (issue.closed) {
+            revert VotingClosed();
+        }
+        issue.voters.add(msg.sender);
+
+        if (_vote == Vote.FOR) {
+            issue.votesFor += balanceOf(msg.sender);
+        } else if (_vote == Vote.AGAINST) {
+            issue.votesAgainst += balanceOf(msg.sender);
+        } else if (_vote == Vote.ABSTAIN) {
+            issue.votesAbstain += balanceOf(msg.sender);
+        } else {
+            revert("Error...");
+        }
+
+        issue.totalVotes += balanceOf(msg.sender);
+
+        if (issue.totalVotes >= issue.quorum) {
+            issue.closed = true;
+            if (issue.votesFor > issue.votesAgainst) {
+                issue.passed = true;
+            }
+        }
+    }
+
+    function numberOfIssues() public view returns(uint) {
+        return issues.length;
+    }
+
+    function getAllIssues() public view returns(ReturnableIssue[] memory) {
+        ReturnableIssue[] memory allIssues = new ReturnableIssue[](issues.length);
+
+        for(uint i = 0; i < issues.length; i++) {
+            allIssues[i] = getIssue(i);
+        }
+
+        return allIssues;
+    }
+}
+```
+
+---
+
+[RainbowKit]: https://www.rainbowkit.com/
+[wagmi]: https://wagmi.sh/
+[quick start]: https://www.rainbowkit.com/docs/installation/
+[Wallet Connectors]: ../frontend-setup/wallet-connectors/
+[`useAccount`]: https://wagmi.sh/react/hooks/useAccount
+[hydration error]: https://nextjs.org/docs/messages/react-hydration-error
+[ERC 20 Tokens Exercise]: https://docs.base.org/base-learn/docs/erc-20-token/erc-20-exercise
+[Sepolia BaseScan]: https://sepolia.basescan.org/
+[`useAccount` hook]: ./useAccount
+[Hardhat]: https://hardhat.org/
+[ABI]: https://docs.soliditylang.org/en/latest/abi-spec.html
+[`useReadContract`]: https://wagmi.sh/react/hooks/useReadContract

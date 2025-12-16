@@ -1,0 +1,72 @@
+---
+title: "wallet_switchEthereumChain"
+description: "Переключить кошелек на другую цепь Ethereum"
+---
+
+Определено в [EIP-3326](https://eips.ethereum.org/EIPS/eip-3326)
+
+<Info>
+Запрашивает переключение активной цепи Ethereum кошелька на одну из цепей, уже добавленных в кошелек.
+</Info>
+
+## Параметры
+
+<ParamField body="chainId" type="string" required>
+Идентификатор цепи для переключения в виде строки в шестнадцатеричном формате с префиксом "0x".
+</ParamField>
+
+## Возвращает
+
+<ResponseField name="result" type="null">
+Возвращает `null` в случае успеха.
+</ResponseField>
+
+<RequestExample>
+```json Base Mainnet
+{
+  "id": 1,
+  "jsonrpc": "2.0",
+  "method": "wallet_switchEthereumChain",
+  "params": [{
+    "chainId": "0x2105"
+  }]
+}
+```
+
+```json Ethereum Mainnet
+{
+  "id": 1,
+  "jsonrpc": "2.0",
+  "method": "wallet_switchEthereumChain",
+  "params": [{
+    "chainId": "0x1"
+  }]
+}
+```
+</RequestExample>
+
+<ResponseExample>
+```json Success Response
+{
+  "id": 1,
+  "jsonrpc": "2.0",
+  "result": null
+}
+```
+</ResponseExample>
+
+## Обработка ошибок
+
+| Код  | Сообщение                      | Описание    |
+| ---- | ------------------------------ | ----------- |
+| 4001 | User rejected the request      | Пользователь отклонил переключение цепи |
+| 4100 | Requested method not supported | Метод не поддерживается кошельком |
+| 4902 | Unrecognized chain ID          | Запрошенная цепь не была добавлена в кошелек |
+
+<Info>
+Если цепь еще не добавлена в кошелек, сначала используйте `wallet_addEthereumChain`.
+</Info>
+
+<Warning>
+Переключение цепи повлияет на все последующие операции с блокчейном в вашем приложении.
+</Warning>

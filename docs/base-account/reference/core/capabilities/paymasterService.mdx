@@ -1,0 +1,322 @@
+---
+title: "paymasterService"
+description: "Включение спонсируемых транзакций с использованием веб-сервисов paymaster ERC-4337"
+---
+
+Определено в [ERC-7677](https://eips.ethereum.org/EIPS/eip-7677)
+
+<Info>
+Возможность paymasterService позволяет приложениям спонсировать пользовательские транзакции с использованием веб-сервисов paymaster ERC-4337. Это позволяет пользователям выполнять транзакции без прямой оплаты комиссий за газ.
+</Info>
+
+<Warning>
+Эта возможность еще не окончательна и может измениться в будущих итерациях.
+</Warning>
+
+## Параметры
+
+<ParamField body="url" type="string" required>
+URL совместимого с ERC-7677 сервиса paymaster, который будет спонсировать транзакции.
+
+**Формат:** Должен быть действительным HTTPS URL, указывающим на конечную точку сервиса paymaster.
+</ParamField>
+
+## Возвращает
+
+<ResponseField name="paymasterService" type="object">
+Конфигурация возможности сервиса paymaster для указанной цепочки.
+
+<Expandable title="Свойства возможности PaymasterService">
+<ResponseField name="supported" type="boolean">
+Указывает, поддерживает ли кошелек интеграцию с сервисом paymaster.
+</ResponseField>
+</Expandable>
+</ResponseField>
+
+## Пример использования
+
+<RequestExample>
+```typescript Check Paymaster Support
+const capabilities = await provider.request({
+  method: 'wallet_getCapabilities',
+  params: [userAddress]
+});
+
+const paymasterSupport = capabilities["0x2105"]?.paymasterService;
+```
+
+```typescript Send Sponsored Transaction
+const result = await provider.request({
+  method: 'wallet_sendCalls',
+  params: [{
+    version: "1.0",
+    chainId: "0x2105",
+    from: userAddress,
+    calls: [{
+      to: "0x1234567890123456789012345678901234567890",
+      value: "0x0",
+      data: "0xa9059cbb000000000000000000000000..."
+    }],
+    capabilities: {
+      paymasterService: {
+        url: "https://your-paymaster-service.xyz"
+      }
+    }
+  }]
+});
+```
+</RequestExample>
+
+<ResponseExample>
+```json Capability Response (Supported)
+{
+  "0x2105": {
+    "paymasterService": {
+      "supported": true
+    }
+  }
+}
+```
+
+```json Capability Response (Unsupported)
+{
+  "0x2105": {
+    "paymasterService": {
+      "supported": false
+    }
+  }
+}
+```
+</ResponseExample>
+
+## Обработка ошибок
+
+| Код  | Сообщение |  Описание   |
+| ---- | --------- | ----------- |
+| 4100 | Paymaster service not supported | Кошелек не поддерживает интеграцию с сервисом paymaster |
+| 4200 | Invalid paymaster URL | Предоставленный URL сервиса paymaster недействителен или недоступен |
+| 4300 | Paymaster service error | Сервис paymaster вернул ошибку или недоступен |
+| 5700 | Paymaster capability required | Транзакция требует сервис paymaster, но кошелек не поддерживает его |
+
+## Реализация сервиса Paymaster
+
+Сервис paymaster должен соответствовать требованиям ERC-7677 со следующими конечными точками:
+
+### 1. Конечная точка оценки газа
+
+```typescript
+// pm_getPaymasterStubData
+POST /rpc
+{
+  "jsonrpc": "2.0",
+  "id": 1,
+  "method": "pm_getPaymasterStubData",
+  "params": [
+    userOp, // Объект пользовательской операции
+    entryPoint, // Адрес точки входа
+    chainId, // Chain ID
+    context // Дополнительный контекст
+  ]
+}
+```
+
+### 2. Конечная точка данных Paymaster
+
+```typescript  
+// pm_getPaymasterData
+POST /rpc
+{
+  "jsonrpc": "2.0",
+  "id": 1,
+  "method": "pm_getPaymasterData", 
+  "params": [
+    userOp, // Объект пользовательской операции
+    entryPoint, // Адрес точки входа
+    chainId, // Chain ID
+    context // Дополнительный контекст
+  ]
+}
+```
+
+## Полный пример
+
+Вот полный пример реализации спонсируемых транзакций:
+
+```typescript
+class SponsoredTransactionManager {
+  private paymasterUrl = "https://api.example.com/paymaster";
+  
+  async executeSponsored(calls: any[]) {
+    try {
+      // 1. Проверяем возможность paymaster
+      const capabilities = await provider.request({
+        method: 'wallet_getCapabilities',
+        params: [userAddress]
+      });
+      
+      if (!capabilities["0x2105"]?.paymasterService?.supported) {
+        throw new Error("Paymaster services not supported");
+      }
+      
+      // 2. Выполняем спонсируемую транзакцию
+      const result = await provider.request({
+        method: 'wallet_sendCalls',
+        params: [{
+          version: "1.0",
+          chainId: "0x2105",
+          from: userAddress,
+          calls,
+          capabilities: {
+            paymasterService: {
+              url: this.paymasterUrl
+            }
+          }
+        }]
+      });
+      
+      console.log("Sponsored transaction submitted:", result);
+      return result;
+      
+    } catch (error) {
+      console.error("Sponsored transaction failed:", error);
+      throw error;
+    }
+  }
+  
+  // Пример: Спонсируемая передача токена
+  async sponsoredTransfer(token: string, to: string, amount: string) {
+    const calls = [{
+      to: token,
+      value: "0x0",
+      data: this.encodeTransfer(to, amount)
+    }];
+    
+    return this.executeSponsored(calls);
+  }
+  
+  private encodeTransfer(to: string, amount: string): string {
+    // Кодируем вызов функции передачи ERC-20
+    // Это упрощенный пример
+    return `0xa9059cbb${to.slice(2).padStart(64, '0')}${BigInt(amount).toString(16).padStart(64, '0')}`;
+  }
+}
+
+// Использование
+const sponsoredTx = new SponsoredTransactionManager();
+
+// Выполняем спонсируемую передачу токена
+await sponsoredTx.sponsoredTransfer(
+  "0xA0b86a33E6441b8a2f0d2d2a71Cba0F42c4B1D2E", // Токен USDC
+  "0x742d35Cc4Bf53E0e6C42E5d9F0A8D2F6D8A8B7C9", // получатель
+  "1000000" // 1 USDC (6 decimals)
+);
+```
+
+## Обработка ошибок
+
+Обрабатывайте ошибки, связанные с paymaster, соответствующим образом:
+
+```typescript
+async function executeWithPaymaster(calls: any[]) {
+  try {
+    const result = await provider.request({
+      method: 'wallet_sendCalls',
+      params: [{
+        version: "1.0",
+        chainId: "0x2105",
+        from: userAddress,
+        calls,
+        capabilities: {
+          paymasterService: {
+            url: "https://paymaster.example.com"
+          }
+        }
+      }]
+    });
+    
+    return result;
+    
+  } catch (error) {
+    if (error.code === 4100) {
+      console.error("Paymaster service not supported");
+      // Откат к обычной транзакции
+      return executeRegularTransaction(calls);
+    } else if (error.message.includes("paymaster")) {
+      console.error("Paymaster service error:", error);
+      // Обрабатываем специфические ошибки paymaster
+      throw new Error("Transaction sponsorship failed");
+    } else {
+      console.error("Transaction failed:", error);
+      throw error;
+    }
+  }
+}
+```
+
+## Сценарии использования
+
+### Игровые приложения
+
+```typescript
+// Спонсировать покупки внутриигровых предметов
+const gameItemPurchase = await provider.request({
+  method: 'wallet_sendCalls',
+  params: [{
+    version: "1.0",
+    chainId: "0x2105",
+    from: playerAddress,
+    calls: [{
+      to: gameContractAddress,
+      value: "0x0",
+      data: purchaseItemCallData
+    }],
+    capabilities: {
+      paymasterService: {
+        url: "https://game-paymaster.example.com"
+      }
+    }
+  }]
+});
+```
+
+### Onboarding в DeFi
+
+```typescript
+// Спонсировать первые транзакции пользователя
+const onboardingTx = await provider.request({
+  method: 'wallet_sendCalls',
+  params: [{
+    version: "1.0", 
+    chainId: "0x2105",
+    from: newUserAddress,
+    calls: [
+      // Стейкинг токенов
+      {
+        to: stakingContract,
+        value: "0x0",
+        data: stakeCallData
+      }
+    ],
+    capabilities: {
+      paymasterService: {
+        url: "https://defi-onboarding-paymaster.example.com"
+      }
+    }
+  }]
+});
+```
+
+## Рекомендации
+
+1. **Проверяйте URL Paymaster**: Убедитесь, что URL сервиса paymaster надежны и соответствуют ERC-7677
+2. **Обрабатывайте сбои корректно**: Реализуйте откаты, когда сервисы paymaster недоступны
+3. **Отслеживайте затраты**: Контролируйте использование paymaster для управления затратами на спонсирование
+4. **Коммуникация с пользователями**: Четко сообщайте, когда транзакции спонсируются
+
+<Info>
+Возможность сервиса paymaster обеспечивает бесшовный пользовательский опыт, устраняя необходимость для пользователей держать нативные токены для оплаты газа.
+</Info>
+
+import PolicyBanner from "/snippets/PolicyBanner.mdx";
+
+<PolicyBanner />

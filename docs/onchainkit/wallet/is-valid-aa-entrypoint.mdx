@@ -1,0 +1,35 @@
+---
+title: isValidAAEntrypoint
+---
+
+
+Утилита `isValidAAEntrypoint` предназначена для проверки точки входа (entrypoint) Account-Abstraction перед спонсированием транзакции.
+
+## Использование
+
+<CodeGroup>
+```tsx code
+import { isValidAAEntrypoint } from '@coinbase/onchainkit/wallet';
+
+const AAImplementationAddress = '0x123';
+const isValid = isValidAAEntrypoint({ entrypoint: AAImplementationAddress });
+
+if (isValid) {
+  console.log('The entrypoint is valid.');
+} else {
+  console.log('Invalid entrypoint.');
+}
+```
+
+```ts return value
+true;
+```
+</CodeGroup>
+
+## Возвращает
+
+`boolean` - Возвращает `true`, если адрес точки входа (entrypoint) абстракции аккаунта соответствует v06, в противном случае - `false`.
+
+## Параметры
+
+[`isValidAAEntrypointOptions`](/onchainkit/wallet/types#isvalidaaentrypointoptions)

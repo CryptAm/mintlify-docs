@@ -1,0 +1,75 @@
+---
+title: getAvatar
+---
+
+Утилита `getAvatar` предназначена для получения URL изображения 
+аватара из провайдера ончейн-идентификации по заданному имени.
+
+Рассмотрите использование утилиты вместо хука, если
+вы работаете с Next.js или любым Node.js бэкендом.
+
+Поддерживаемые провайдеры:
+
+- [Basenames](https://www.base.org/names)
+- ENS
+
+## Использование
+
+Получение аватара Basename:
+
+<CodeGroup>
+```tsx code
+import { getAvatar } from '@coinbase/onchainkit/identity';
+import { base, mainnet } from 'viem/chains';
+
+const baseAvatar = await getAvatar({ ensName: 'paulcramer.eth', chain: base });
+
+````
+
+```ts return value
+https://zku9gdedgba48lmr.public.blob.vercel-storage.com/basenames/avatar/paul.base.eth/1722120524815/FWUzoZmJ_400x400-kWjr2gMvjNe9hHMs9Z9LxGVGIME3By.jpg
+````
+
+</CodeGroup>
+
+Получение аватара ENS:
+
+<CodeGroup>
+```tsx code
+import { getAvatar } from '@coinbase/onchainkit/identity';
+import { mainnet } from 'viem/chains';
+
+const ensAvatar = await getAvatar({ ensName: 'paulcramer.eth', chain: mainnet });
+
+````
+
+```ts return value
+https://euc.li/paulcramer.eth;
+````
+
+</CodeGroup>
+
+## Возвращает
+
+```typescript
+Promise<GetAvatarReturnType>
+
+type GetAvatarReturnType = string | null;
+```
+
+## Параметры
+
+```typescript
+type GetAvatarParams = {
+  /** ENS или Basename, для которого нужно получить аватар. */
+  ensName: string;
+  /** Необязательная цепь для разрешения домена */
+  chain?: Chain;
+};
+
+type Chain = {
+  id: number;
+  name: string;
+  // ... другие свойства цепи
+};
+```

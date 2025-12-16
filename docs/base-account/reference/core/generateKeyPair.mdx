@@ -1,0 +1,140 @@
+---
+title: "generateKeyPair"
+description: "Сгенерировать новую пару ключей P256 для использования с Base Account"
+---
+
+Определено в [Base Account SDK](https://github.com/base/account-sdk)
+
+<Info>
+Генерирует новую пару ключей P256 для использования с Base Account. Это важно для расширенных интеграций и управления Sub Accounts.
+</Info>
+
+## Параметры
+
+Эта функция не принимает параметров.
+
+## Возвращает
+
+<ResponseField name="result" type="P256KeyPair">
+Объект пары ключей P256, содержащий публичный и приватный ключи.
+
+<Expandable title="P256KeyPair properties">
+<ResponseField name="publicKey" type="string">
+Публичный ключ сгенерированной пары в шестнадцатеричном формате (hex).
+</ResponseField>
+
+<ResponseField name="privateKey" type="string">
+Приватный ключ сгенерированной пары. Обращаться с крайней осторожностью.
+</ResponseField>
+</Expandable>
+</ResponseField>
+
+<RequestExample>
+```typescript Basic Usage
+import { generateKeyPair } from '@base-org/account';
+
+const keyPair = await generateKeyPair();
+console.log('Public key:', keyPair.publicKey);
+```
+
+```typescript Error Handling
+try {
+  const keyPair = await generateKeyPair();
+  return keyPair;
+} catch (error) {
+  console.error('Failed to generate key pair:', error);
+  throw error;
+}
+```
+</RequestExample>
+
+<ResponseExample>
+```typescript Success Response
+{
+  publicKey: "0x04a1b2c3d4e5f6...",
+  privateKey: "0x1a2b3c4d5e6f7a..."
+}
+```
+</ResponseExample>
+
+## Обработка ошибок
+
+| Код  | Сообщение | Описание    |
+| ---- | --------- | ----------- |
+| 4100 | Key generation not supported | Браузер не поддерживает генерацию криптографических ключей |
+| 4200 | Insufficient entropy | Система не имеет достаточной случайности для безопасной генерации ключей |
+| 4300 | Cryptographic system failure | Аппаратный или программный криптографический сбой |
+
+<Warning>
+**Безопасность приватного ключа**
+
+Никогда не раскрывайте приватные ключи в клиентском коде и не передавайте их по незащищенным каналам. Храните их безопасно, используя соответствующие системы управления ключами.
+</Warning>
+
+## Интеграция с Sub Accounts
+
+```typescript
+import { generateKeyPair, createBaseAccountSDK } from '@base-org/account';
+
+async function createSubAccountWithNewKeys() {
+  const sdk = createBaseAccountSDK({
+    appName: 'My App',
+    appLogoUrl: 'https://example.com/logo.png',
+    appChainIds: [8453], // Base mainnet
+  });
+
+  // Сгенерировать новую пару ключей для суб-аккаунта
+  const keyPair = await generateKeyPair();
+  
+  // Создать суб-аккаунт с сгенерированными ключами
+  const subAccount = await sdk.subAccount.create({
+    type: 'create',
+    keys: [{
+      type: 'webauthn-p256',
+      publicKey: keyPair.publicKey,
+    }],
+  });
+  
+  return { subAccount, keyPair };
+}
+```
+
+## Обработка ошибок
+
+Функция `generateKeyPair` может генерировать ошибки для:
+
+- Сбоев криптографической системы
+- Недостаточной энтропии
+- Проблем совместимости браузера
+
+Всегда оборачивайте вызовы `generateKeyPair` в блок try-catch:
+
+```typescript
+try {
+  const keyPair = await generateKeyPair();
+  // Обработать успешную генерацию
+} catch (error) {
+  if (error.message.includes('not supported')) {
+    console.error('Browser does not support key generation');
+  } else {
+    console.error('Key generation failed:', error);
+  }
+}
+```
+
+## Соображения безопасности
+
+<Warning>
+**Безопасность приватного ключа**
+
+Никогда не раскрывайте приватные ключи в клиентском коде и не передавайте их по незащищенным каналам. Храните их безопасно, используя соответствующие системы управления ключами.
+</Warning>
+
+- Храните приватные ключи, используя безопасные механизмы хранения
+- Никогда не выводите приватные ключи в консоль в продакшене
+- Рассмотрите использование аппаратных модулей безопасности для продакшен-приложений
+- Внедрите соответствующие политики ротации ключей
+
+import PolicyBanner from "/snippets/PolicyBanner.mdx";
+
+<PolicyBanner />

@@ -1,0 +1,226 @@
+---
+title: Компоненты и утилиты Wallet · OnchainKit
+sidebarTitle: Компоненты и утилиты Wallet
+description: Введение в компоненты и утилиты Wallet
+---
+
+`WalletDropdownFundLink` работает так же, как и [`FundButton`](/onchainkit/fund/fund-button), за исключением того, что он находится
+внутри выпадающего меню вашего кошелька.
+
+Если ваш пользователь подключит Coinbase Smart Wallet, это предоставит ему простой способ доступа к потоку
+[Fund](https://keys.coinbase.com/fund) Coinbase Smart Wallet. Пользователи смогут покупать и получать криптовалюту или использовать
+свои балансы Coinbase в ончейне с помощью [Magic Spend](https://www.smartwallet.dev/guides/magic-spend).
+
+Если ваш пользователь подключит любой другой EOA-кошелек, это предоставит простой способ доступа к [Coinbase Onramp](https://docs.cdp.coinbase.com/onramp/docs/welcome/)
+где ваши пользователи также смогут покупать криптовалюту, используя фиатный способ оплаты, или переводить существующую криптовалюту со своего 
+счета Coinbase.
+
+<Tip>
+**Поддержка Coinbase Onramp**
+
+Если вы хотите предоставить пользователям, не использующим Coinbase Smart Wallet, простой способ доступа к Coinbase Onramp, убедитесь, 
+что вы прошли [walkthrough](/onchainkit/fund/fund-button#walkthrough) по настройке вашего Project ID для `FundButton`. В противном случае 
+только пользователи Coinbase Smart Wallet смогут использовать `WalletDropdownFundLink`.
+</Tip>
+
+
+## Использование
+
+```tsx
+import {
+  ConnectWallet,
+  Wallet,
+  WalletDropdown,
+  WalletDropdownDisconnect,
+  WalletDropdownFundLink, // [!code focus]
+} from '@coinbase/onchainkit/wallet'; // [!code focus]
+import {
+  Address,
+  Avatar,
+  Name,
+  Identity,
+  EthBalance,
+} from '@coinbase/onchainkit/identity';
+import { color } from '@coinbase/onchainkit/theme';
+
+export function WalletComponents() {
+  return (
+    <div className="flex justify-end">
+      <Wallet>
+        <ConnectWallet>
+          <Avatar className="h-6 w-6" />
+          <Name />
+        </ConnectWallet>
+        <WalletDropdown>
+          <Identity className="px-4 pt-3 pb-2" hasCopyAddressOnClick>
+            <Avatar />
+            <Name />
+            <Address />
+            <EthBalance />
+          </Identity>
+          <WalletDropdownFundLink />
+          <WalletDropdownDisconnect />
+        </WalletDropdown>
+      </Wallet>
+    </div>
+  );
+}
+```
+
+<iframe
+  src="https://684b5e62b1ff46bc5bf83966-aijszlfakk.chromatic.com/iframe.html?args=&id=onchainkit-wallet-fundlink--main&viewMode=story&dark=true&hero=true"
+  width="100%"
+  height="400"
+/>
+{/* <WalletComponents>
+  <Wallet>
+    <ConnectWallet>
+      <Avatar className="h-6 w-6" />
+      <Name />
+    </ConnectWallet>
+    <WalletDropdown>
+      <Identity className="px-4 pt-3 pb-2" hasCopyAddressOnClick>
+        <Avatar />
+        <Name />
+        <Address className={color.foregroundMuted} />
+        <EthBalance />
+      </Identity>
+      <WalletDropdownFundLink />
+      <WalletDropdownDisconnect />
+    </WalletDropdown>
+  </Wallet>
+</WalletComponents> */}
+
+### Переопределение текста
+
+Вы можете переопределить текст компонента, используя свойство `text`.
+
+```tsx
+<WalletDropdownFundLink text="Add crypto" /> // [!code focus]
+```
+
+<iframe
+  src="https://684b5e62b1ff46bc5bf83966-aijszlfakk.chromatic.com/iframe.html?args=&id=onchainkit-wallet-fundlink--override-text&viewMode=story&dark=true&hero=true"
+  width="100%"
+  height="400"
+/>
+{/* <WalletComponents>
+  <Wallet>
+    <ConnectWallet>
+      <Avatar className="h-6 w-6" />
+      <Name />
+    </ConnectWallet>
+    <WalletDropdown>
+      <WalletDropdownFundLink text="Add crypto" />
+      <WalletDropdownDisconnect />
+    </WalletDropdown>
+  </Wallet>
+</WalletComponents> */}
+
+### Переопределение иконки
+
+Вы можете переопределить иконку, используя свойство `icon`.
+
+```tsx
+<WalletDropdownFundLink icon={<walletDropdownLinkCustomBaseIconSvg />} /> // [!code focus]
+```
+
+<iframe
+  src="https://684b5e62b1ff46bc5bf83966-aijszlfakk.chromatic.com/iframe.html?args=&id=onchainkit-wallet-fundlink--override-icon&viewMode=story&dark=true&hero=true"
+  width="100%"
+  height="400"
+/>
+{/* <WalletComponents>
+  <Wallet>
+    <ConnectWallet>
+      <Avatar className="h-6 w-6" />
+      <Name />
+    </ConnectWallet>
+    <WalletDropdown>
+      <WalletDropdownFundLink icon={<walletDropdownLinkCustomBaseIconSvg />} />
+      <WalletDropdownDisconnect />
+    </WalletDropdown>
+  </Wallet>
+</WalletComponents> */}
+
+### Настройка размера всплывающего окна
+
+Вы можете настроить размер всплывающего окна, используя свойство `popupSize`. Допустимые значения: `sm`, `md`, и `lg`.
+
+```tsx
+<WalletDropdownFundLink popupSize="sm" /> // [!code focus]
+```
+
+<iframe
+  src="https://684b5e62b1ff46bc5bf83966-aijszlfakk.chromatic.com/iframe.html?args=&id=onchainkit-wallet-fundlink--pop-up-size&viewMode=story&dark=true&hero=true"
+  width="100%"
+  height="400"
+/>
+{/* <WalletComponents>
+  <Wallet>
+    <ConnectWallet>
+      <Avatar className="h-6 w-6" />
+      <Name />
+    </ConnectWallet>
+    <WalletDropdown>
+      <WalletDropdownFundLink popupSize="sm" />
+      <WalletDropdownDisconnect />
+    </WalletDropdown>
+  </Wallet>
+</WalletComponents> */}
+
+### Переопределение поведения по умолчанию
+
+Вы можете переопределить поведение ссылки по умолчанию, используя свойство `openIn`. Допустимые значения: `popup` и `tab`.
+
+```tsx
+<WalletDropdownFundLink openIn="tab" target="_blank" /> // [!code focus]
+```
+
+<iframe
+  src="https://684b5e62b1ff46bc5bf83966-aijszlfakk.chromatic.com/iframe.html?args=&id=onchainkit-wallet-fundlink--override-default-behavior&viewMode=story&dark=true&hero=true"
+  width="100%"
+  height="400"
+/>
+{/* <WalletComponents>
+  <Wallet>
+    <ConnectWallet>
+      <Avatar className="h-6 w-6" />
+      <Name />
+    </ConnectWallet>
+    <WalletDropdown>
+      <WalletDropdownFundLink openIn="tab" target="_blank" />
+      <WalletDropdownDisconnect />
+    </WalletDropdown>
+  </Wallet>
+</WalletComponents> */}
+
+### Переопределение URL для пополнения
+
+Вы можете переопределить URL по умолчанию, используя свойство `fundingUrl`.
+
+```tsx
+<WalletDropdownFundLink fundingUrl={"https://base.org"} openIn="tab" target="_blank" /> // [!code focus]
+```
+
+<iframe
+  src="https://684b5e62b1ff46bc5bf83966-aijszlfakk.chromatic.com/iframe.html?args=&id=onchainkit-wallet-fundlink--override-funding-url&viewMode=story&dark=true&hero=true"
+  width="100%"
+  height="400"
+/>
+{/* <WalletComponents>
+  <Wallet>
+    <ConnectWallet>
+      <Avatar className="h-6 w-6" />
+      <Name />
+    </ConnectWallet>
+    <WalletDropdown>
+      <WalletDropdownFundLink fundingUrl={"https://base.org"} openIn="tab" target="_blank" />
+      <WalletDropdownDisconnect />
+    </WalletDropdown>
+  </Wallet>
+</WalletComponents> */}
+
+## Свойства
+
+- [`WalletDropdownFundLinkReact`](/onchainkit/wallet/types#walletdropdownfundlinkreact)

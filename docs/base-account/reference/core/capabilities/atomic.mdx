@@ -1,0 +1,254 @@
+---
+title: "atomic"
+description: "Гарантирует атомарное и последовательное выполнение пакетных транзакций"
+---
+
+Определено в [EIP-5792](https://eips.ethereum.org/EIPS/eip-5792)
+
+<Info>
+Возможность atomic определяет, как кошельки выполняют пакеты транзакций, предоставляя гарантии атомарного выполнения транзакций. Если поддерживается, все транзакции в пакете должны завершиться успешно вместе или завершиться неудачей вместе.
+</Info>
+
+## Параметры
+
+<ParamField body="supported" type="string" required>
+Статус возможности atomic для текущей цепочки и аккаунта.
+
+**Возможные значения:**
+- `"supported"`: Кошелек будет выполнять все вызовы атомарно и последовательно
+- `"ready"`: Кошелек может быть обновлен до атомарного выполнения с одобрения пользователя
+- `"unsupported"`: Гарантии атомарности и последовательности отсутствуют
+</ParamField>
+
+## Возвращает
+
+<ResponseField name="atomic" type="object">
+Конфигурация возможности atomic для указанной цепочки.
+
+<Expandable title="Свойства возможности atomic">
+<ResponseField name="supported" type="string">
+Указывает уровень поддержки атомарного выполнения, доступный для этой цепочки.
+</ResponseField>
+</Expandable>
+</ResponseField>
+
+## Пример использования
+
+<RequestExample>
+```typescript Check Capability Support
+const capabilities = await provider.request({
+  method: 'wallet_getCapabilities',
+  params: ['0xd46e8dd67c5d32be8058bb8eb970870f07244567']
+});
+
+console.log(capabilities["0x2105"].atomic);
+```
+
+```typescript Send Atomic Transactions
+const result = await provider.request({
+  method: "wallet_sendCalls",
+  params: [{
+    version: "1.0",
+    chainId: "0x2105",
+    from: "0xd46e8dd67c5d32be8058bb8eb970870f07244567",
+    atomicRequired: true,
+    calls: [
+      {
+        to: "0x1234567890123456789012345678901234567890",
+        value: "0x0",
+        data: "0xa9059cbb000000000000000000000000..."
+      }
+    ]
+  }]
+});
+```
+</RequestExample>
+
+<ResponseExample>
+```json Capability Response (Supported)
+{
+  "0x2105": {
+    "atomic": {
+      "supported": "supported"
+    }
+  }
+}
+```
+
+```json Capability Response (Ready for Upgrade)
+{
+  "0x2105": {
+    "atomic": {
+      "supported": "ready"
+    }
+  }
+}
+```
+
+```json Capability Response (Unsupported)
+{
+  "0x2105": {
+    "atomic": {
+      "supported": "unsupported"
+    }
+  }
+}
+```
+</ResponseExample>
+
+## Обработка ошибок
+
+| Код  | Сообщение | Описание  |
+| ---- | --------- | --------- |
+| 4100 | Atomic execution not supported | Кошелек не поддерживает атомарное выполнение транзакций |
+| 5700 | Atomic capability required | Транзакция требует атомарного выполнения, но кошелек не поддерживает его |
+| 5750 | Atomic upgrade rejected | Пользователь отклонил обновление до возможности атомарного выполнения |
+
+## Сценарии использования
+
+### DeFi-операции
+
+Атомарное выполнение критически важно для DeFi-операций, где несколько шагов должны завершиться вместе:
+
+```typescript
+// Атомарный обмен токенов
+const swapCalls = await provider.request({
+  method: "wallet_sendCalls",
+  params: [{
+    version: "1.0",
+    chainId: "0x2105",
+    from: userAddress,
+    atomicRequired: true,
+    calls: [
+      // 1. Одобрение траты токенов
+      {
+        to: tokenAddress,
+        value: "0x0",
+        data: approveCallData
+      },
+      // 2. Выполнение обмена
+      {
+        to: swapContractAddress,
+        value: "0x0",
+        data: swapCallData
+      },
+      // 3. Получение наград (если применимо)
+      {
+        to: rewardsContractAddress,
+        value: "0x0",
+        data: claimCallData
+      }
+    ]
+  }]
+});
+```
+
+### Минт NFT с оплатой
+
+```typescript
+// Атомарный минт NFT и оплата комиссий
+const mintCalls = await provider.request({
+  method: "wallet_sendCalls",
+  params: [{
+    version: "1.0",
+    chainId: "0x2105",
+    from: userAddress,
+    atomicRequired: true,
+    calls: [
+      // 1. Оплата комиссии за минт
+      {
+        to: paymentAddress,
+        value: "0x16345785d8a0000", // 0.1 ETH
+        data: "0x"
+      },
+      // 2. Минт NFT
+      {
+        to: nftContractAddress,
+        value: "0x0",
+        data: mintCallData
+      }
+    ]
+  }]
+});
+```
+
+## Обработка ошибок
+
+Обрабатывайте ошибки возможности atomic соответствующим образом:
+
+```typescript
+async function executeAtomicTransaction(calls) {
+  try {
+    // Сначала проверяем возможность atomic
+    const capabilities = await provider.request({
+      method: 'wallet_getCapabilities',
+      params: [userAddress]
+    });
+    
+    const atomicCapability = capabilities["0x2105"]?.atomic;
+    
+    if (!atomicCapability || atomicCapability === "unsupported") {
+      throw new Error("Atomic execution not supported");
+    }
+    
+    // Выполняем атомарную транзакцию
+    const result = await provider.request({
+      method: "wallet_sendCalls",
+      params: [{
+        version: "1.0",
+        chainId: "0x2105",
+        from: userAddress,
+        atomicRequired: true,
+        calls
+      }]
+    });
+    
+    return result;
+    
+  } catch (error) {
+    if (error.code === 4100) {
+      console.error("Atomic execution not supported by wallet");
+      // Откат к последовательному выполнению
+      return executeSequentialTransaction(calls);
+    } else {
+      console.error("Atomic transaction failed:", error);
+      throw error;
+    }
+  }
+}
+```
+
+## Связь с EIP-7702
+
+Возможность atomic работает совместно с EIP-7702, чтобы позволить EOA (Externally Owned Accounts) обновиться до смарт-аккаунтов, которые поддерживают атомарное выполнение транзакций:
+
+```typescript
+// Проверяем, может ли кошелек обновиться до атомарного выполнения
+const capabilities = await provider.request({
+  method: 'wallet_getCapabilities',
+  params: [eoaAddress]
+});
+
+if (capabilities["0x2105"].atomic === "ready") {
+  console.log("Wallet can upgrade to support atomic execution with user approval");
+}
+```
+
+## Рекомендации
+
+1. **Сначала проверяйте возможности**: Всегда проверяйте поддержку atomic, прежде чем требовать ее
+2. **Предусмотрите откаты**: Реализуйте последовательное выполнение как откат, когда atomic недоступен
+3. **Используйте для связанных операций**: Требуйте атомарность только для операций, которые должны завершиться успешно вместе
+4. **Четкие сообщения об ошибках**: Предоставляйте полезные сообщения об ошибках, когда атомарное выполнение не удается
+
+<Warning>
+Возможность atomic зависит от цепочки. Всегда проверяйте поддержку для конкретной целевой цепочки.
+</Warning>
+
+<Info>
+Приложения должны сначала проверять возможности кошелька с помощью `wallet_getCapabilities`, прежде чем отправлять запросы, требующие атомарного выполнения.
+</Info>
+
+import PolicyBanner from "/snippets/PolicyBanner.mdx";
+
+<PolicyBanner />

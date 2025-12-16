@@ -1,0 +1,75 @@
+---
+title: useMorphoVault
+---
+
+
+Хук `useMorphoVault` получает и возвращает комплексные данные о хранилище Morpho, включая APY, балансы и награды.
+
+## Использование
+
+```tsx
+import { useMorphoVault } from '@coinbase/onchainkit/earn';
+
+const {
+  balance,
+  totalApy,
+  rewards,
+  deposits,
+  liquidity,
+  // ... другие значения
+} = useMorphoVault({
+  vaultAddress: '0x...',
+  recipientAddress: '0x...',
+});
+```
+
+## Возвращает
+
+```ts
+type UseMorphoVaultReturnType = {
+  vaultName: string | undefined;
+  status: 'pending' | 'success' | 'error';
+  /** Предупреждает пользователей, если адрес хранилища невалиден */
+  error: Error | null;
+  /** Базовый актив хранилища */
+  asset: {
+    address: Address;
+    symbol: string | undefined;
+    decimals: number | undefined;
+  };
+  /** Депозиты пользователя в хранилище, скорректированные с учетом десятичных знаков (decimals) */
+  balance: string | undefined;
+  balanceStatus: 'pending' | 'success' | 'error';
+  refetchBalance: () => void;
+  /** Общая чистая APY хранилища после всех наград и комиссий */
+  totalApy: number | undefined;
+  /** Собственные награды хранилища (например, USDC, если актив — USDC) */
+  nativeApy: number | undefined;
+  /** Дополнительные награды (например, MORPHO) */
+  rewards:
+    | Array<{
+        asset: Address;
+        assetName: string;
+        apy: number;
+      }>
+    | undefined;
+  /** Комиссия хранилища в процентах (например, 0.03 для 3%) */
+  vaultFee: number | undefined;
+  /** Количество десятичных знаков у токенов доли хранилища (не у базового актива) */
+  vaultDecimals: number | undefined;
+  /** Общие депозиты в хранилище */
+  deposits: string | undefined;
+  /** Общая ликвидность, доступная для займа в хранилище */
+  liquidity: string | undefined;
+};
+```
+
+## Параметры
+
+```ts
+type UseMorphoVaultParams = {
+  vaultAddress: Address;
+  recipientAddress?: Address;
+};
+```
+

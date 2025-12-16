@@ -1,0 +1,97 @@
+---
+sidebarTitle: Упражнение
+title: Упражнение по отладке ошибок
+description: Упражнение - продемонстрируйте свои навыки отладки.
+hide_table_of_contents: false
+---
+
+Скопируйте стартовый код в новый файл в Remix.
+
+Отладьте существующие функции в предоставленном контракте.
+
+```solidity
+// SPDX-License-Identifier: MIT
+
+pragma solidity ^0.8.17;
+
+contract ErrorTriageExercise {
+    /**
+     * Находит разницу между каждым uint и его соседом (a и b, b и c и т.д.)
+     * и возвращает массив uint с абсолютной целочисленной разницей для каждой пары.
+     */
+    function diffWithNeighbor(
+        uint _a,
+        uint _b,
+        uint _c,
+        uint _d
+    ) public pure returns (uint[] memory) {
+        uint[] memory results = new uint[](3);
+
+        results[0] = _a - _b;
+        results[1] = _b - _c;
+        results[2] = _c - _d;
+
+        return results;
+    }
+
+    /**
+     * Изменяет _base на значение _modifier. Base всегда >= 1000. Модификаторы могут быть
+     * в диапазоне от -100 до +100.
+     */
+    function applyModifier(
+        uint _base,
+        int _modifier
+    ) public pure returns (uint) {
+        return _base + _modifier;
+    }
+
+    /**
+     * Удаляет последний элемент из предоставленного массива и возвращает удаленное
+     * значение (в отличие от встроенной функции)
+     */
+    uint[] arr;
+
+    function popWithReturn() public returns (uint) {
+        uint index = arr.length - 1;
+        delete arr[index];
+        return arr[index];
+    }
+
+    // Вспомогательные функции ниже работают как ожидается
+    function addToArr(uint _num) public {
+        arr.push(_num);
+    }
+
+    function getArr() public view returns (uint[] memory) {
+        return arr;
+    }
+
+    function resetArr() public {
+        delete arr;
+    }
+}
+
+```
+
+---
+
+## Отправьте свой контракт и получите NFT-значок! (BETA)
+
+<Note>
+#### Эй, куда делся мой NFT?!
+
+[Тестовые сети](/learn/deployment-to-testnet/test-networks) не являются постоянными! Base Goerli [скоро будет отключена](https://base.mirror.xyz/kkz1-KFdUwl0n23PdyBRtnFewvO48_m-fZNzPMJehM4) в пользу Base Sepolia.
+
+Поскольку это отдельные сети с отдельными данными, ваши NFT **не будут** перенесены.
+
+**Не беспокойтесь!** Мы зафиксировали адреса всех владельцев NFT в Base Goerli и включим их, когда позже в этом году выпустим механизм переноса этих NFT в основную сеть! Вы также можете повторно развернуть на Sepolia и повторно отправить, если хотите!
+</Note>
+
+
+{/* <CafeUnitTest nftNum={10}/> */}
+
+<iframe
+  src="https://684b5e62b1ff46bc5bf83966-aijszlfakk.chromatic.com/iframe.html?args=&id=components-cafeunittest--ten&viewMode=story&dark=true&hero=true"
+  width="100%"
+  height="auto"
+/>

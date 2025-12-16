@@ -1,0 +1,301 @@
+---
+title: Типы компонентов и утилит Earn
+sidebarTitle: Earn
+description: Глоссарий типов для компонентов и утилит Earn
+---
+
+## `LifecycleStatus`
+
+```ts
+export type LifecycleStatus =
+  | {
+      statusName: 'init';
+      statusData: null;
+    }
+  | {
+      statusName: 'amountChange';
+      statusData: {
+        amount: string;
+        token: Token;
+      };
+    }
+  | Extract<
+      TransactionLifecycleStatus,
+      {
+        statusName:
+          | 'transactionPending'
+          | 'transactionLegacyExecuted'
+          | 'success'
+          | 'error';
+      }
+    >;
+```
+
+## `EarnReact`
+
+```ts
+export type EarnReact = {
+  children?: React.ReactNode;
+  className?: string;
+  vaultAddress: Address;
+  isSponsored?: boolean;
+};
+```
+
+## `EarnProviderReact`
+
+```ts
+export type EarnProviderReact = {
+  children: React.ReactNode;
+  vaultAddress: Address;
+  isSponsored?: boolean;
+};
+```
+
+## `EarnContextType`
+
+```ts
+export type EarnContextType = {
+  /** Предупреждает пользователей, если адрес vault недействителен */
+  error: Error | null;
+  recipientAddress?: Address;
+  /** Баланс базового актива в кошельке пользователя, конвертированный в десятичные единицы актива */
+  walletBalance?: string;
+  /** Статус получения баланса кошелька */
+  walletBalanceStatus: 'pending' | 'success' | 'error';
+  refetchWalletBalance: () => void;
+  vaultAddress: Address;
+  /** Токен, который депозитируется или выводится (базовый актив vault) */
+  vaultToken: Token | undefined;
+  vaultName: string | undefined;
+  /** Общие депозиты в vault */
+  deposits: string | undefined;
+  /** Общая ликвидность (доступная для заимствования) в vault */
+  liquidity: string | undefined;
+  /** Общий APY vault, включая вознаграждения */
+  apy: number | undefined;
+  nativeApy: UseMorphoVaultReturnType['nativeApy'];
+  vaultFee: UseMorphoVaultReturnType['vaultFee'];
+  /** Вознаграждения, заработанные пользователем в vault */
+  rewards: UseMorphoVaultReturnType['rewards'];
+  /** Количество базового актива, которое было депозитировано в vault подключенным пользователем */
+  depositedBalance?: string;
+  /** Получается ли баланс депозитов */
+  depositedBalanceStatus: 'pending' | 'success' | 'error';
+  refetchDepositedBalance: () => void;
+  /** Проценты, заработанные пользователем в vault */
+  interestEarned?: string;
+  /** Сумма, которую пользователь ввел в поле ввода суммы депозита */
+  depositAmount: string;
+  setDepositAmount: (amount: string) => void;
+  depositAmountError: string | null;
+  depositCalls: Call[];
+  /** Сумма, которую пользователь ввел в поле ввода суммы вывода */
+  withdrawAmount: string;
+  setWithdrawAmount: (amount: string) => void;
+  withdrawAmountError: string | null;
+  withdrawCalls: Call[];
+  lifecycleStatus: LifecycleStatus;
+  updateLifecycleStatus: (
+    status: LifecycleStatusUpdate<LifecycleStatus>,
+  ) => void;
+};
+```
+
+## `EarnAmountInputReact`
+
+```ts
+export type EarnAmountInputReact = {
+  className?: string;
+  onChange: (value: string) => void;
+  value: string;
+  disabled?: boolean;
+  'aria-label'?: string;
+};
+```
+
+## `DepositAmountInputReact`
+
+```ts
+export type DepositAmountInputReact = {
+  className?: string;
+};
+```
+
+## `WithdrawAmountInputReact`
+
+```ts
+export type WithdrawAmountInputReact = {
+  className?: string;
+};
+```
+
+## `EarnBalanceReact`
+
+```ts
+export type EarnBalanceReact = {
+  className?: string;
+  onActionPress: () => void;
+  title: React.ReactNode;
+  subtitle: string;
+  showAction?: boolean;
+};
+```
+
+## `DepositBalanceReact`
+
+```ts
+export type DepositBalanceReact = {
+  className?: string;
+};
+```
+
+## `WithdrawBalanceReact`
+
+```ts
+export type WithdrawBalanceReact = {
+  className?: string;
+};
+```
+
+## `EarnDepositReact`
+
+```ts
+export type EarnDepositReact = {
+  children?: React.ReactNode;
+  className?: string;
+};
+```
+
+## `EarnWithdrawReact`
+
+```ts
+export type EarnWithdrawReact = {
+  children?: React.ReactNode;
+  className?: string;
+};
+```
+
+## `EarnDetailsReact`
+
+```ts
+export type EarnDetailsReact = {
+  className?: string;
+};
+```
+
+## `DepositButtonReact`
+
+```ts
+export type DepositButtonReact = {
+  className?: string;
+};
+```
+
+## `WithdrawButtonReact`
+
+```ts
+export type WithdrawButtonReact = {
+  className?: string;
+};
+```
+
+## `DepositToMorphoParams`
+
+```ts
+export type DepositToMorphoParams = {
+  /** Адрес vault Morpho */
+  vaultAddress: Address;
+  /** Адрес токена для депозита */
+  tokenAddress: Address;
+  /** Количество токенов для депозита */
+  amount: bigint;
+  /** Адрес, который может вывести депозитированные токены */
+  recipientAddress: Address;
+};
+```
+
+## `WithdrawFromMorphoParams`
+
+```ts
+export type WithdrawFromMorphoParams = {
+  /** Адрес vault Morpho */
+  vaultAddress: Address;
+  /** Количество токенов для вывода */
+  amount: bigint;
+  /** Адрес, на который будут отправлены выведенные средства */
+  recipientAddress: Address;
+};
+```
+
+## `UseBuildDepositToMorphoTxParams`
+
+```ts
+export type UseBuildDepositToMorphoTxParams = {
+  vaultAddress: Address;
+  recipientAddress?: Address;
+  amount: string;
+};
+```
+
+## `UseBuildWithdrawFromMorphoTxParams`
+
+```ts
+export type UseBuildWithdrawFromMorphoTxParams = {
+  vaultAddress: Address;
+  recipientAddress?: Address;
+  amount: string;
+  tokenDecimals: number | undefined;
+};
+```
+
+## `UseMorphoVaultParams`
+
+```ts
+export type UseMorphoVaultParams = {
+  vaultAddress: Address;
+  recipientAddress?: Address;
+};
+```
+
+## `UseMorphoVaultReturnType`
+
+```ts
+export type UseMorphoVaultReturnType = {
+  vaultName: string | undefined;
+  status: 'pending' | 'success' | 'error';
+  /** Предупреждает пользователей, если адрес vault недействителен */
+  error: Error | null;
+  /** Базовый актив vault */
+  asset: {
+    address: Address;
+    symbol: string | undefined;
+    decimals: number | undefined;
+  };
+  /** Депозиты пользователя в vault, скорректированные с учетом десятичных знаков (decimals) */
+  balance: string | undefined;
+  balanceStatus: 'pending' | 'success' | 'error';
+  refetchBalance: () => void;
+  /** Общий чистый APY vault после всех вознаграждений и комиссий */
+  totalApy: number | undefined;
+  /** Нативные вознаграждения vault (например, USDC, если актив — USDC) */
+  nativeApy: number | undefined;
+  /** Дополнительные вознаграждения (например, MORPHO) */
+  rewards:
+    | {
+        asset: Address;
+        assetName: string;
+        apy: number;
+      }[]
+    | undefined;
+  /** Комиссия vault, в процентах (например, 0.03 для 3%) */
+  vaultFee: number | undefined;
+  /** Количество десятичных знаков токенов доли vault (не базового актива) */
+  vaultDecimals: number | undefined;
+  /** Общие депозиты в vault */
+  deposits: string | undefined;
+  /** Общая ликвидность, доступная для заимствования в vault */
+  liquidity: string | undefined;
+};
+```
+

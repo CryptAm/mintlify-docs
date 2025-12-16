@@ -1,0 +1,409 @@
+---
+title: useNotification 
+description: Отправка уведомлений через бэкенд-прокси пользователям, сохранившим ваше мини-приложение
+---
+
+Определен в [@coinbase/onchainkit](https://github.com/coinbase/onchainkit)
+
+<Warning>
+Этот хук устарел. Пожалуйста, следуйте [Notifications Guide](/mini-apps/core-concepts/notifications) для реализации.
+</Warning>
+
+
+<Info>
+Позволяет мини-приложениям отправлять push-уведомления пользователям, которые сохранили ваше приложение. Уведомления требуют бэкенд-прокси маршрута для обработки фактической доставки и применения ограничений по частоте.
+</Info>
+
+## Параметры
+
+<ParamField body="options" type="NotificationOptions" required>
+Объект конфигурации для отправляемого уведомления.
+
+<Expandable title="Свойства NotificationOptions">
+<ParamField body="title" type="string" required>
+Заголовок уведомления (максимум 100 символов).
+</ParamField>
+
+<ParamField body="body" type="string" required>
+Основное сообщение уведомления (максимум 500 символов).
+</ParamField>
+
+<ParamField body="targetFid" type="string" optional>
+Конкретный FID пользователя для отправки уведомления. Если не указан, отправляется всем пользователям, которые сохранили ваше мини-приложение.
+</ParamField>
+
+<ParamField body="actionUrl" type="string" optional>
+URL для открытия при нажатии на уведомление. По умолчанию используется URL вашего мини-приложения.
+</ParamField>
+</Expandable>
+</ParamField>
+
+## Требуемая настройка бэкенда
+
+Уведомления требуют бэкенд-прокси маршрута для обработки доставки и ограничения частоты:
+
+<RequestExample>
+```typescript app/api/minikit/notifications/route.ts
+// /api/minikit/notifications
+import { NextRequest, NextResponse } from 'next/server';
+
+const FARCASTER_API_URL = 'https://api.farcaster.xyz';
+const MAX_NOTIFICATIONS_PER_HOUR = 10;
+
+interface NotificationRequest {
+  title: string;
+  body: string;
+  targetFid?: string;
+  actionUrl?: string;
+}
+
+export async function POST(request: NextRequest) {
+  try {
+    const { title, body, targetFid, actionUrl }: NotificationRequest = await request.json();
+    
+    // Валидация запроса
+    if (!title || !body) {
+      return NextResponse.json(
+        { error: 'Title and body are required' },
+        { status: 400 }
+      );
+    }
+    
+    if (title.length > 100 || body.length > 500) {
+      return NextResponse.json(
+        { error: 'Title or body too long' },
+        { status: 400 }
+      );
+    }
+    
+    // Проверка ограничений частоты (реализуйте свою логику ограничения частоты)
+    const isRateLimited = await checkRateLimit(request);
+    if (isRateLimited) {
+      return NextResponse.json(
+        { error: 'Rate limit exceeded' },
+        { status: 429 }
+      );
+    }
+    
+    // Перенаправление в Farcaster API уведомлений
+    const response = await fetch(`${FARCASTER_API_URL}/notifications`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${process.env.FARCASTER_API_KEY}`,
+      },
+      body: JSON.stringify({
+        title,
+        body,
+        targetFid,
+        actionUrl: actionUrl || process.env.MINI_APP_URL,
+        appId: process.env.MINI_APP_ID,
+      }),
+    });
+    
+    if (!response.ok) {
+      throw new Error(`Notification API error: ${response.status}`);
+    }
+    
+    const result = await response.json();
+    return NextResponse.json(result);
+    
+  } catch (error) {
+    console.error('Notification error:', error);
+    return NextResponse.json(
+      { error: 'Failed to send notification' },
+      { status: 500 }
+    );
+  }
+}
+
+async function checkRateLimit(request: NextRequest): Promise<boolean> {
+  // Реализуйте свою логику ограничения частоты здесь
+  // Рассмотрите использование Redis или базы данных для отслеживания количества уведомлений
+  // Верните true, если лимит частоты превышен
+  return false;
+}
+```
+
+```python server.py
+from fastapi import FastAPI, HTTPException, BackgroundTasks
+from pydantic import BaseModel
+import httpx
+import os
+from typing import Optional
+
+app = FastAPI()
+
+class NotificationRequest(BaseModel):
+    title: str
+    body: str
+    targetFid: Optional[str] = None
+    actionUrl: Optional[str] = None
+
+FARCASTER_API_URL = "https://api.farcaster.xyz"
+MAX_NOTIFICATIONS_PER_HOUR = 10
+
+@app.post("/api/minikit/notifications")
+async def send_notification(
+    notification: NotificationRequest,
+    background_tasks: BackgroundTasks
+):
+    # Валидация ввода
+    if len(notification.title) > 100:
+        raise HTTPException(status_code=400, detail="Title too long")
+    
+    if len(notification.body) > 500:
+        raise HTTPException(status_code=400, detail="Body too long")
+    
+    # Проверка ограничений частоты
+    if await is_rate_limited():
+        raise HTTPException(status_code=429, detail="Rate limit exceeded")
+    
+    # Подготовка полезной нагрузки
+    payload = {
+        "title": notification.title,
+        "body": notification.body,
+        "targetFid": notification.targetFid,
+        "actionUrl": notification.actionUrl or os.getenv("MINI_APP_URL"),
+        "appId": os.getenv("MINI_APP_ID"),
+    }
+    
+    # Отправка в Farcaster API
+    async with httpx.AsyncClient() as client:
+        response = await client.post(
+            f"{FARCASTER_API_URL}/notifications",
+            json=payload,
+            headers={
+                "Authorization": f"Bearer {os.getenv('FARCASTER_API_KEY')}",
+                "Content-Type": "application/json",
+            }
+        )
+        
+        if response.status_code != 200:
+            raise HTTPException(
+                status_code=500, 
+                detail="Failed to send notification"
+            )
+        
+        return response.json()
+
+async def is_rate_limited() -> bool:
+    # Реализуйте логику ограничения частоты
+    return False
+```
+</RequestExample>
+
+## Использование на фронтенде
+
+<RequestExample>
+```tsx components/GameCompletion.tsx
+import { useNotification } from '@coinbase/onchainkit/minikit';
+import { useState } from 'react';
+
+export default function GameCompletion({ playerStats }) {
+  const [isNotifying, setIsNotifying] = useState(false);
+  const sendNotification = useNotification();
+
+  const notifyAchievement = async () => {
+    setIsNotifying(true);
+    
+    try {
+      await sendNotification({
+        title: "🎮 New Achievement Unlocked!",
+        body: `You just beat ${playerStats.level} with a score of ${playerStats.score}! Can your friends do better?`,
+        actionUrl: `${window.location.origin}/challenge/${playerStats.gameId}`
+      });
+      
+      console.log('Achievement notification sent!');
+    } catch (error) {
+      console.error('Failed to send notification:', error);
+    } finally {
+      setIsNotifying(false);
+    }
+  };
+
+  return (
+    <div className="game-completion">
+      <h2>🏆 Level Complete!</h2>
+      <p>Score: {playerStats.score}</p>
+      
+      <button 
+        onClick={notifyAchievement}
+        disabled={isNotifying}
+        className="notify-btn"
+      >
+        {isNotifying ? 'Sending...' : 'Share Achievement'}
+      </button>
+    </div>
+  );
+}
+```
+
+```tsx components/TournamentScheduler.tsx
+import { useNotification } from '@coinbase/onchainkit/minikit';
+import { useEffect, useState } from 'react';
+
+export default function TournamentScheduler({ tournament }) {
+  const sendNotification = useNotification();
+  const [reminderSet, setReminderSet] = useState(false);
+
+  const scheduleReminder = async () => {
+    try {
+      await sendNotification({
+        title: "🏆 Tournament Starting Soon!",
+        body: `${tournament.name} begins in 15 minutes. Join now to compete for prizes!`,
+        actionUrl: `${window.location.origin}/tournament/${tournament.id}`
+      });
+      
+      setReminderSet(true);
+    } catch (error) {
+      console.error('Failed to schedule reminder:', error);
+    }
+  };
+
+  return (
+    <div className="tournament-card">
+      <h3>{tournament.name}</h3>
+      <p>Starts: {tournament.startTime}</p>
+      <p>Prize Pool: {tournament.prizePool}</p>
+      
+      <button 
+        onClick={scheduleReminder}
+        disabled={reminderSet}
+        className="reminder-btn"
+      >
+        {reminderSet ? '✅ Reminder Set' : '🔔 Remind Me'}
+      </button>
+    </div>
+  );
+}
+```
+
+```tsx components/SocialUpdates.tsx
+import { useNotification, useMiniKit } from '@coinbase/onchainkit/minikit';
+
+export default function SocialUpdates({ userFid }) {
+  const { context } = useMiniKit();
+  const sendNotification = useNotification();
+
+  const notifyFriends = async (updateType, details) => {
+    try {
+      await sendNotification({
+        title: getNotificationTitle(updateType),
+        body: getNotificationBody(updateType, details),
+        // Не указывайте targetFid, чтобы уведомить всех сохраненных пользователей
+      });
+    } catch (error) {
+      console.error('Failed to send social update:', error);
+    }
+  };
+
+  const getNotificationTitle = (type) => {
+    switch (type) {
+      case 'high_score':
+        return '🎯 New High Score!';
+      case 'level_up':
+        return '⬆️ Level Up!';
+      case 'challenge':
+        return '⚡ New Challenge!';
+      default:
+        return '📢 Mini App Update';
+    }
+  };
+
+  const getNotificationBody = (type, details) => {
+    switch (type) {
+      case 'high_score':
+        return `Someone just scored ${details.score} points! Can you beat it?`;
+      case 'level_up':
+        return `A player reached level ${details.level}! Join the competition.`;
+      case 'challenge':
+        return `New daily challenge available with ${details.reward} rewards!`;
+      default:
+        return 'Check out the latest updates in the Mini App!';
+    }
+  };
+
+  return (
+    <div className="social-updates">
+      <button onClick={() => notifyFriends('high_score', { score: 9999 })}>
+        Share High Score
+      </button>
+      <button onClick={() => notifyFriends('challenge', { reward: '100 coins' })}>
+        Announce Challenge
+      </button>
+    </div>
+  );
+}
+```
+</RequestExample>
+
+## Рекомендации по ограничению частоты
+
+### Рекомендуемые лимиты
+- **На пользователя**: Максимум 10 уведомлений в час
+- **На приложение**: Максимум 1000 уведомлений в час
+- **Защита от всплесков**: Максимум 3 уведомления в минуту
+
+### Стратегия реализации
+```typescript lib/rate-limit.ts
+// Пример ограничения частоты на основе Redis
+import Redis from 'ioredis';
+
+const redis = new Redis(process.env.REDIS_URL);
+
+async function checkRateLimit(appId: string, userFid?: string): Promise<boolean> {
+  const now = Date.now();
+  const hourKey = `notifications:${appId}:${Math.floor(now / 3600000)}`;
+  
+  // Проверка общих лимитов приложения
+  const appCount = await redis.incr(hourKey);
+  await redis.expire(hourKey, 3600);
+  
+  if (appCount > 1000) {
+    return true; // Ограничение частоты
+  }
+  
+  // Проверка лимитов на пользователя, если указан конкретный пользователь
+  if (userFid) {
+    const userKey = `notifications:${appId}:user:${userFid}:${Math.floor(now / 3600000)}`;
+    const userCount = await redis.incr(userKey);
+    await redis.expire(userKey, 3600);
+    
+    if (userCount > 10) {
+      return true; // Ограничение частоты
+    }
+  }
+  
+  return false; // Нет ограничения частоты
+}
+```
+
+## Рекомендации
+
+### Рекомендации по контенту
+- **Будьте релевантны**: Отправляйте уведомления только о деятельности пользователя или срочных событиях
+- **Персонализируйте**: Используйте информацию, специфичную для пользователя, когда она доступна
+- **Четкая ценность**: Убедитесь, что каждое уведомление предоставляет четкую ценность получателю
+- **Время отправки**: Отправляйте уведомления в подходящее время (избегайте поздней ночи/раннего утра)
+
+### Технические соображения
+- **Обработка ошибок**: Всегда корректно обрабатывайте сбои уведомлений
+- **Логика повторных попыток**: Реализуйте экспоненциальную отсрочку для неудачных доставок
+- **Аналитика**: Отслеживайте показатели доставки уведомлений и вовлеченность пользователей
+- **Конфиденциальность**: Уважайте настройки уведомлений пользователей и предоставляйте механизмы отмены подписки
+
+### Пользовательский опыт
+- **Контроль частоты**: Позволяйте пользователям контролировать частоту уведомлений
+- **Фильтры категорий**: Позволяйте пользователям выбирать типы уведомлений, которые они хотят получать
+- **Релевантность действий**: Убедитесь, что URL действий уведомлений контекстуально релевантны
+
+<Warning>
+Чрезмерные или нерелевантные уведомления могут привести к удалению вашего мини-приложения пользователями. Всегда отдавайте приоритет пользовательскому опыту над метриками вовлеченности.
+</Warning>
+
+<Info>
+При продуманной реализации уведомления могут значительно повысить вовлеченность и удержание пользователей вашего мини-приложения. Сосредоточьтесь на предоставлении реальной ценности с каждым отправленным уведомлением.
+</Info>
+
+

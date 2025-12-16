@@ -1,0 +1,160 @@
+---
+title: "getPaymentStatus"
+description: "Проверить статус платежной транзакции"
+---
+
+Определено в [Base Account SDK](https://github.com/base/account-sdk)
+
+<Info>
+Функция `getPaymentStatus` позволяет проверить статус платежной транзакции после ее отправки. Используйте эту функцию для отслеживания, был ли платеж завершен, все еще находится в ожидании или завершился неудачей.
+
+**Попробуйте:** Протестируйте функцию `getPaymentStatus` интерактивно в нашем [Base Pay SDK Playground](https://base.github.io/account-sdk/pay-playground).
+</Info>
+
+## Параметры
+
+<ParamField body="id" type="string" required>
+Хэш транзакции из результата pay, статус которой вы хотите проверить.
+
+**Формат:** `^0x[0-9a-fA-F]{64}$`
+</ParamField>
+
+<ParamField body="testnet" type="boolean">
+Должен соответствовать настройке testnet, использованной в исходном вызове pay. По умолчанию: false
+</ParamField>
+
+## Возвращает
+
+<ResponseField name="result" type="PaymentStatus">
+Информация о статусе платежа, включая текущее состояние и детали.
+
+<Expandable title="Свойства PaymentStatus">
+<ResponseField name="status" type="string">
+Текущий статус платежа.
+
+**Возможные значения:**
+- `"completed"`: Платеж успешно обработан и подтвержден
+- `"pending"`: Платеж все еще обрабатывается сетью
+- `"failed"`: Не удалось обработать платеж (средства не переведены)
+- `"not_found"`: Идентификатор транзакции не найден или недействителен
+</ResponseField>
+
+<ResponseField name="id" type="string">
+Исходный хэш транзакции, который был запрошен.
+</ResponseField>
+
+<ResponseField name="message" type="string">
+Человекочитаемое сообщение о статусе, объясняющее текущее состояние.
+</ResponseField>
+
+<ResponseField name="sender" type="string">
+Адрес отправителя (присутствует для статусов pending, completed и failed).
+</ResponseField>
+
+<ResponseField name="amount" type="string">
+Сумма, которая была отправлена (присутствует для завершенных транзакций).
+</ResponseField>
+
+<ResponseField name="recipient" type="string">
+Адрес, который получил платеж (присутствует для завершенных транзакций).
+</ResponseField>
+
+<ResponseField name="error" type="string">
+Детали ошибки (присутствует для статуса failed).
+</ResponseField>
+</Expandable>
+</ResponseField>
+
+
+<RequestExample>
+```typescript Basic Status Check
+import { getPaymentStatus } from '@base-org/account';
+
+const status = await getPaymentStatus({
+  id: "0xabcd1234...",
+  testnet: false
+});
+
+console.log("Payment status:", status.status);
+```
+
+```typescript Complete Payment Flow
+import { pay, getPaymentStatus } from '@base-org/account';
+
+try {
+  // Отправить платеж
+  const payment = await pay({
+    amount: "10.50",
+    to: "0x1234567890123456789012345678901234567890"
+  });
+} catch (error) {
+  console.error(`Payment failed: ${error.message}`);
+}
+
+try {
+  // Проверить статус
+  const status = await getPaymentStatus({
+    id: payment.id,
+    testnet: false
+  });
+  
+  console.log("Status:", status.status);
+  catch (error) {
+  console.error(`Get status Failed: ${error.message}`);
+}
+```
+</RequestExample>
+
+<ResponseExample>
+```typescript Completed Payment
+{
+  status: "completed",
+  id: "0xabcd1234...",
+  message: "Payment completed successfully",
+  sender: "0x742d35Cc4Bf53E0e6C42E5d9F0A8D2F6D8A8B7C9",
+  amount: "10.50",
+  recipient: "0x1234567890123456789012345678901234567890"
+}
+```
+
+```typescript Pending Payment
+{
+  status: "pending",
+  id: "0xabcd1234...",
+  message: "Payment is being processed",
+  sender: "0x742d35Cc4Bf53E0e6C42E5d9F0A8D2F6D8A8B7C9"
+}
+```
+
+```typescript Failed Payment
+{
+  status: "failed",
+  id: "0xabcd1234...",
+  message: "Payment failed due to insufficient balance",
+  sender: "0x742d35Cc4Bf53E0e6C42E5d9F0A8D2F6D8A8B7C9",
+  error: "Insufficient balance"
+}
+```
+
+```typescript Transaction Not Found
+{
+  status: "not_found",
+  id: "0xabcd1234...",
+  message: "Transaction not found"
+}
+```
+</ResponseExample>
+
+## Обработка ошибок
+
+Функция 1getPaymentStatus` может генерировать ошибки для:
+
+- Некорректного формата идентификатора транзакции
+- Проблем с подключением к сети
+- Не найденной транзакции
+
+Всегда оборачивайте вызовы `getPaymentStatus` в блок try-catch для корректной обработки этих ошибок.
+
+import PolicyBanner from "/snippets/PolicyBanner.mdx";
+
+<PolicyBanner />

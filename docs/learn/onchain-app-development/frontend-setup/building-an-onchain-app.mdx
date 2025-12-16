@@ -1,0 +1,219 @@
+---
+title: Создание ончейн-приложения
+description: Пошагово изучите, как превратить обычное шаблонное приложение в ончейн-приложение с подключением кошелька.
+hide_table_of_contents: false
+---
+
+import { Danger } from "/snippets/danger.mdx";
+
+# Создание ончейн-приложения
+
+Хотя начать с шаблона удобно и быстро, шаблон может не соответствовать вашим потребностям. Независимо от того, предпочитаете ли вы другой стек или уже начали создавать традиционные веб-компоненты вашего приложения, часто необходимо вручную добавлять ончейн-библиотеки, чтобы ваше приложение заработало.
+
+В этом руководстве вы создадите основу приложения, похожего на то, которое создается [RainbowKit], но сделаете это шаг за шагом. Вы можете следовать инструкциям и заменить любые из наших библиотек на те, которые предпочитаете.
+
+---
+
+## Цели
+
+К концу этого руководства вы должны уметь:
+
+- Определить роль агрегатора кошельков в ончейн-приложении
+- Обсудить плюсы и минусы использования шаблона
+- Добавить подключение кошелька в стандартное шаблонное приложение
+
+---
+
+## Создание традиционного приложения
+
+Начните с запуска скрипта [Next.js] для создания приложения Next.js:
+
+```bash
+npx create-next-app@latest --use-yarn
+```
+
+Этот скрипт принимает `.`, если вы хотите добавить проект в корень уже созданной папки. В противном случае назовите ваш проект. Выберите каждый вариант в скрипте генерации по своему усмотрению. Мы рекомендуем следующие варианты:
+
+- Использовать Typescript?: Да
+- Использовать ESLint?: Да
+- Использовать Tailwind?: По вашему выбору
+- Использовать директорию `src/`?: Да
+- Использовать App Router?: Да
+- Настроить псевдоним импорта по умолчанию?: Нет
+
+<Note>
+Скрипт Next.js по умолчанию устанавливает [Tailwind]. [RainbowKit] этого не делает.
+</Note>
+
+
+Запустите ваше приложение с помощью `yarn dev`, чтобы убедиться, что оно сгенерировано правильно.
+
+### Ручная установка RainbowKit, Wagmi и Viem
+
+Руководство по [quick start] для RainbowKit также содержит пошаговые инструкции для ручной установки. Здесь вы будете следовать адаптированной версии. Большая часть настройки на самом деле предназначена для конфигурации [wagmi], который находится поверх [viem] и значительно упрощает написание React-кода, взаимодействующего с блокчейном.
+
+Начните с установки зависимостей:
+
+```bash
+npm install @rainbow-me/rainbowkit wagmi viem@2.x @tanstack/react-query
+```
+
+<Note>
+Ончейн-библиотеки и пакеты, как правило, требуют очень актуальных версий Node. Если вы еще не используете её, вы можете установить [nvm].
+</Note>
+
+
+## Добавление импортов, коннекторов, конфигурации
+
+В Next.js с App Router корень вашего приложения находится в `app/layout.tsx`, если вы следовали рекомендуемым настройкам. Поскольку вы хотите, чтобы контекст провайдера блокчейна был доступен для всего приложения, вы добавите его здесь.
+
+Вам нужно будет настроить ваши провайдеры во втором файле, чтобы вы могли добавить 'use client'; в начало. Это заставляет этот код выполняться на стороне клиента, что необходимо, поскольку ваш сервер не будет иметь доступа к информации о кошельке ваших пользователей.
+
+<Warning>
+Вы должны настроить эти обертки в отдельном файле. Это не сработает, если вы попытаетесь добавить их и `'use client';` напрямую в `layout.tsx`!
+</Warning>
+
+
+Добавьте новый файл в папке `app` с именем `providers.tsx`.
+
+### Импорты
+
+Как обсуждалось выше, добавьте 'use client'; в начало файла.
+
+Продолжите с импортами:
+
+```tsx
+import '@rainbow-me/rainbowkit/styles.css';
+import { useState, type ReactNode } from 'react';
+import { getDefaultConfig, RainbowKitProvider } from '@rainbow-me/rainbowkit';
+import { WagmiProvider } from 'wagmi';
+import { base, baseSepolia } from 'wagmi/chains';
+import { QueryClientProvider, QueryClient } from '@tanstack/react-query';
+```
+
+<Warning>
+Если вы адаптируете это руководство для другого набора библиотек или платформ, вам может потребоваться импортировать `styles.css` по-другому. Вы поймете, что это так, если при нажатии кнопки подключения внизу страницы появится некрасивый текст вместо красивого модального окна.
+</Warning>
+
+
+### Конфигурация
+
+Теперь вам нужно настроить цепи, коннекторы кошельков и провайдеры для вашего приложения. Пока вы будете использовать `getDefaultConfig`, чтобы начать. Смотрите наше руководство по для получения дополнительной информации о провайдерах блокчейна.
+
+<Note>
+Чтобы воспользоваться более продвинутым набором опций с [OnchainKit], посмотрите наше руководство о том, как [Use the Coinbase Smart Wallet and EOAs with OnchainKit]. Если вы просто хотите настроить список кошельков в [RainbowKit], посмотрите наше руководство для [Coinbase Smart Wallet with RainbowKit].
+</Note>
+
+
+Вам понадобится `projectId` из [Wallet Connect Cloud], который вы можете получить бесплатно на их сайте. Убедитесь, что вставили его в соответствующее место.
+
+<Danger>
+Помните, все на фронтенде публично! Обязательно настройте разрешенный список (allowlist) для вашего идентификатора WalletConnect!
+</Danger>
+
+
+```tsx
+const config = getDefaultConfig({
+  appName: 'Cool Onchain App',
+  projectId: 'YOUR_PROJECT_ID',
+  chains: [base, baseSepolia],
+  ssr: true, // Если ваше dApp использует рендеринг на стороне сервера (SSR)
+});
+```
+
+### Возврат контекстных провайдеров
+
+[TanStack Query] теперь является обязательной зависимостью для wagmi, и вам нужно добавить его как провайдера контекста React. Короткая версия: он помогает управлять состоянием. Читайте документацию для длинной версии!
+
+Добавьте экспортированную функцию для провайдеров. Это настраивает `QueryClient` и возвращает `props.children`, обернутые во все ваши провайдеры.
+
+```tsx
+export function Providers(props: { children: ReactNode }) {
+  const [queryClient] = useState(() => new QueryClient());
+
+  return (
+    <WagmiProvider config={config}>
+      <QueryClientProvider client={queryClient}>
+        <RainbowKitProvider>{props.children}</RainbowKitProvider>
+      </QueryClientProvider>
+    </WagmiProvider>
+  );
+}
+```
+
+## Использование ваших новых провайдеров
+
+Откройте `layout.tsx`. Импортируйте ваши `Providers`, будьте осторожны, если используете автоимпорт, так как в списке много других вещей с похожими именами. Оберните `children` в вашем `return` новыми `Providers`.
+
+```tsx
+return (
+  <html lang="en">
+    <body className={inter.className}>
+      <Providers>{children}</Providers>
+    </body>
+  </html>
+);
+```
+
+## Добавление кнопки подключения
+
+Теперь вы готовы добавить кнопку подключения. Вы можете сделать это в любом месте вашего приложения благодаря `RainbowKitProvider`. Общепринятой практикой является размещение кнопки в заголовке вашего приложения. Поскольку шаблон Next.js не имеет заголовка, вы можете просто добавить ее в верхнюю часть автоматически сгенерированной страницы, вместо того чтобы тратить время на реализацию React-компонентов.
+
+Откройте `page.tsx` и импортируйте `ConnectButton`:
+
+```tsx
+import { ConnectButton } from '@rainbow-me/rainbowkit';
+```
+
+Затем просто добавьте компонент `ConnectButton` в начало первого `<div>`:
+
+```tsx
+// Эта функция упрощена для экономии места.
+export default function Home() {
+  return (
+    <main className="flex min-h-screen flex-col items-center justify-between p-24">
+      <div className="z-10 w-full max-w-5xl items-center justify-between font-mono text-sm lg:flex">
+        <ConnectButton />
+
+        {/* Other Code...*/}
+        </p>
+      </div>
+    </main>
+  );
+}
+```
+
+Запустите ваше приложение с помощью `yarn dev`, и вы должны иметь возможность использовать кнопку подключения RainbowKit для подключения вашего кошелька и переключения между сетями.
+
+Вы используете свойства [Connect Button] для изменения его свойств или можете [customize the connect button] в значительной степени. Некоторым пользователям не нравится, когда кнопка подключения отображает баланс их токенов. Попробуйте отключить это с помощью:
+
+```tsx
+<ConnectButton showBalance={false} />
+```
+
+---
+
+## Заключение
+
+В этом руководстве вы узнали, как собрать ваше ончейн-приложение из нескольких частей. Вы можете использовать эти знания для интеграции подключения кошелька на существующий сайт или адаптировать стек в соответствии с вашими предпочтениями. Наконец, вы узнали, как вставить и настроить кнопку подключения.
+
+Если вы хотите быстро создать простое приложение, вы всегда можете использовать скрипт, такой как [quick start] RainbowKit. Если вы ищете надежное начало для потребительского приложения, ознакомьтесь с [OnchainKit]!
+
+---
+
+[RainbowKit]: https://www.rainbowkit.com/
+[wagmi]: https://wagmi.sh/
+[viem]: https://viem.sh/
+[quick start]: https://www.rainbowkit.com/docs/installation
+[Next.js]: https://nextjs.org/
+[Tailwind]: https://tailwindcss.com/
+[nvm]: https://github.com/nvm-sh/nvm
+[WalletConnect]: https://cloud.walletconnect.com/
+[Connecting to the Blockchain]: https://docs.base.org/connecting-to-the-blockchain/overview
+[Wallet Connect Cloud]: https://cloud.walletconnect.com/
+[Connect Button]: https://www.rainbowkit.com/docs/connect-button
+[customize the connect button]: https://www.rainbowkit.com/docs/custom-connect-button
+[TanStack Query]: https://tanstack.com/query/latest
+[Coinbase Smart Wallet with RainbowKit]: https://docs.base.org/tutorials/smart-wallet-and-rainbowkit
+[OnchainKit]: https://onchainkit.xyz/?utm_source=basedocs&utm_medium=tutorials&campaign=building-an-onchain-app
+[Use the Coinbase Smart Wallet and EOAs with OnchainKit]: https://docs.base.org/tutorials/smart-wallet-and-eoa-with-onchainkit

@@ -1,0 +1,261 @@
+---
+title: useComposeCast
+description: Открытие композитора кастов с предзаполненным контентом
+---
+
+Определен в [@coinbase/onchainkit](https://github.com/coinbase/onchainkit)
+
+<Info>
+Открывает нативный композитор кастов с предзаполненным текстом и встраиваниями. Важно для вирусного роста и социального шеринга внутри мини-приложений.
+</Info>
+
+## Возвращает
+
+<ResponseField name="composeCast" type="(params: ComposeCastParams) => void">
+Функция, которая открывает композитор кастов с указанным контентом.
+
+<Expandable title="Свойства ComposeCastParams">
+<ParamField body="text" type="string" required>
+Текстовый контент для предзаполнения в композиторе. Сохраняйте лаконичность и вовлекающий характер.
+</ParamField>
+
+<ParamField body="embeds" type="string[]">
+Массив URL-адресов для встраивания в каст. Обычно включает URL вашего мини-приложения для шеринга.
+</ParamField>
+</Expandable>
+</ResponseField>
+
+<RequestExample>
+```tsx Basic Text Sharing
+import { useComposeCast } from '@coinbase/onchainkit/minikit';
+
+export default function ShareButton() {
+  const { composeCast } = useComposeCast();
+
+  const handleShare = () => {
+    composeCast({
+      text: 'Just completed the daily puzzle! 🧩'
+    });
+  };
+
+  return (
+    <button onClick={handleShare}>
+      Share Achievement
+    </button>
+  );
+}
+```
+
+```tsx Share with App Embed
+import { useComposeCast } from '@coinbase/onchainkit/minikit';
+
+export default function ShareAppButton() {
+  const { composeCast } = useComposeCast();
+
+  const handleShareApp = () => {
+    composeCast({
+      text: 'Check out this amazing Mini App!',
+      embeds: [window.location.href]
+    });
+  };
+
+  return (
+    <button onClick={handleShareApp}>
+      Share Mini App
+    </button>
+  );
+}
+```
+
+```tsx Strategic Achievement Sharing
+import { useComposeCast } from '@coinbase/onchainkit/minikit';
+
+export default function GameComplete({ score, level }) {
+  const { composeCast } = useComposeCast();
+
+  const shareAchievement = () => {
+    composeCast({
+      text: `🎉 Just hit level ${level} with ${score} points!`,
+      embeds: [
+        window.location.href,
+        'https://yourgame.com/achievements/' + achievementId
+      ]
+    });
+  };
+
+  const shareGameInvite = () => {
+    composeCast({
+      text: 'Want to challenge me? Try to beat my high score! 🏆',
+      embeds: [window.location.href]
+    });
+  };
+
+  return (
+    <div className="achievement-share">
+      <h2>Congratulations! 🎉</h2>
+      <p>Level {level} completed with {score} points</p>
+      
+      <div className="share-options">
+        <button onClick={shareAchievement}>
+          Share Achievement
+        </button>
+        <button onClick={shareGameInvite}>
+          Challenge Friends
+        </button>
+      </div>
+    </div>
+  );
+}
+```
+
+```tsx Dynamic Content Sharing
+import { useComposeCast } from '@coinbase/onchainkit/minikit';
+import { useState } from 'react';
+
+export default function CustomShareDialog() {
+  const { composeCast } = useComposeCast();
+  const [shareText, setShareText] = useState('');
+
+  const handleCustomShare = () => {
+    if (!shareText.trim()) return;
+    
+    composeCast({
+      text: shareText,
+      embeds: [window.location.href]
+    });
+    
+    // Очистить после шеринга
+    setShareText('');
+  };
+
+  return (
+    <div className="share-dialog">
+      <textarea 
+        value={shareText}
+        onChange={(e) => setShareText(e.target.value)}
+        placeholder="What would you like to share?"
+        maxLength={280}
+      />
+      
+      <div className="share-actions">
+        <span>{280 - shareText.length} characters remaining</span>
+        <button 
+          onClick={handleCustomShare}
+          disabled={!shareText.trim()}
+        >
+          Share Cast
+        </button>
+      </div>
+    </div>
+  );
+}
+```
+</RequestExample>
+
+## Стратегические паттерны шеринга
+
+### Моменты достижений
+Публикуйте в моменты достижений пользователя:
+
+```tsx examples/AchievementMoments.tsx
+// После завершения квиза
+composeCast({
+  text: "I'm a Ravenclaw! 🦅 What house are you?",
+  embeds: [quizUrl]
+});
+
+// После минта NFT
+composeCast({
+  text: "Just minted my first collectible! 🎨",
+  embeds: [mintUrl, nftImageUrl]
+});
+
+// После вехи в игре
+composeCast({
+  text: "Finally beat level 50! This game is addictive 🎮",
+  embeds: [gameUrl]
+});
+```
+
+### Механики вирусного роста
+Проектируйте публикации, которые поощряют взаимодействие:
+
+```tsx examples/ViralGrowthMechanics.tsx
+// Паттерн вызова
+composeCast({
+  text: "Beat my time of 2:34 if you can! ⏱️",
+  embeds: [challengeUrl]
+});
+
+// Паттерн социального доказательства
+composeCast({
+  text: "Join 50,000+ players already playing!",
+  embeds: [gameUrl]
+});
+
+// Паттерн FOMO (страх упустить)
+composeCast({
+  text: "Limited edition drop ends in 2 hours! 🔥",
+  embeds: [dropUrl]
+});
+```
+
+### Персонализация контента
+Настраивайте публикации на основе активности пользователя:
+
+```tsx examples/ContentPersonalization.tsx
+import { useMiniKit, useComposeCast } from '@coinbase/onchainkit/minikit';
+
+export default function PersonalizedShare() {
+  const { context } = useMiniKit();
+  const { composeCast } = useComposeCast();
+  
+  const sharePersonalized = (achievement) => {
+    const isNewUser = !context.client.added;
+    
+    const text = isNewUser 
+      ? `Just discovered this amazing ${achievement.category} app!`
+      : `Another ${achievement.type} completed! ${achievement.streak} day streak 🔥`;
+      
+    composeCast({
+      text,
+      embeds: [window.location.href]
+    });
+  };
+
+  return (
+    <button onClick={() => sharePersonalized(userAchievement)}>
+      Share Progress
+    </button>
+  );
+}
+```
+
+## Рекомендации
+
+### Текстовый контент
+- **Сохраняйте лаконичность**: В Farcaster есть ограничения на количество символов
+- **Включайте эмоциональный контекст**: Используйте эмодзи и выражайте энтузиазм
+- **Добавляйте четкую ценность**: Объясняйте, почему другим должно быть интересно
+- **Включайте призыв к действию**: "Попробуй сам", "Побей мой счет"
+
+### Стратегия встраивания
+- **Всегда включайте URL вашего приложения** для возможности обнаружения
+- **Добавляйте релевантные медиа**: Изображения, видео, другой контент
+- **Тестируйте отображение встраиваний**: Убедитесь, что метаданные отображаются корректно
+
+### Оптимизация времени
+- **После достижения**: Когда пользователи чувствуют себя успешными
+- **Социальные моменты**: Когда друзья, скорее всего, онлайн
+- **Демонстрация ценности**: После показа преимуществ приложения
+- **Избегайте прерываний**: Не нарушайте поток пользователя
+
+<Warning>
+Композитор открывается в нативном оверлее или новом окне в зависимости от клиента. Пользователи могут изменять текст перед публикацией, поэтому не полагайтесь на точный текст для отслеживания. Используйте параметры URL или уникальные встраивания для атрибуции отслеживания.
+</Warning>
+
+<Info>
+`useComposeCast` - один из самых мощных хуков для вирусного роста. Стратегическая реализация шеринга в правильные моменты может значительно увеличить охват и привлечение пользователей вашего мини-приложения.
+</Info>
+
+

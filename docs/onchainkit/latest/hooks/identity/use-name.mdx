@@ -1,0 +1,75 @@
+---
+title: useName
+---
+
+Хук `useName` используется для получения имени из провайдера
+ончейн-идентификации по заданному адресу.
+
+Он реализован с использованием [useQuery](https://tanstack.com/query/latest/docs/framework/react/reference/useQuery) из `@tanstack/react-query`, и возвращает объект `UseQueryResult`, что позволяет передавать все опции `@tanstack/react-query`.
+
+## Использование
+
+Получение ENS имени по адресу:
+
+<CodeGroup>
+```tsx code
+import { useName } from '@coinbase/onchainkit/identity';
+
+const address = '0x02feeb0AdE57b6adEEdE5A4EEea6Cf8c21BeB6B1';
+const { data: name, isLoading } = await useName({ address });
+
+````
+
+```ts return value
+{ data: 'zizzamia.eth', isLoading: false }
+````
+
+</CodeGroup>
+
+Получение Basename по адресу:
+
+<CodeGroup>
+```tsx code
+import { useName } from '@coinbase/onchainkit/identity';
+import { base } from 'viem/chains';
+
+const address = '0x02feeb0AdE57b6adEEdE5A4EEea6Cf8c21BeB6B1';
+const { data: name, isLoading } = await useName({ address, chain: base });
+
+````
+
+```ts return value
+{ data: 'zizzamia.base.eth', isLoading: false }
+````
+
+</CodeGroup>
+
+## Возвращает
+
+```ts
+useQuery<Promise<GetNameReturnType>>
+
+type GetNameReturnType = string | Basename | null;
+```
+
+## Параметры
+
+### UseNameParams
+
+```ts
+type UseNameParams = {
+  /** Адрес, для которого нужно получить ENS или Basename. */
+  address?: Address;
+  /** Необязательная цепь для разрешения домена */
+  chain?: Chain;
+};
+```
+
+### UseQueryOptions
+
+```ts
+type UseQueryOptions<TData = unknown> = Omit<
+  TanstackUseQueryOptions<TData>,
+  'queryKey' | 'queryFn'
+>;
+```

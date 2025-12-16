@@ -1,0 +1,295 @@
+---
+title: "OnchainKitProvider"
+---
+
+Провайдер OnchainKitProvider предоставляет React-контекст, который питает все компоненты OnchainKit. Он обрабатывает подключения кошельков, темы, конфигурацию API и интеграцию MiniKit.
+
+## Базовое использование
+
+Для начала оберните ваше приложение в `OnchainKitProvider` и предоставьте необходимые пропсы, описанные ниже.
+
+Также импортируйте `'@coinbase/onchainkit/styles.css'`, чтобы гарантировать корректное отображение стилей компонентов OnchainKit.
+
+В примере ниже мы создаем `RootProvider` для поддержания порядка в коде.
+
+```tsx RootProvider.tsx
+'use client';
+import { ReactNode } from 'react';
+import { base } from 'viem/chains';
+import { OnchainKitProvider } from '@coinbase/onchainkit';
+import '@coinbase/onchainkit/styles.css';
+
+export function RootProvider({ children }: { children: ReactNode }) {
+  return (
+    <OnchainKitProvider
+      apiKey={process.env.NEXT_PUBLIC_ONCHAINKIT_API_KEY}
+      chain={base}
+      config={{
+        appearance: {
+          mode: 'auto',
+        },
+        wallet: {
+          display: 'modal',
+        },
+      }}
+    >
+      {children}
+    </OnchainKitProvider>
+  );
+}
+```
+
+Затем мы оборачиваем наше приложение в `RootProvider` в корневом layout.
+
+```tsx layout.tsx
+import { RootProvider } from './RootProvider';
+
+export default function RootLayout({
+  children,
+}: {
+  children: React.ReactNode;
+}) {
+  return (
+    <html lang="en">
+      <body>
+        <RootProvider>{children}</RootProvider>
+      </body>
+    </html>
+  );
+}
+```
+
+## Свойства (Props)
+
+| Свойство                   | Описание                                                               | Обязательно |
+| -------------------------- | ---------------------------------------------------------------------- | ----------- |
+| [`chain`](#chain)          | Блокчейн-сеть, в которой работает ваше приложение.                     | Да        |
+| [`apiKey`](#apikey)        | API-ключ Coinbase Developer Platform для доступа к сервисам OnchainKit.| Нет       |
+| [`projectId`](#project-id) | Project ID Coinbase Developer Platform для компонентов финансирования. | Нет       |
+| [`rpcUrl`](#rpc-url)       | Кастомный RPC-эндпоинт для запросов к блокчейну.                       | Нет       |
+| [`config`](#config)        | Объект конфигурации для внешнего вида, настроек кошелька и paymaster.  | Нет       |
+| [`miniKit`](#minikit)      | Конфигурация MiniKit для функций мини-приложения.                      | Нет       |
+| [`analytics`](#analytics)  | Включение/отключение аналитики использования (по умолчанию true).      | Нет       |
+| `defaultPublicClients`     | Кастомные viem public clients для конкретных цепей.                    | Нет       |
+
+### Chain
+
+Указывает блокчейн-сеть, которую будут использовать ваши компоненты OnchainKit. Это обязательно для всей функциональности OnchainKit.
+
+```tsx
+import { base, mainnet } from 'viem/chains';
+
+// Использовать сеть Base
+<OnchainKitProvider chain={base}>
+  {children}
+</OnchainKitProvider>
+
+// Использовать Ethereum mainnet
+<OnchainKitProvider chain={mainnet}>
+  {children}
+</OnchainKitProvider>
+```
+
+Импортируйте конфигурации цепей из [viem/chains](https://viem.sh/docs/chains/introduction) для безопасности типов и точности.
+
+### API Key
+
+Ваш API-ключ Coinbase Developer Platform предоставляет доступ к сервисам OnchainKit, таким как данные о токенах, расценки на обмен и спонсирование транзакций.
+
+Необходим для:
+
+- Компонентов и API для обмена (swap)
+- Компонентов транзакций со спонсированием
+- Данных и метаданных токенов
+- Компонентов минта NFT
+
+Получите свой API-ключ на [Coinbase Developer Platform](https://portal.cdp.coinbase.com/products/onchainkit).
+
+```tsx
+<OnchainKitProvider
+  apiKey={process.env.NEXT_PUBLIC_ONCHAINKIT_API_KEY}
+  chain={base}
+>
+  {children}
+</OnchainKitProvider>
+```
+
+<Frame>
+<img
+  alt="OnchainKit copy Client API Key"
+  src="./images/copy-api-key-guide.png"
+  height="364"
+/>
+</Frame>
+
+### RPC URL
+
+Кастомный RPC-эндпоинт для запросов к блокчейну. Если не указан, OnchainKit использует узел Coinbase Developer Platform Node (требует `apiKey`).
+
+```tsx
+<OnchainKitProvider
+  chain={base}
+  rpcUrl="https://your-custom-rpc-endpoint.com"
+>
+  {children}
+</OnchainKitProvider>
+```
+
+Большинство приложений могут опустить это и использовать CDP Node по умолчанию, предоставив `apiKey`.
+
+### Project ID
+
+Ваш Project ID Coinbase Developer Platform, необходимый для компонентов финансирования и пополнения (onramp).
+
+```tsx
+<OnchainKitProvider
+  chain={base}
+  projectId={process.env.NEXT_PUBLIC_CDP_PROJECT_ID}
+>
+  {children}
+</OnchainKitProvider>
+```
+
+Получите свой Project ID на [Coinbase Developer Platform](https://portal.cdp.coinbase.com/projects).
+
+<Frame>
+<img
+  alt="OnchainKit copy Project ID"
+  src="./images/copy-project-id.png"
+  height="364"
+/>
+</Frame>
+
+### Config
+
+Объект конфигурации для кастомизации внешнего вида OnchainKit, поведения кошелька и спонсирования газа.
+
+```tsx
+<OnchainKitProvider
+  chain={base}
+  config={{
+    appearance: {
+      name: 'My App',
+      logo: 'https://example.com/logo.png',
+      mode: 'auto',
+      theme: 'default',
+    },
+    wallet: {
+      display: 'modal',
+      preference: 'all',
+      termsUrl: 'https://example.com/terms',
+      privacyUrl: 'https://example.com/privacy',
+      supportedWallets: {
+        rabby: true,
+        trust: true,
+      },
+    },
+    paymaster: 'https://api.developer.coinbase.com/rpc/v1/base/your-api-key',
+    analytics: true,
+  }}
+>
+  {children}
+</OnchainKitProvider>
+```
+
+#### Appearance
+
+Управляет визуальным стилем и брендингом:
+
+- `name` — Название вашего приложения, отображаемое в компонентах
+- `logo` — URL логотипа вашего приложения
+- `mode` — Цветовая схема: `'auto'`, `'light'`, or `'dark'`
+- `theme` — Визуальная тема: `'default'`, `'base'`, `'cyberpunk'`, `'hacker'`, или кастомная
+
+#### Wallet
+
+Настройки подключения и отображения кошелька:
+
+- `display` — Стиль интерфейса: `'modal'` (поверх всего) или `'classic'` (встроенный)
+- `preference` — Предпочтение Coinbase Wallet: `'all'`, `'smartWalletOnly'`, или `'eoaOnly'`
+- `termsUrl` — Ссылка на ваши условия обслуживания
+- `privacyUrl` — Ссылка на вашу политику конфиденциальности
+- `supportedWallets` — Включить дополнительные кошельки: `rabby`, `trust`, `frame`
+
+#### Paymaster
+
+URL для спонсирования газа. Настройте через [Coinbase Developer Platform](https://portal.cdp.coinbase.com/products/bundler-and-paymaster).
+
+#### Analytics
+
+Включение/отключение аналитики использования (по умолчанию `true`).
+
+### MiniKit
+
+Конфигурация для функций мини-приложений. Нужна только при создании мини-приложений.
+
+```tsx
+<OnchainKitProvider
+  chain={base}
+  miniKit={{
+    enabled: true,
+    autoConnect: true,
+    notificationProxyUrl: '/api/notify',
+  }}
+>
+  {children}
+</OnchainKitProvider>
+```
+
+Опции:
+
+- `enabled` — Включить функции MiniKit (по умолчанию `false`)
+- `autoConnect` — Автоматическое подключение в мини-приложениях (по умолчанию `true`)
+- `notificationProxyUrl` — Кастомный URL прокси для уведомлений (по умолчанию `/api/notify`)
+
+### Analytics
+
+Включить или отключить аналитику использования OnchainKit.
+
+```tsx
+<OnchainKitProvider
+  chain={base}
+  analytics={false} // Отключить аналитику
+>
+  {children}
+</OnchainKitProvider>
+```
+
+По умолчанию `true`. Аналитика помогает улучшать OnchainKit, но может быть отключена для конфиденциальности.
+
+### Default Public Clients
+
+Кастомные viem public clients для конкретных цепей. Полезно, когда вам нужны кастомные RPC-конфигурации или вы хотите использовать свои настройки клиента.
+
+```tsx
+import { createPublicClient, http } from 'viem';
+import { base, mainnet } from 'viem/chains';
+
+const customClients = {
+  [base.id]: createPublicClient({
+    chain: base,
+    transport: http('https://your-custom-base-rpc.com'),
+  }),
+  [mainnet.id]: createPublicClient({
+    chain: mainnet,
+    transport: http('https://your-custom-mainnet-rpc.com'),
+    batch: {
+      multicall: true,
+    },
+  }),
+};
+
+<OnchainKitProvider
+  chain={base}
+  defaultPublicClients={customClients}
+>
+  {children}
+</OnchainKitProvider>
+```
+
+Варианты использования:
+
+- Кастомные RPC-эндпоинты с особыми конфигурациями
+- Расширенные настройки клиента (пакетная обработка, кэширование, повторные попытки)
+- Приватные или премиальные RPC-провайдеры
+- Мультичейн-приложения с разными требованиями к клиенту для каждой цепи

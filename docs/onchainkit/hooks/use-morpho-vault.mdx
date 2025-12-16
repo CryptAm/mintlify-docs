@@ -1,0 +1,33 @@
+---
+title: useMorphoVault
+---
+
+
+Хук `useMorphoVault` получает и возвращает комплексные данные о Morpho vault, включая APY, балансы и награды.
+
+## Использование
+
+```tsx
+import { useMorphoVault } from '@coinbase/onchainkit/earn';
+
+const {
+  balance,
+  totalApy,
+  rewards,
+  deposits,
+  liquidity,
+  // ... другие значения
+} = useMorphoVault({
+  vaultAddress: '0x...',
+  recipientAddress: '0x...',
+});
+```
+
+## Возвращает
+
+[`UseMorphoVaultReturnType`](/onchainkit/earn/types#usemorphovaultreturntype)
+
+## Параметры
+
+[`UseMorphoVaultParams`](/onchainkit/earn/types#usemorphovaultparams)
+

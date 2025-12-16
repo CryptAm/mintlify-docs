@@ -1,0 +1,130 @@
+---
+title: "eth_signTypedData_v4"
+description: "Подписать структурированные данные в соответствии с EIP-712"
+---
+
+Определено в [EIP-712](https://eips.ethereum.org/EIPS/eip-712)
+
+<Info>
+Подписывает структурированные данные в соответствии со стандартом EIP-712, который обеспечивает более безопасный способ подписи данных, предоставляя контекст и структуру подписываемым данным.
+</Info>
+
+## Параметры
+
+<ParamField body="address" type="string" required>
+Адрес, который должен подписать данные (20 байт).
+</ParamField>
+
+<ParamField body="typedData" type="object" required>
+Типизированные структурированные данные для подписи.
+
+<Expandable title="Свойства объекта типизированных данных">
+<ParamField body="types" type="object" required>
+Объект, содержащий определения типов для структурированных данных.
+</ParamField>
+
+<ParamField body="primaryType" type="string" required>
+Основной тип из объекта types, который будет подписан.
+</ParamField>
+
+<ParamField body="domain" type="object" required>
+Разделитель домена, как определено в EIP-712.
+
+<Expandable title="Свойства домена">
+<ParamField body="name" type="string">
+Читаемое пользовательское название домена подписи.
+</ParamField>
+
+<ParamField body="version" type="string">
+Текущая основная версия домена подписи.
+</ParamField>
+
+<ParamField body="chainId" type="number">
+Идентификатор цепи (chain ID) сети.
+</ParamField>
+
+<ParamField body="verifyingContract" type="string">
+Адрес контракта, который будет проверять подпись.
+</ParamField>
+
+<ParamField body="salt" type="string">
+Уточняющая 'salt' для протокола.
+</ParamField>
+</Expandable>
+</ParamField>
+
+<ParamField body="message" type="object" required>
+Объект данных для подписи в соответствии с основным типом.
+</ParamField>
+</Expandable>
+</ParamField>
+
+## Возвращает
+
+<ResponseField name="result" type="string">
+Подпись в виде шестнадцатеричной строки (hex).
+</ResponseField>
+
+<RequestExample>
+```json Request
+{
+  "id": 1,
+  "jsonrpc": "2.0",
+  "method": "eth_signTypedData_v4",
+  "params": [
+    "0x3b7252d007059ffc82d16d022da3cbf9992d2f70",
+    {
+      "types": {
+        "EIP712Domain": [
+          { "name": "name", "type": "string" },
+          { "name": "version", "type": "string" },
+          { "name": "chainId", "type": "uint256" },
+          { "name": "verifyingContract", "type": "address" }
+        ],
+        "Person": [
+          { "name": "name", "type": "string" },
+          { "name": "wallet", "type": "address" }
+        ]
+      },
+      "primaryType": "Person",
+      "domain": {
+        "name": "Example App",
+        "version": "1",
+        "chainId": 1,
+        "verifyingContract": "0xCcCCccccCCCCcCCCCCCcCcCccCcCCCcCcccccccC"
+      },
+      "message": {
+        "name": "Alice",
+        "wallet": "0x3b7252d007059ffc82d16d022da3cbf9992d2f70"
+      }
+    }
+  ]
+}
+```
+</RequestExample>
+
+<ResponseExample>
+```json Success Response
+{
+  "id": 1,
+  "jsonrpc": "2.0",
+  "result": "0x4355c47d63924e8a72e509b65029052eb6c299d53a04e167c5775fd466751c9d07299936d304c153f6443dfa05f40ff007d72911b6f72307f996231605b915621c"
+}
+```
+</ResponseExample>
+
+## Обработка ошибок
+
+| Код  | Сообщение                      | Описание    |
+| ---- | ------------------------------ | ----------- |
+| 4001 | User rejected the request      | Пользователь отклонил запрос на подпись |
+| 4100 | Requested method not supported | Метод не поддерживается кошельком |
+| -32602 | Invalid params                 | Некорректная структура типизированных данных |
+
+<Warning>
+сегда проверяйте домен и адрес verifying contract, чтобы предотвратить атаки повторного использования подписи (replay attacks).
+</Warning>
+
+<Info>
+Подписи EIP-712 обеспечивают лучшую безопасность по сравнению с personal_sign, предоставляя пользователям контекст о том, что они подписывают.
+</Info>

@@ -1,0 +1,67 @@
+---
+title: "eth_getUncleCountByBlockHash"
+description: "Получить количество дядей в блоке по хэшу блока"
+---
+
+Определено в [Спецификации Ethereum JSON-RPC](https://ethereum.org/en/developers/docs/apis/json-rpc/)
+
+<Info>
+Возвращает количество дядей в блоке по его хэшу.
+</Info>
+
+## Параметры
+
+<ParamField body="blockHash" type="string" required>
+Хэш блока (32 байта).
+</ParamField>
+
+## Возвращает
+
+<ResponseField name="result" type="string">
+Количество дядей в этом блоке в виде шестнадцатеричной строки (hex).
+</ResponseField>
+
+<RequestExample>
+```json Request
+{
+  "id": 1,
+  "jsonrpc": "2.0",
+  "method": "eth_getUncleCountByBlockHash",
+  "params": [
+    "0xc6ef2fc5426d6ad6fd9e2a26abeab0aa2411b7ab17f30a99d3cb96aed1d1055b"
+  ]
+}
+```
+</RequestExample>
+
+<ResponseExample>
+```json Success Response
+{
+  "id": 1,
+  "jsonrpc": "2.0",
+  "result": "0x1"
+}
+```
+
+```json No Uncles
+{
+  "id": 1,
+  "jsonrpc": "2.0",
+  "result": "0x0"
+}
+```
+</ResponseExample>
+
+## Обработка ошибок
+
+| Код    | Сообщение                      | Описание    |
+| ------ | ------------------------------ | ----------- |
+| -32602 | Invalid block hash             | Указан некорректный хэш блока |
+| 4100   | Requested method not supported | Метод не поддерживается кошельком |
+
+<Info>
+uncle-блоки - это блоки, которые были добыты, но не включены в основную цепочку блоков. Этот метод возвращает их количество для конкретного блока.
+</Info>
+
+```
+

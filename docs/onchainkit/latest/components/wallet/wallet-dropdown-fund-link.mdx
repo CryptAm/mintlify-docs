@@ -1,0 +1,159 @@
+---
+title: WalletDropdownFundLink
+sidebarTitle: WalletDropdownFundLink
+description: Компонент, предоставляющий функциональность ссылки на пополнение в выпадающем списке кошелька
+---
+
+Компонент `WalletDropdownFundLink` работает так же, как [`FundButton`](/onchainkit/fund/fund-button), за исключением того, что он
+находится внутри вашего меню выпадающего списка кошелька.
+
+Если ваш пользователь подключает Coinbase Smart Wallet, он предоставляет простой способ доступа к процессу пополнения Coinbase Smart Wallet
+[Fund](https://keys.coinbase.com/fund). Пользователи смогут покупать и получать криптовалюту или использовать свои балансы Coinbase
+в ончейне с помощью [Magic Spend](https://www.smartwallet.dev/guides/magic-spend).
+
+Если ваш пользователь подключает любой другой EOA-кошелек, он предоставляет простой способ доступа к [Coinbase Onramp](https://docs.cdp.coinbase.com/onramp/docs/welcome/),
+где ваши пользователи также смогут покупать криптовалюту, используя фиатный платежный метод, или переводить существующую криптовалюту со своего
+аккаунта Coinbase.
+
+<Tip>
+**Поддержка Coinbase Onramp**
+
+Если вы хотите предоставить пользователям, не использующим Coinbase Smart Wallet, простой способ доступа к Coinbase Onramp, пожалуйста, убедитесь,
+что вы прошли [walkthrough](/onchainkit/fund/fund-button#walkthrough) по настройке FundButton, чтобы настроить ваш `Project ID`. В противном случае
+только пользователи Coinbase Smart Wallet смогут использовать `WalletDropdownFundLink`.
+</Tip>
+
+
+## Использование
+
+```tsx
+import {
+  ConnectWallet,
+  Wallet,
+  WalletDropdown,
+  WalletDropdownDisconnect,
+  WalletDropdownFundLink, // [!code focus]
+} from '@coinbase/onchainkit/wallet'; // [!code focus]
+import {
+  Address,
+  Avatar,
+  Name,
+  Identity,
+  EthBalance,
+} from '@coinbase/onchainkit/identity';
+import { color } from '@coinbase/onchainkit/theme';
+
+export function WalletComponents() {
+  return (
+    <div className="flex justify-end">
+      <Wallet>
+        <ConnectWallet>
+          <Avatar className="h-6 w-6" />
+          <Name />
+        </ConnectWallet>
+        <WalletDropdown>
+          <Identity className="px-4 pt-3 pb-2" hasCopyAddressOnClick>
+            <Avatar />
+            <Name />
+            <Address />
+            <EthBalance />
+          </Identity>
+          <WalletDropdownFundLink />
+          <WalletDropdownDisconnect />
+        </WalletDropdown>
+      </Wallet>
+    </div>
+  );
+}
+```
+
+<iframe
+  src="https://684b5e62b1ff46bc5bf83966-aijszlfakk.chromatic.com/iframe.html?args=&id=onchainkit-wallet-fundlink--main&viewMode=story&dark=true&hero=true"
+  width="100%"
+  height="400"
+/>
+
+### Переопределение текста
+
+Вы можете переопределить текст компонента, используя свойство `text`.
+
+```tsx
+<WalletDropdownFundLink text="Add crypto" /> // [!code focus]
+```
+
+<iframe
+  src="https://684b5e62b1ff46bc5bf83966-aijszlfakk.chromatic.com/iframe.html?args=&id=onchainkit-wallet-fundlink--override-text&viewMode=story&dark=true&hero=true"
+  width="100%"
+  height="400"
+/>
+
+### Переопределение иконки
+
+Вы можете переопределить иконку, используя свойство `icon`.
+
+```tsx
+<WalletDropdownFundLink icon={<walletDropdownLinkCustomBaseIconSvg />} /> // [!code focus]
+```
+
+<iframe
+  src="https://684b5e62b1ff46bc5bf83966-aijszlfakk.chromatic.com/iframe.html?args=&id=onchainkit-wallet-fundlink--override-icon&viewMode=story&dark=true&hero=true"
+  width="100%"
+  height="400"
+/>
+
+### Настройка размера всплывающего окна
+
+Вы можете настроить размер всплывающего окна с помощью свойства `popupSize`. Допустимые значения `sm`, `md`, и `lg`.
+
+```tsx
+<WalletDropdownFundLink popupSize="sm" /> // [!code focus]
+```
+
+<iframe
+  src="https://684b5e62b1ff46bc5bf83966-aijszlfakk.chromatic.com/iframe.html?args=&id=onchainkit-wallet-fundlink--pop-up-size&viewMode=story&dark=true&hero=true"
+  width="100%"
+  height="400"
+/>
+
+### Переопределение поведения по умолчанию
+
+Вы можете переопределить поведение ссылки по умолчанию, используя свойство `openIn`. Допустимые значения: `popup` и `tab`.
+
+```tsx
+<WalletDropdownFundLink openIn="tab" target="_blank" /> // [!code focus]
+```
+
+<iframe
+  src="https://684b5e62b1ff46bc5bf83966-aijszlfakk.chromatic.com/iframe.html?args=&id=onchainkit-wallet-fundlink--override-default-behavior&viewMode=story&dark=true&hero=true"
+  width="100%"
+  height="400"
+/>
+
+### Переопределение URL пополнения
+
+Вы можете переопределить URL по умолчанию, используя свойство `fundingUrl`.
+
+```tsx
+<WalletDropdownFundLink fundingUrl={"https://base.org"} openIn="tab" target="_blank" /> // [!code focus]
+```
+
+<iframe
+  src="https://684b5e62b1ff46bc5bf83966-aijszlfakk.chromatic.com/iframe.html?args=&id=onchainkit-wallet-fundlink--override-funding-url&viewMode=story&dark=true&hero=true"
+  width="100%"
+  height="400"
+/>
+
+## Свойства
+
+```ts
+type WalletDropdownFundLinkProps = {
+  className?: string; // Опциональное переопределение className для элемента
+  icon?: ReactNode; // Опциональное переопределение иконки
+  openIn?: 'popup' | 'tab'; // Открывать процесс пополнения во вкладке или всплывающем окне
+  popupSize?: 'sm' | 'md' | 'lg'; // Размер всплывающего окна (работает только для пользовательских ссылок на пополнение или Coinbase Smart Wallet)
+  rel?: string; // Определяет отношение между текущим документом и связанным документом
+  target?: string; // Где открывать цель, если openIn установлен в tab
+  text?: string; // Опциональное переопределение текста
+  fundingUrl?: string; // Опциональное переопределение URL пополнения
+};
+```

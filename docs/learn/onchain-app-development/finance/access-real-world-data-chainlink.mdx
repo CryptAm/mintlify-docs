@@ -1,0 +1,229 @@
+---
+title: Доступ к реальным данным с использованием Chainlink Data Feeds
+slug: /oracles-chainlink-price-feeds
+description: Руководство, которое учит, как использовать Chainlink Data Feeds для доступа к реальным данным, таким как цены активов, напрямую из ваших смарт-контрактов в тестнете Base.
+author: taycaldwell
+---
+
+# Доступ к реальным данным с использованием Chainlink Data Feeds
+
+Это руководство проведет вас через процесс создания смарт-контракта на Base, который использует Chainlink Data Feeds для доступа к реальным данным, таким как цены активов, напрямую из ваших смарт-контрактов.
+
+## Цели
+
+К концу этого руководства вы должны уметь делать следующее:
+
+- Настроить проект смарт-контрактов для Base с использованием Foundry
+- Установить смарт-контракты Chainlink
+- Использовать ценовой фид данных Chainlink в вашем смарт-контракте
+- Развернуть и протестировать ваши смарт-контракты на Base
+
+## Предварительные требования
+
+### Foundry
+
+Для этого руководства требуется установленный Foundry.
+
+- Из командной строки (терминала) выполните: `curl -L https://foundry.paradigm.xyz | bash`
+- Затем выполните `foundryup`, чтобы установить последнюю (ночную) сборку Foundry
+
+Для получения дополнительной информации см. [installation guide](https://book.getfoundry.sh/getting-started/installation) в Foundry Book.
+
+### Coinbase Wallet
+
+Чтобы развернуть смарт-контракт, вам сначала понадобится кошелек. Вы можете создать кошелек, скачав браузерное расширение Coinbase Wallet.
+
+- Скачайте [Coinbase Wallet](https://chrome.google.com/webstore/detail/coinbase-wallet-extension/hnfanknocfeofbddgcijnmhnfnkdnaad?hl=en)
+
+### Средства в кошельке
+
+Развертывание контрактов в блокчейне требует оплаты комиссии за газ. Поэтому вам нужно будет пополнить ваш кошелек ETH для покрытия этих комиссий за газ.
+
+Для этого руководства вы будете развертывать контракт в тестовой сети Base Goerli. Вы можете пополнить свой кошель ETH из Base Goerli, используя один из кранов, перечисленных на странице [Network Faucets](https://docs.base.org/base-chain/tools/network-faucets) page.
+
+## Что такое Chainlink Data Feeds?
+
+Точные данные о ценах необходимы в DeFi-приложениях. Однако сети блокчейнов не обладают возможностью напрямую получать внешние реальные данные, что приводит к "[Oracle Problem](https://chain.link/education-hub/oracle-problem)".
+
+Chainlink Data Feeds предлагают решение этой проблемы, выступая в качестве безопасного промежуточного слоя, который устраняет разрыв между реальными ценами активов и ончейн смарт-контрактами.
+
+## Создание проекта
+
+Прежде чем вы сможете начать писать смарт-контракты для Base и использовать фиды данных Chainlink, вам нужно настроить среду разработки, создав проект Foundry.
+
+Чтобы создать новый проект Foundry, сначала создайте новую директорию:
+
+```bash
+mkdir myproject
+```
+
+Затем выполните:
+
+```bash
+cd myproject
+forge init
+```
+
+Это создаст проект Foundry, который имеет следующую базовую структуру:
+
+```bash
+.
+├── foundry.toml
+├── script
+ │   └── Counter.s.sol
+├── src
+ │   └── Counter.sol
+└── test
+    └── Counter.t.sol
+```
+
+## Установка смарт-контрактов Chainlink
+
+Чтобы использовать фиды данных Chainlink в вашем проекте, вам нужно установить смарт-контракты Chainlink в качестве зависимости проекта с помощью `forge install`.
+
+Чтобы установить смарт-контракты Chainlink, выполните:
+
+```bash
+forge install smartcontractkit/chainlink --no-commit
+```
+
+После установки обновите ваш файл `foundry.toml`, добавив следующую строку:
+
+```bash
+remappings = ['@chainlink/contracts/=lib/chainlink/contracts']
+```
+
+## Написание и компиляция смарт-контракта
+
+После того как ваш проект создан и зависимости установлены, вы можете приступить к написанию смарт-контракта.
+
+Код Solidity ниже определяет смарт-контракт с именем `ataConsumerV3`. Код использует интерфейс `AggregatorV3Interface` из [Chainlink contracts library](https://docs.chain.link/data-feeds/api-reference#aggregatorv3interface) для предоставления доступа к данным ценового фида.
+
+Смарт-контракт передает адрес в `AggregatorV3Interface`. Этот адрес (`0xcD2A119bD1F7DF95d706DE6F2057fDD45A0503E2`) соответствует ценовому фиду `ETH/USD` в сети Base Goerli.
+
+<Info>
+Chainlink предоставляет ряд ценовых фидов для Base. Для списка доступных ценовых фидов на Base посетите [документацию Chainlink](https://docs.chain.link/data-feeds/price-feeds/addresses/?network=base&page=1).
+</Info>
+
+```solidity
+   // SPDX-License-Identifier: MIT
+   pragma solidity ^0.8.0;
+
+   import "@chainlink/contracts/src/v0.8/shared/interfaces/AggregatorV3Interface.sol";
+
+   contract DataConsumerV3 {
+       AggregatorV3Interface internal priceFeed;
+
+      /**
+       * Network: Base Goerli
+       * Aggregator: ETH/USD
+       * Address: 0xcD2A119bD1F7DF95d706DE6F2057fDD45A0503E2
+       */
+       constructor() {
+           priceFeed = AggregatorV3Interface(0xcD2A119bD1F7DF95d706DE6F2057fDD45A0503E2);
+       }
+
+       function getLatestPrice() public view returns (int) {
+           (
+               /* uint80 roundID */,
+               int price,
+               /* uint startedAt */,
+               /* uint timeStamp */,
+               /* uint80 answeredInRound */
+           ) = priceFeed.latestRoundData();
+           return price;
+       }
+   }
+```
+
+В вашем проекте добавьте код, приведенный выше, в новый файл с именем `src/DataConsumerV3.sol`, и удалите контракт `src/Counter.sol`, который был сгенерирован вместе с проектом (вы также можете удалить файлы `test/Counter.t.sol` и `script/Counter.s.sol`).
+
+Чтобы скомпилировать новый смарт-контракт, выполните:
+
+```bash
+forge build
+```
+
+## Развертывание смарт-контракта
+
+### Настройка вашего кошелька как развертывающего
+
+Прежде чем вы сможете развернуть свой смарт-контракт в сети Base, вам нужно настроить кошелек, который будет использоваться как развертывающий.
+
+Для этого вы можете использовать команду [`cast wallet import`](https://getfoundry.sh/cast/reference/wallet/import/#cast-wallet-import), чтобы импортировать приватный ключ кошелька в безопасно зашифрованное хранилище ключей Foundry:
+
+```bash
+cast wallet import deployer --interactive
+```
+
+После выполнения команды выше вам будет предложено ввести ваш приватный ключ, а также пароль для подписи транзакций.
+
+<Warning>
+Инструкции о том, как получить ваш приватный ключ из Coinbase Wallet, см. в [документации Coinbase Wallet](https://docs.cloud.coinbase.com/wallet-sdk/docs/developer-settings#show-private-key).
+
+**Крайне важно, чтобы вы НЕ сохраняли это в публичном репозитории.**.
+</Warning>
+
+Чтобы подтвердить, что кошелек был импортирован как учетная запись `deployer` в вашем проекте Foundry, выполните:
+
+```bash
+cast wallet list
+```
+
+### Настройка переменных окружения для Base Goerli
+
+Чтобы настроить ваше окружение для развертывания в сети Base, создайте файл `.env` в домашней директории вашего проекта и добавьте RPC URL для тестнета Base Goerli:
+
+```
+BASE_GOERLI_RPC="https://goerli.base.org"
+```
+
+После создания файла `.env` выполните следующую команду, чтобы загрузить переменные окружения в текущую сессию командной строки:
+
+```bash
+source .env
+```
+
+### Развертывание смарт-контракта в Base Goerli
+
+Когда ваш контракт скомпилирован и окружение настроено, вы готовы развернуть смарт-контракт в тестнете Base Goerli!
+
+Для развертывания одного смарт-контракта с использованием Foundry вы можете использовать команду `forge create`. Команда требует указать смарт-контракт, который вы хотите развернуть, RPC URL сети, в которую вы хотите развернуть, и учетную запись, с которой вы хотите развернуть.
+
+Чтобы развернуть смарт-контракт `DataConsumerV3` в тестовой сети Base Goerli, выполните следующую команду:
+
+```bash
+forge create ./src/DataConsumerV3.sol:DataConsumerV3 --rpc-url $BASE_GOERLI_RPC --account deployer
+```
+
+Когда появится запрос, введите пароль, который вы установили ранее, при импорте приватного ключа вашего кошелька.
+
+<Info>
+Ваш кошелек должен быть пополнен ETH в тестнете Base Goerli для покрытия комиссий за газ, связанных с развертыванием смарт-контракта. В противном случае развертывание завершится неудачей.
+
+Чтобы получить тестовый ETH для Base Goerli, см. [prerequisites](#prerequisites).
+</Info>
+
+После выполнения команды выше контракт будет развернут в тестовой сети Base Goerli. Вы можете просмотреть статус развертывания и контракт с помощью [block explorer](/base-chain/tools/block-explorers).
+
+## Взаимодействие со смарт-контрактом
+
+Foundry предоставляет инструмент командной строки `cast`, который можно использовать для взаимодействия с развернутым смарт-контрактом и вызова функции `getLatestPrice()` для получения последней цены ETH.
+
+Чтобы вызвать функцию `getLatestPrice()` смарт-контракта, выполните:
+
+```bash
+cast call <DEPLOYED_ADDRESS> --rpc-url $BASE_GOERLI_RPC "getLatestPrice()"
+```
+
+Вы должны получить последнюю цену `ETH / USD` в шестнадцатеричной форме.
+
+## Заключение
+
+Поздравляем! Вы успешно развернули и взаимодействовали со смарт-контрактом, который использует ценовой фид Chainlink в сети блокчейна Base.
+
+Чтобы узнать больше об оракулах и использовании Chainlink для доступа к реальным данным в ваших смарт-контрактах на Base, ознакомьтесь со следующими ресурсами:
+
+- [Oracles](https://docs.base.org/chain/oracles)
+- [Chainlink Data Feeds on Base](https://docs.chain.link/data-feeds/price-feeds/addresses?network=base&page=1&search=#networks)
+

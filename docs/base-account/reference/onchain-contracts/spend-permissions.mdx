@@ -1,0 +1,155 @@
+---
+title: "Разрешения на расходы"
+---
+
+import { GithubRepoCard } from "/snippets/GithubRepoCard.mdx"
+
+Вы можете найти репозиторий открытых контрактов, нажав на кнопку ниже:
+
+<GithubRepoCard title="Spend Permissions" githubUrl="https://github.com/coinbase/spend-permissions" />
+
+### Структуры
+
+#### `SpendPermission`
+
+Определяет полные параметры разрешения на расходы.
+
+<Warning>
+  Поля структуры `SpendPermission` должны быть строго упорядочены, как определено ниже.
+</Warning>
+
+| Поле        | Тип       | Описание                                                                                   |
+| ----------- | --------- | ------------------------------------------------------------------------------------------ |
+| `account`   | `address` | Смарт-аккаунт, для которого действительно это разрешение на расходы.                                  |
+| `spender`   | `address` | Сущность, которая может тратить токены `account`.                                                     |
+| `token`     | `address` | Адрес токена (нативный адрес токена ERC-7528 или контракт ERC-20).                                    |
+| `allowance` | `uint160` | Максимально разрешенное значение для расходов в течение каждого `period`.                             |
+| `period`    | `uint48`  | Продолжительность времени для сброса использованного `allowance` на периодической основе (секунды).   |
+| `start`     | `uint48`  | Метка времени, с которой это разрешение на расходы действительно (Unix-секунды).                      |
+| `end`       | `uint48`  | Метка времени, до которой это разрешение на расходы действительно (Unix-секунды).                     |
+| `salt`      | `uint256` | Произвольная соль (salt) для различения уникальных разрешений на расходы с иначе идентичными данными. |
+| `extraData` | `bytes`   | Произвольные данные для включения в разрешение.                                                       |
+
+#### `PeriodSpend`
+
+Описывает совокупные расходы за текущий активный период.
+  
+| Поле    | Тип       | Описание                                 |
+| ------- | --------- | ---------------------------------------- |
+| `start` | `uint48`  | Время начала периода (Unix-секунды).     |
+| `end`   | `uint48`  | Время окончания периода (Unix-секунды).  |
+| `spend` | `uint160` | Накопленная сумма расходов за период.    |
+
+---
+
+### Функции контракта
+
+#### `approve`
+
+Одобрить разрешение на расходы через прямой вызов от `account`. Может вызываться только `account`, указанным в разрешении на расходы.
+
+```solidity
+function approve(SpendPermission calldata spendPermission) external;
+```
+
+---
+
+#### `approveWithSignature`
+
+Одобрить разрешение на расходы через подпись владельца account. Совместимо с подписями [ERC-6492](https://eips.ethereum.org/EIPS/eip-6492) для автоматического создания аккаунта при необходимости.
+
+```solidity
+function approveWithSignature(SpendPermission calldata spendPermission, bytes calldata signature) external;
+```
+
+---
+
+#### `spend`
+
+Потратить токены, используя разрешение на расходы, переводя их из `account` в `spender`. Может вызываться только `spender`, указанным в разрешении.
+
+```solidity
+function spend(SpendPermission memory spendPermission, uint160 value) external;
+```
+
+---
+
+#### `revoke`
+
+Отозвать разрешение на расходы, навсегда отключая его использование. Может вызываться только `account`, указанным в разрешении на расходы.
+
+```solidity
+function revoke(SpendPermission calldata spendPermission) external;
+```
+
+---
+
+#### `revokeAsSpender`
+
+Отозвать разрешение на расходы, навсегда отключая его использование. Может вызываться только `spender`, указанным в разрешении на расходы.
+
+```solidity
+function revokeAsSpender(SpendPermission calldata spendPermission) external;
+```
+
+---
+
+#### `getHash`
+
+Сгенерировать хэш структуры `SpendPermission` для подписи в соответствии с [EIP-712](https://github.com/ethereum/EIPs/blob/master/EIPS/eip-712.md).
+
+```solidity
+function getHash(SpendPermission memory spendPermission) public view returns (bytes32);
+```
+
+---
+
+#### `isApproved`
+
+Проверить, одобрено ли разрешение на расходы, независимо от того, находится ли текущее время в допустимом временном диапазоне разрешения.
+
+```solidity
+function isApproved(SpendPermission memory spendPermission) public view returns (bool);
+```
+
+---
+
+#### `isRevoked`
+
+Проверить, отозвано ли разрешение на расходы, независимо от того, находится ли текущее время в допустимом временном диапазоне разрешения.
+
+```solidity
+function isRevoked(SpendPermission memory spendPermission) public view returns (bool);
+```
+
+---
+
+#### `isValid`
+
+Проверить, одобрено ли разрешение на расходы и не отозвано, независимо от того, находится ли текущее время в допустимом временном диапазоне разрешения.
+
+```solidity
+function isValid(SpendPermission memory spendPermission) public view returns (bool);
+```
+
+---
+
+#### `getLastUpdatedPeriod`
+
+Получить `start`, `end` и накопленный `spend` для последнего обновленного периода разрешения на расходы.
+
+```solidity
+function getLastUpdatedPeriod(SpendPermission memory spendPermission) public view returns (PeriodSpend memory);
+```
+
+---
+
+#### `getCurrentPeriod`
+
+Получить `start`, `end` и накопленный `spend` для текущего периода разрешения на расходы.
+Вызывает ошибку, если текущее время находится вне допустимого временного диапазона разрешения, но не проверяет,
+одобрено ли разрешение на расходы или отозвано.
+
+```solidity
+function getCurrentPeriod(SpendPermission memory spendPermission) public view returns (PeriodSpend memory);
+```

@@ -1,0 +1,116 @@
+---
+title: 'Быстрый старт: Настройка Paymaster в вашем приложении'
+sidebar_label: Быстрый старт
+---
+
+Это руководство по быстрому старту Paymaster объясняет, как настроить базовое приложение и спонсировать транзакции с использованием [OnchainKit](https://onchainkit.xyz/) и Coinbase Smart Wallet.
+
+## Получение эндпоинта на Base Sepolia
+
+> **Как получить эндпоинт Paymaster & Bundler в тестовой сети Base (Sepolia) из CDP**
+
+1. [Создайте](https://coinbase.com/developer-platform) новый аккаунт CDP или [войдите](https://portal.cdp.coinbase.com) в существующий.
+2. Перейдите в [Paymaster](https://portal.cdp.coinbase.com/products/bundler-and-paymaster).
+3. Добавьте следующий адрес в разрешенный список (allowlist) в разделе `Configuration` - это адрес контракта, который мы будем вызывать:
+
+   ```
+   0x67c97D1FB8184F038592b2109F854dfb09C77C75
+   ```
+
+4. Переключитесь на тестовую сеть Base (Sepolia) в правом верхнем углу конфигурации.
+5. Скопируйте ваш эндпоинт для использования на следующих шагах.
+
+
+<Accordion title="Развернуть для просмотра изображений (кликните для увеличения)">
+<Frame caption="Paymaster - Политика газа">
+<img
+  src="/images/paymaster/pb-paymaster-config.png"
+  width="700"
+  alt=""
+/>
+</Frame>
+</Accordion>
+
+## Настройка шаблона приложения
+
+Клонируйте репозиторий:
+
+```js
+git clone https://github.com/coinbase/onchain-app-template.git
+cd onchain-app-template
+```
+
+Вы можете найти API-ключ на странице OnchainKit в [OnchainKit page](https://portal.cdp.coinbase.com/products/onchainkit). Если у вас нет аккаунта, его необходимо создать.
+Вы можете найти свой Project ID для Wallet Connector на сайте Wallet Connect.
+Добавьте следующее в ваш файл `.env`:
+
+```js
+NEXT_PUBLIC_PAYMASTER_AND_BUNDLER_ENDPOINT = ADD_YOUR_PAYMASTER_URL_HERE;
+NEXT_PUBLIC_CDP_API_KEY = ADD_YOUR_ONCHAINKIT_KEY_HERE;
+NEXT_PUBLIC_WC_PROJECT_ID = ADD_YOUR_PROJECT_ID_HERE;
+```
+
+Установите зависимости - выполните эти команды в вашем терминале в корне проекта:
+
+```sh
+# Install bun in case you don't have it
+bun curl -fsSL <https://bun.sh/install> | bash
+
+# Install packages
+bun i
+```
+
+### Добавьте ваш paymaster к кнопке транзакции
+
+Перейдите в файл `/src/components/TransactionWrapper.tsx` и измените компонент Transaction, добавив службу paymaster:
+
+```js
+      <Transaction
+        address={address}
+        contracts={contracts}
+        className="w-[450px]"
+        chainId={BASE_SEPOLIA_CHAIN_ID}
+        onError={handleError}
+        onSuccess={handleSuccess}
+        // Возможности Paymaster добавлены ниже
+        capabilities={{
+          paymasterService: {
+            url: process.env.NEXT_PUBLIC_PAYMASTER_AND_BUNDLER_ENDPOINT!,
+          },
+        }}
+      >
+        <TransactionButton
+          className="mt-0 mr-auto ml-auto w-[450px] max-w-full text-[white]"
+          text="Collect"
+        />
+        <TransactionStatus>
+          <TransactionStatusLabel />
+          <TransactionStatusAction />
+        </TransactionStatus>
+      </Transaction>
+```
+
+### Запустите приложение локально
+
+```js
+bun run dev
+```
+
+### Откройте приложение в браузере и войдите с помощью смарт-кошелька
+
+Перейдите по адресу [http://localhost:3000](http://localhost:3000)
+
+Нажмите "connect" и войдите с вашим смарт-кошельком или создайте новый.
+
+### Инициируйте транзакцию
+
+Нажмите кнопку "Collect", и ваш paymaster произведет спонсирование. Обратите внимание, что только смарт-кошельки могут получать спонсированные транзакции, поэтому EOA-аккаунты (аккаунты с внешним владельцем) не получат спонсорства.
+
+Вот и все! Вы успешно настроили ваш paymaster в приложении.
+
+## Другие примеры
+
+Дополнительная документация и информация о Coinbase Smart Wallet находится на сайте [smartwallet.dev](https://smartwallet.dev/).
+
+Ознакомьтесь с тем, как легко создавать ончейн-приложения с помощью [OnchainKit](https://onchainkit.xyz/)!
+

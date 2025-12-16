@@ -1,0 +1,226 @@
+---
+title: Хук `useAccount`
+description: Узнайте, как получить доступ к информации о подключенном кошельке пользователя.
+hide_table_of_contents: false
+---
+
+# Хук `useAccount`
+
+[wagmi] - это библиотека, которая предоставляет React хуки, которые, в обмен на несколько сложный процесс настройки, обеспечивают отличный опыт разработки при создании фронтенда с учетом ограничений и особенностей ончейн-разработки. Один из хуков, `useAccount`, предоставляет доступ к информации о кошельке ваших пользователей и информации о подключении.
+
+Вы можете использовать это для рендеринга в зависимости от статуса подключения, для включения или отключения элементов управления или представлений на основе адреса и многих других полезных задач.
+
+---
+
+## Цели
+
+К концу этого руководства вы должны уметь:
+
+- Реализовать хук `useAccount` для отображения адреса пользователя, состояния подключения, сети и баланса
+- Реализовать хук `isMounted` для предотвращения ошибок гидратации
+
+---
+
+## Отображение информации о подключении
+
+Мы будем работать с приложением, сгенерированным [quick start] RainbowKit. Либо откройте то, которое вы создали, изучая , либо создайте новое для этого проекта.
+
+В любом случае измените список цепей, включив только `baseSepolia` в качестве опции сети. Вы не хотите случайно потратить реальные деньги во время разработки!
+
+Вы можете настроить ваши провайдеры, как описано в [Introduction to Providers], или использовать вариант по умолчанию от RainbowKit:
+
+```tsx
+const config = getDefaultConfig({
+  appName: 'RainbowKit App',
+  projectId: 'YOUR APP ID',
+  chains: [baseSepolia],
+  ssr: true,
+});
+```
+
+В любом случае обязательно установите `ssr` в `true`, иначе вы получите от Next.js.
+
+### Хук `useAccount`
+
+Хук [`useAccount`] позволяет вам получать доступ к данным аккаунта и подключения из любого из ваших компонентов.
+
+Добавьте папку для `components` и файл с именем `ConnectionWindow.tsx` в этой папке. Добавьте приведенный ниже компонент в файл и замените стандартный текст в `index.tsx` на его экземпляр.
+
+```tsx
+// ConnectionWindow.tsx
+export function ConnectionWindow() {
+  return (
+    <div>
+      <p>Connection Status</p>
+    </div>
+  );
+}
+```
+
+```tsx
+// index.tsx
+import { ConnectButton } from '@rainbow-me/rainbowkit';
+import type { NextPage } from 'next';
+import Head from 'next/head';
+import styles from '../styles/Home.module.css';
+import { ConnectionWindow } from '../components/ConnectionWindow';
+
+const Home: NextPage = () => {
+  return (
+    <div className={styles.container}>
+      <main className={styles.main}>
+        <ConnectButton />
+        <ConnectionWindow />
+      </main>
+    </div>
+  );
+};
+
+export default Home;
+```
+
+Для целей этого упражнения откройте `styles/Home.module.css` и удалите или закомментируйте `.main`. Это переместит содержимое в верхнюю часть страницы, что предотвратит блокировку RainbowKit-модального окна вашей возможности видеть изменения.
+
+Вернитесь в `ConnectionWindow.tsx` и добавьте хук `useAccount` в начало, туда, где вы добавляете переменные состояния. Общий шаблон для хуков wagmi заключается в том, что вы декомпозируете свойства, которые хотите использовать, из вызова функции с именем хука. Для некоторых вы добавите объект конфигурации в этот вызов, но для этого он не нужен.
+
+```tsx
+import { useAccount } from 'wagmi';
+
+export function ConnectionWindow() {
+  const { address, isConnected, isConnecting, isDisconnected } = useAccount();
+
+  return (
+    <div>
+      <h2>Connection Status</h2>
+    </div>
+  );
+}
+```
+
+Вы можете увидеть все доступные для декомпозиции возвращаемые опции в [UseAccountReturnType]:
+
+Обновите ваш `<div>`, чтобы отобразить адрес подключенного кошелька:
+
+```tsx
+<div>
+  <h2>Connection Status</h2>
+  <div>
+    <p>{'Address: ' + address}</p>
+  </div>
+</div>
+```
+
+Протестируйте это, подключая и отключая ваш кошелек. Вы должны увидеть ваш полный адрес, когда вы подключены, и адрес будет `undefined`, когда вы отключены.
+
+### Условный рендеринг в зависимости от статуса подключения
+
+Не очень хорошо отображать пользователю значение `undefined`, поэтому давайте используем значения статуса подключения для условного рендеринга в зависимости от того, отключен ли пользователь, подключен или подключается.
+
+Распространенным паттерном является использование условия непосредственно в HTML-возврате компонента или функции рендеринга. Например, мы могли бы добавить строку, чтобы показать, что мы подключаемся, как показано:
+
+```
+<div>
+  <h2>Connection Information</h2>
+  <div>
+    {!isConnecting && <p>Please click Connect in your wallet...</p>}
+    <p>{"Address: " + address}</p>
+  </div>
+</div>
+```
+
+Подключите и отключите ваш кошелек несколько раз. Состояние `isConnecting` равно true, пока открыт UI кошелька _Connect to website_.
+
+Автоподключение включено по умолчанию, поэтому вам нужно будет очистить подключение в настройках вашего кошелька, чтобы увидеть это более одного раза. В противном случае оно будет кратко мигать по мере обработки автоподключения.
+
+Используйте свойство `connected` таким же образом, чтобы отображать адрес кошелька только если кошелек подключен. Аналогично, используйте свойство `isDisconnected`, чтобы показать сообщение с просьбой подключиться.
+
+```
+<div>
+  <h2>Connection Information</h2>
+  <div>
+    {isConnecting && <p>Please click Connect in your wallet...</p>}
+    {isConnected && <p>{"Address: " + address}</p>}
+    {isDisconnected && <p>Please connect your wallet to use this app.</p>}
+  </div>
+</div>
+```
+
+---
+
+## Заключение
+
+В этом руководстве вы узнали, как хук `useAccount` предоставляет вам доступ к информации о статусе подключения и кошельке пользователя. Его можно использовать в любой части вашего приложения, обернутой контекстным провайдером wagmi. Вы также узнали технику условного рендеринга на основе статуса подключения. Наконец, вы узнали, как установить флаг ssr, чтобы предотвратить ошибки гидратации из-за различной информации о статусе подключения пользователя на клиенте и сервере.
+
+---
+
+[RainbowKit]: https://www.rainbowkit.com/
+[wagmi]: https://wagmi.sh/
+[quick start]: https://www.rainbowkit.com/docs/installation/
+[Wallet Connectors]: ../frontend-setup/wallet-connectors/
+[`useAccount`]: https://wagmi.sh/react/hooks/useAccount
+[hydration error]: https://nextjs.org/docs/messages/react-hydration-error
+[Introduction to Providers]: https://docs.base.org/cookbook/client-side-development/introduction-to-providers
+[UseAccountReturnType]: https://wagmi.sh/react/api/hooks/useAccount#return-type
+
+<Steps>
+<Step title="Настройте RainbowKit и провайдеры">
+Измените список цепей, включив только `baseSepolia` в качестве опции сети. Вы можете настроить ваши провайдеры, как описано в [Introduction to Providers], или использовать вариант по умолчанию от RainbowKit:
+
+```tsx
+const config = getDefaultConfig({
+  appName: 'RainbowKit App',
+  projectId: 'YOUR APP ID',
+  chains: [baseSepolia],
+  ssr: true,
+});
+```
+<Note>
+Обязательно установите `ssr` в `true`, иначе вы получите [hydration error] от Next.js.
+</Note>
+</Step>
+<Step title="Добавьте хук `useAccount` в ваш компонент">
+Добавьте хук [`useAccount`] в начало вашего компонента, туда, где вы добавляете переменные состояния. Общий шаблон для хуков wagmi заключается в том, что вы декомпозируете свойства, которые хотите использовать, из вызова функции с именем хука. Для некоторых вы добавите объект конфигурации в этот вызов, но для этого он не нужен.
+
+```tsx
+import { useAccount } from 'wagmi';
+
+export function ConnectionWindow() {
+  const { address, isConnected, isConnecting, isDisconnected } = useAccount();
+
+  return (
+    <div>
+      <h2>Connection Status</h2>
+    </div>
+  );
+}
+```
+</Step>
+<Step title="Отобразите адрес подключенного кошелька">
+Обновите ваш `<div>`, чтобы отобразить адрес подключенного кошелька:
+
+```tsx
+<div>
+  <h2>Connection Status</h2>
+  <div>
+    <p>{'Address: ' + address}</p>
+  </div>
+</div>
+```
+Протестируйте это, подключая и отключая ваш кошелек. Вы должны увидеть ваш полный адрес, когда вы подключены, и адрес будет `undefined`, когда вы отключены.
+</Step>
+<Step title="Добавьте условный рендеринг в зависимости от статуса подключения">
+Используйте значения статуса подключения для условного рендеринга в зависимости от того, отключен ли пользователь, подключен или подключается.
+
+```tsx
+<div>
+  <h2>Connection Information</h2>
+  <div>
+    {isConnecting && <p>Please click Connect in your wallet...</p>}
+    {isConnected && <p>{"Address: " + address}</p>}
+    {isDisconnected && <p>Please connect your wallet to use this app.</p>}
+  </div>
+</div>
+```
+</Step>
+</Steps>
+

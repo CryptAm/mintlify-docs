@@ -1,0 +1,255 @@
+---
+title: Навигация
+description: Плавно перенаправляйте пользователей из вашего мини-приложения через приложение Base на внешние ссылки.
+---
+
+## Обзор
+
+Используйте функции, предоставляемые `@farcaster/miniapp-sdk`, для навигации пользователей из вашего мини-приложения по приложению Base и на внешние ссылки с нативным пользовательским опытом.
+
+
+<Accordion title="Используйте эту инструкцию, чтобы обновить ваше приложение с правильными шаблонами проектирования">
+
+```md
+# Миграция шаблонов навигации мини-приложения
+
+## Контекст
+Я разрабатываю мини-приложение для Farcaster на Base. Мини-приложения должны использовать официальные функции SDK для всей навигации и внешних взаимодействий, чтобы обеспечить кросс-клиентную совместимость.
+
+## Ваша задача
+Просмотрите этот файл и переработайте любые неправильные шаблоны навигации, чтобы использовать правильные действия SDK.
+
+## Неправильные шаблоны для исправления
+
+### Не используйте:
+- Прямые HTML-ссылки: `<a href="">`, `<Link href="">`
+- Навигацию через `window.open()`
+- Статические URL-адреса или диплинки на Farcaster
+- URL-адреса, специфичные для клиента (например, URL-адреса Warpcast)
+- URL-адреса интента редактора: `https://farcaster.com/~/compose?text=...`
+- Прямые URL-адреса кастов для просмотра
+
+## Правильные действия SDK
+
+### Для Farcaster SDK (`@farcaster/miniapp-sdk`)
+1. **Внешние ссылки:** Используйте `sdk.actions.openUrl(url)`
+2. **Создание постов:** Используйте `sdk.actions.composeCast({ text, embeds })`
+3. **Просмотр кастов:** Используйте `sdk.actions.viewCast(castUrl)`
+
+### Для MiniKit (`@coinbase/onchainkit/minikit`)
+1. **Внешние ссылки:** Используйте хук `useOpenUrl()`
+2. **Создание постов:** Используйте хук `useComposeCast()` hook
+3. **Просмотр кастов:** Используйте хук `useViewCast()` hook
+
+## Примеры миграции
+
+// ДО (Неправильно)
+<a href="https://example.com">Visit Site</a>
+<button onClick={() => window.open('https://example.com')}>Open</button>
+
+// ПОСЛЕ (Правильно - Farcaster SDK)
+import { sdk } from '@farcaster/miniapp-sdk';
+<button onClick={() => sdk.actions.openUrl('https://example.com')}>Visit Site</button>
+
+// ПОСЛЕ (Правильно - MiniKit)
+import { useOpenUrl } from '@coinbase/onchainkit/minikit';
+const openUrl = useOpenUrl();
+<button onClick={() => openUrl('https://example.com')}>Visit Site</button>
+
+// ДО (Неправильно)
+window.open('https://farcaster.com/~/compose?text=Check this out!')
+
+// ПОСЛЕ (Правильно - Farcaster SDK)
+sdk.actions.composeCast({
+  text: 'Check this out!',
+  embeds: [window.location.href]
+})
+
+// ПОСЛЕ (Правильно - MiniKit)
+const { composeCast } = useComposeCast();
+composeCast({
+  text: 'Check this out!',
+  embeds: [window.location.href]
+})
+
+```
+
+
+</Accordion>
+
+
+
+## Внешняя навигация
+
+### Открытие внешних URL-адресов
+<Tabs>
+<Tab title="Farcaster SDK">
+
+  Используйте `sdk.actions.openUrl()` для безопасного открытия внешних веб-сайтов во внутриприложенном браузере клиента:
+
+  ```typescript App.tsx highlight={5}
+  import { sdk } from '@farcaster/miniapp-sdk';
+
+  // Правильно: Используйте действие SDK
+  const openExternalSite = () => {
+    sdk.actions.openUrl('https://example.com');
+  };
+
+  // Неправильно: Прямая HTML-ссылка
+  // <a href="https://example.com">Visit Site</a>
+  ```
+  </Tab>
+  <Tab title="MiniKit">
+
+  Используйте [`useOpenUrl()`](/onchainkit/latest/components/minikit/hooks/useOpenUrl) для безопасного открытия внешних веб-сайтов во внутриприложенном браузере клиента:
+
+  ```tsx components/ExternalLinks.tsx highlight={8 -10}
+  import { useOpenUrl } from '@coinbase/onchainkit/minikit';
+
+  export default function ExternalLinks() {
+    const openUrl = useOpenUrl();
+
+    return (
+      <div className="external-links">
+        <button onClick={() => openUrl('https://base.org')}>
+          Visit Base.org
+        </button>
+        <button onClick={() => openUrl('https://twitter.com/base')}>
+          Follow on Twitter
+        </button>
+        <button onClick={() => openUrl('https://discord.gg/basechain')}>
+          Join Discord
+        </button>
+      </div>
+    );
+  }
+
+  // Неправильно: Прямая HTML-ссылка
+  // <a href="https://example.com">Visit Site</a>
+  ```
+  </Tab>
+</Tabs>
+
+### Создание кастов
+
+<Tabs>
+  <Tab title="Farcaster SDK">
+
+  Используйте `sdk.actions.composeCast()` вместо URL-адресов интента композитора:
+
+  ```typescript App.tsx highlight={5-8}
+  import { sdk } from '@farcaster/miniapp-sdk';
+
+  // Правильно: Используйте действие SDK
+  const shareContent = () => {
+    sdk.actions.composeCast({
+      text: 'Check out this Mini App!',
+      embeds: ['https://yourminiapp.com']
+    });
+  };
+
+  // Неправильно: URL-адреса интента композитора
+  // window.open('https://farcaster.com/~/compose?text=...')
+  ```
+  </Tab>
+  <Tab title="MiniKit">
+  Используйте [`useComposeCast()`](/onchainkit/latest/components/minikit/hooks/useComposeCast), чтобы открыть нативный композитор с предзаполненным содержимым:
+  ```tsx components/ShareCast.tsx highlight={8-13}
+  import { useComposeCast } from '@coinbase/onchainkit/minikit';
+
+  export default function ShareCast() {
+    const { composeCast } = useComposeCast();
+
+    return (
+      <button
+        onClick={() =>
+          composeCast({
+            text: 'Check out this Mini App!',
+            embeds: [window.location.href]
+          })
+        }
+      >
+        Share This App
+      </button>
+    );
+  }
+
+  // Неправильно: URL-адреса интента композитора
+  // window.open('https://farcaster.com/~/compose?text=...')
+  ```
+  </Tab>
+</Tabs>
+
+### Viewing Casts 
+
+<Tabs>
+  <Tab title="Farcaster SDK">
+
+  Use `sdk.actions.viewCast()` instead of cast intent URLs:
+
+  ```typescript App.tsx
+  import { sdk } from '@farcaster/miniapp-sdk';
+
+  // Правильно: Используйте действие SDK
+  const viewCast = () => {
+    sdk.actions.viewCast('https://base.app/post/0xffdec7c879aad726b5400d22ec8a89aaff6e0737');
+  };
+  ```
+  </Tab>
+  <Tab title="MiniKit">
+
+  Используйте [`useViewCast()`](/onchainkit/latest/components/minikit/hooks/useViewCast), чтобы открыть конкретный каст по его хешу (hex-строка):
+  ```tsx components/ViewCastButton.tsx highlight={4,7-9}
+  import { useViewCast } from '@coinbase/onchainkit/minikit';
+
+  export default function ViewCastButton() {
+    const viewCast = useViewCast('0x1234567890abcdef1234567890abcdef12345678');
+
+    return (
+      <button onClick={viewCast}>
+        View Cast
+      </button>
+    );
+  }
+  ```
+  </Tab>
+</Tabs>
+
+### Условная навигация
+
+Если ваше мини-приложение может быть открыто в браузере, реализуйте условную навигацию для обработки случаев, когда функции, специфичные для мини-приложений (например, Compose Cast), недоступны.
+
+```javascript ConditionalNavigation.tsx highlight={4, 8-13}
+import { sdk } from 'farcaster/miniapp-sdk';
+
+const ConditionalNavigation = () => {
+  const context = sdk.context;
+  
+  const handleNavigation = () => {
+    // Адаптируйте поведение в зависимости от возможностей клиента
+    if (context.client.clientFid) {
+      sdk.actions.openUrl('https://app-specific-url.com');
+    } else {
+      // Запасной вариант для других клиентов
+      window.open('https://fallback-url.com', '_blank');
+    }
+  };
+
+  return (
+    <button onClick={handleNavigation}>
+      Open External Resource
+    </button>
+  );
+};
+```
+
+## Запуск мини-приложений из внешних источников
+
+### Протокол диплинкинга
+Используйте `cbwallet://miniapp?url=[YOUR_MINI_APP]`, чтобы запустить ваше мини-приложение напрямую из внешних источников, таких как веб-сайты, QR-коды или другие приложения.
+
+```HTML
+<a href="cbwallet://miniapp?url=https://yourminiapp.com">
+  Launch Mini App
+</a>
+```

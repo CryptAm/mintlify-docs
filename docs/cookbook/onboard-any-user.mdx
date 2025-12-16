@@ -1,0 +1,143 @@
+---
+title: Онбординг любого пользователя
+sidebarTitle: Онбординг пользователя
+description: Узнайте, как бесшовно интегрировать компонент WalletModal из OnchainKit для быстрого онбординга новых пользователей с опытом использования смарт-кошелька.
+---
+
+В ончейн приложениях кошелек находится в центре вашей пользовательской модели. Онбординг требует от пользователей подключить существующий кошелек или зарегистрировать новый. Компонент [`<WalletModal />`](/onchainkit/wallet/wallet-modal) предоставляет готовое решение для обработки подключения кошелька, устраняя трение и отток пользователей.
+
+## Как это работает
+
+Компонент предлагает:
+
+- Плавный онбординг для новых пользователей с пошаговым созданием смарт-кошелька (Smart Wallet)
+- Быстрое подключение для существующих кошельков
+- Последовательную обработку состояний подключения с адаптивным UI
+
+Давайте добавим компонент WalletModal в ваше приложение.
+
+<Steps>
+  <Step title="Создайте новое OnchainKit приложение">
+  ```bash Terminal
+  npm create onchain@latest
+  ```
+  </Step>
+  <Step title="Настройте OnchainKitProvider с параметрами модального окна">
+  ```tsx providers.tsx
+  <OnchainKitProvider
+    apiKey={process.env.ONCHAINKIT_API_KEY}
+    chain={base}
+    config={{
+      appearance: {
+        name: 'Your App Name',        // Отображается в заголовке модального окна
+        logo: 'https://your-logo.com',// Отображается в заголовке модального окна
+        mode: 'auto',                 // 'light' | 'dark' | 'auto'
+        theme: 'default',             // 'default' или пользовательская тема
+      },
+      // настройте модальное окно кошелька ниже
+      wallet: {
+        display: 'modal',
+        termsUrl: 'https://...',
+        privacyUrl: 'https://...',
+      },
+    }}
+  >
+    {children}
+  </OnchainKitProvider>
+  ```
+  </Step>
+  <Step title="Add the <Wallet/> component">
+  ```tsx App.tsx
+  <Wallet>
+    <ConnectWallet>
+      <Avatar className="h-6 w-6" />
+      <Name />
+    </ConnectWallet>
+    <WalletDropdown>
+      <Identity className="px-4 pt-3 pb-2" hasCopyAddressOnClick>
+        <Avatar />
+        <Name />
+        <Address />
+        <EthBalance />
+      </Identity>
+      <WalletDropdownDisconnect />
+    </WalletDropdown>
+  </Wallet>
+  ```
+  </Step>
+  <Step title="Оберните в контекст Wallet Modal">
+  Обеспечьте глобальную доступность Wallet Modal, обернув ключевые UI компоненты:
+
+  ```tsx
+  <AppWithWalletModal>
+    <div className="my-10 flex justify-center">
+      <Wallet>
+        <ConnectWallet>
+          <Avatar className="h-6 w-6" />
+          <Name />
+        </ConnectWallet>
+        <WalletDropdown>
+          <Identity className="px-4 pt-3 pb-2" hasCopyAddressOnClick>
+            <Avatar />
+            <Name />
+            <Address className={color.foregroundMuted} />
+            <EthBalance />
+          </Identity>
+          <WalletDropdownDisconnect />
+        </WalletDropdown>
+      </Wallet>
+    </div>
+  </AppWithWalletModal>
+  ```
+  </Step>
+</Steps>
+
+<iframe
+  src="https://684b5e62b1ff46bc5bf83966-aijszlfakk.chromatic.com/iframe.html?args=&id=onchainkit-wallet-walletcomponents--onboard&viewMode=story&dark=true&hero=true"
+  width="100%"
+  height="auto"
+/>
+{/* <AppWithWalletModal>
+  <div className="my-10 flex justify-center">
+    <Wallet>
+      <ConnectWallet>
+        <Avatar className="h-6 w-6" />
+        <Name />
+      </ConnectWallet>
+      <WalletDropdown>
+        <Identity className="px-4 pt-3 pb-2" hasCopyAddressOnClick>
+          <Avatar />
+          <Name />
+          <Address className={color.foregroundMuted} />
+          <EthBalance />
+        </Identity>
+        <WalletDropdownDisconnect />
+      </WalletDropdown>
+    </Wallet>
+  </div>
+</AppWithWalletModal> */}
+
+Теперь у вас есть интерфейс для упрощения онбординга пользователей! Компонент WalletModal обрабатывает:
+
+- Создание смарт-кошелька (Smart Wallet) для новых регистраций
+- Быстрое подключение для существующих кошельков
+- Состояния подключения кошелька
+- Обработку ошибок
+- Адаптивное поведение для мобильных и десктопных устройств
+- Кастомизацию темы
+- Отображение условий использования и политики конфиденциальности
+
+## Почему смарт-кошелек (Smart Wallet) для новых регистраций?
+
+Помимо предоставления безопасного и многофункционального опыта работы с кошельком, смарт-кошельки (Smart Wallets) обеспечивают оптимизированный процесс онбординга через создание аккаунта с помощью Passkeys. Это позволяет любому пользователю безопасно создать новый кошелек и начать совершать транзакции, не покидая ваше приложение.
+
+<Note>
+**Подробнее об смарт-кошельках**
+
+Умный Кошелек имеет продвинутые функции, такие как спонсируемые транзакции, разрешения на траты (spend permissions) и Magic Spend. [Узнайте больше об Умном Кошельке здесь](/smart-wallet/quickstart).
+</Note>
+
+
+## Заключение
+
+Интегрировав `<WalletModal />`, вы предлагаете надежный и удобный опыт онбординга кошелька. Новые пользователи получают преимущество от бесшовного процесса создания Умного Кошелька, а возвращающиеся пользователи могут быстро подключить свои кошельки, чтобы начать работу с вашим ончейн приложением.

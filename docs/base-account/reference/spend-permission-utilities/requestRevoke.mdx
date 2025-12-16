@@ -1,0 +1,74 @@
+---
+title: "requestRevoke"
+description: "Запросить у пользователя подтверждение на отзыв разрешения на расходование"
+---
+
+Определено в [Base Account SDK](https://github.com/base/account-sdk)
+
+<Info>
+  Запрашивает у пользователя подтверждение на отзыв указанного разрешения на расходование. 
+  Требует взаимодействия с пользователем через интерфейс кошелька Base Account.
+</Info>
+
+## Параметры
+
+<ParamField body="permission" type="SpendPermission" required>
+  Разрешение на расходование для отзыва. Это должен быть объект SpendPermission, полученный из [`requestSpendPermission`](/base-account/reference/spend-permission-utilities/requestSpendPermission) или запрошенный через [`fetchPermissions`](/base-account/reference/spend-permission-utilities/fetchPermissions).
+
+<Expandable title="Свойства SpendPermission">
+<ParamField body="permissionHash" type="string">
+Детерминированный хеш EIP-712 разрешения.
+</ParamField>
+
+<ParamField body="signature" type="string">
+  Подпись для полезной нагрузки EIP-712.
+</ParamField>
+
+<ParamField body="chainId" type="number">
+  Идентификатор целевой цепочки (chain ID).
+</ParamField>
+
+<ParamField body="permission" type="object">
+Базовые поля разрешения.
+
+<Expandable title="Поля permission">
+<ParamField body="account" type="address" />
+<ParamField body="spender" type="address" />
+<ParamField body="token" type="address" />
+<ParamField body="allowance" type="bigint" />
+<ParamField body="period" type="number">Длительность в секундах.</ParamField>
+<ParamField body="start" type="number">Временная метка Unix (секунды).</ParamField>
+<ParamField body="end" type="number">Временная метка Unix (секунды).</ParamField>
+<ParamField body="salt" type="string" />
+<ParamField body="extraData" type="string" />
+</Expandable>
+</ParamField>
+</Expandable>
+</ParamField>
+
+## Возвращает
+
+<ResponseField name="hash" type="`0x${string}`">
+  Хеш транзакции операции отзыва.
+</ResponseField>
+
+<RequestExample>
+```typescript User-initiated revoke
+import { requestRevoke } from "@base-org/account/spend-permission";
+
+try {
+  const hash = await requestRevoke(permission);
+  console.log("Revoke succeeded", hash);
+} catch (err) {
+  console.warn("Revoke was rejected or failed", err);
+}
+```
+</RequestExample>
+
+## Обработка ошибок
+
+Всегда заключайте вызов в блок `try-catch` для корректной обработки возможных ошибок.
+
+import PolicyBanner from "/snippets/PolicyBanner.mdx";
+
+<PolicyBanner />

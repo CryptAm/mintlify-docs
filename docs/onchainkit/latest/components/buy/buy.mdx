@@ -1,0 +1,141 @@
+---
+title: "Buy"
+---
+
+import { Danger } from "/snippets/danger.mdx";
+
+<Frame>
+<img alt="Buy"
+  src="/images/onchainkit/buy.gif"
+  height="364"/>
+</Frame>
+
+Компоненты `Buy` предоставляют комплексный интерфейс для пользователей, чтобы покупать [Tokens](/onchainkit/token/types#token).
+
+Компонент `Buy` поддерживает обмен токенов с USDC и ETH по умолчанию, с возможностью предоставить дополнительный токен на выбор, используя пропс `fromToken`. Кроме того, пользователи могут покупать токены, используя свой аккаунт Coinbase, Apple Pay или дебетовую карту.
+
+<Note>
+Опции пополнения через Apple Pay и дебетовую карту доступны только для активов, поддерживаемых Coinbase.
+</Note>
+
+<Note>
+Для этого компонента требуется установка `projectId` в `OnchainKitProvider`. Вы можете найти свой `projectId` на [Coinbase Developer Platform](https://portal.cdp.coinbase.com/products/onchainkit).
+</Note>
+
+
+## Использование
+
+Пример использования `@coinbase/onchainkit/buy`.
+
+```tsx
+import { Buy } from '@coinbase/onchainkit/buy'; // [!code focus]
+import type { Token } from '@coinbase/onchainkit/token';
+
+export default function BuyComponents() { // [!code focus]
+  const degenToken: Token = {
+    name: 'DEGEN',
+    address: '0x4ed4e862860bed51a9570b96d89af5e1b0efefed',
+    symbol: 'DEGEN',
+    decimals: 18,
+    image:
+    'https://d3r81g40ycuhqg.cloudfront.net/wallet/wais/3b/bf/3bbf118b5e6dc2f9e7fc607a6e7526647b4ba8f0bea87125f971446d57b296d2-MDNmNjY0MmEtNGFiZi00N2I0LWIwMTItMDUyMzg2ZDZhMWNm',
+    chainId: 8453,
+  };
+
+  return ( // [!code focus]
+    <Buy toToken={degenToken} /> // [!code focus]
+  ) // [!code focus]
+} // [!code focus]
+
+```
+
+<iframe
+  src="https://684b5e62b1ff46bc5bf83966-aijszlfakk.chromatic.com/iframe.html?args=&id=onchainkit-buy--disabled&viewMode=story&dark=true&hero=true"
+  width="100%"
+  height="auto"
+/>
+
+{/* <App>
+  <BuyWrapper>
+    {({ address, toToken }) => {
+      return (
+        <Buy toToken={toToken} disabled />
+      )
+    }}
+  </BuyWrapper>
+</App> */}
+
+<Danger>
+**Примечание: этот интерфейс предназначен только для демонстрационных целей.**
+
+Потоки обмена и пополнения будут выполняться и работать «из коробки», когда вы внедрите компонент в свое приложение.
+</Danger>
+
+
+### Спонсирование газа с помощью Paymaster
+
+Чтобы спонсировать транзакции обмена для ваших пользователей, включите Paymaster, используя пропс isSponsored.
+
+По умолчанию будет использоваться Paymaster от [Coinbase Developer Platform](https://portal.cdp.coinbase.com/products/bundler-and-paymaster).
+
+Вы можете настроить параметры спонсирования на странице [Paymaster](https://portal.cdp.coinbase.com/products/bundler-and-paymaster).
+По соображениям безопасности мы рекомендуем настроить разрешенный список контрактов в портале. Без определенного списка разрешенных контрактов ваш Paymaster сможет спонсировать только до $1.
+
+Контракт, используемый в нашем API для обмена, - это [Universal Router](https://basescan.org/address/0x3fC91A3afd70395Cd496C647d5a6CC9D4B2b7FAD), от Uniswap, который развернут в сети Base по адресу `0x3fC91A3afd70395Cd496C647d5a6CC9D4B2b7FAD`.
+
+Обратите внимание, что спонсирование газа будет работать только для Смарт-кошельков.
+
+```tsx
+import { Buy } from '@coinbase/onchainkit/buy'; // [!code focus]
+import type { Token } from '@coinbase/onchainkit/token';
+
+export default function BuyComponents() { // [!code focus]
+  const degenToken: Token = {
+    name: 'DEGEN',
+    address: '0x4ed4e862860bed51a9570b96d89af5e1b0efefed',
+    symbol: 'DEGEN',
+    decimals: 18,
+    image:
+    'https://d3r81g40ycuhqg.cloudfront.net/wallet/wais/3b/bf/3bbf118b5e6dc2f9e7fc607a6e7526647b4ba8f0bea87125f971446d57b296d2-MDNmNjY0MmEtNGFiZi00N2I0LWIwMTItMDUyMzg2ZDZhMWNm',
+    chainId: 8453,
+  };
+
+  return ( // [!code focus]
+    <Buy toToken={degenToken} isSponsored /> // [!code focus]
+  ) // [!code focus]
+} // [!code focus]
+```
+
+## Свойства
+
+[`BuyProps`](#buyprops)
+
+```ts
+type BuyProps = {
+  /** Опциональное переопределение className для верхнего div элемента. */
+  className?: string;
+  config?: {
+    /** Максимально допустимое проскальзывание для обмена (например, 3 для 3%). Это процент, а не базисные пункты. */
+    maxSlippage: number;
+  };
+  /** Отключает кнопку Buy */
+  disabled?: boolean;
+  experimental?: {
+    /** Использовать ли DEX-агрегатор. (по умолчанию: false) */
+    useAggregator: boolean;
+  };
+  /** Опциональная настройка для спонсирования обменов через Paymaster. (по умолчанию: false) */
+  isSponsored?: boolean;
+  /** Опциональная функция-обработчик ошибок внутри провайдера. */
+  onError?: (error: SwapError) => void;
+  /** Опциональная функция-обработчик, которая предоставляет доступ к состоянию жизненного цикла компонента */
+  onStatus?: (lifecycleStatus: LifecycleStatus) => void;
+  /** Опциональная функция-обработчик, которая предоставляет доступ к квитанции о транзакции */
+  onSuccess?: (transactionReceipt?: TransactionReceipt) => void;
+  /** Опциональный токен, который меняется */
+  fromToken?: Token;
+  /** Токен, на который происходит обмен */
+  toToken: Token;
+};
+```
+

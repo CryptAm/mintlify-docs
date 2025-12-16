@@ -1,0 +1,123 @@
+---
+title: 'Быстрые действия для чат-агентов'
+description: 'Узнайте о поддерживаемых типах контента XMTP и о том, как использовать их в вашем чат-агенте'
+sidebarTitle: 'Быстрые действия'
+---
+
+## Быстрые действия
+
+Хотя Base App поддерживает все стандартные типы контента XMTP для расширенных возможностей обмена сообщениями, этот документ сосредоточен конкретно на типах контента, разработанных Base, которые улучшают взаимодействие с агентами в Base App.
+
+Эти специфичные для Base типы контента (Быстрые действия и Намерение) предоставляют уникальную функциональность, которая может не поддерживаться другими клиентами XMTP. Для стандартных типов контента XMTP, таких как реакции, вложения и транзакции, смотрите [документацию XMTP](https://docs.xmtp.org/agents/content-types/content-types).
+
+## Типы контента Base App
+
+Существуют типы контента, разработанные командой Base App для агентов в Base App. Другие клиенты XMTP могут не поддерживать эти типы контента.
+
+**Быстрые действия (coinbase.com/actions:1.0)**
+
+Назначение: Представление интерактивных кнопок в сообщении
+
+Структура:
+
+```typescript
+type ActionsContent = {
+  id: string;
+  description: string;
+  actions: Action[];
+  expiresAt?: string;
+};
+
+type Action = {
+  id: string;
+  label: string;
+  imageUrl?: string;
+  style?: 'primary' | 'secondary' | 'danger';
+  expiresAt?: string;
+};
+```
+
+Правила валидации:
+
+- `id`, `description` обязательны
+- `actions` должен содержать 1–10 элементов с уникальными ID
+- Стиль должен быть одним из: `primary`, `secondary`, `danger`
+
+Запасной вариант:
+
+```
+[Описание]
+
+[1] [Подпись действия 1]
+[2] [Подпись действия 2]
+...
+Ответьте номером для выбора
+```
+
+Пример: Варианты оплаты
+```json
+{
+  "id": "payment_alice_123",
+  "description": "Choose amount to send to Alice",
+  "actions": [
+    { "id": "send_10", "label": "Send $10", "style": "primary" },
+    { "id": "send_20", "label": "Send $20", "style": "primary" },
+    { "id": "custom_amount", "label": "Custom Amount", "style": "secondary" }
+  ],
+  "expiresAt": "2024-12-31T23:59:59Z"
+}
+```
+
+<Frame caption='Пример сообщения с быстрыми действиями'>
+  <img
+    alt='Manifest Embed Example'
+    src='/images/tba_example.jpeg'
+    height='364'
+  />
+</Frame>
+
+**Намерение (coinbase.com/intent:1.0)**
+
+Назначение: Пользователь выражает выбор из быстрых действий
+
+Структура:
+
+```typescript
+type IntentContent = {
+  id: string;
+  actionId: string;
+  metadata?: Record<string, string | number | boolean | null>;
+};
+```
+
+Правила валидации:
+
+- `id`, `actionId` обязательны
+- Должны соответствовать связанным действиям
+- `metadata` опционально, `<10KB`
+
+Запасной вариант:
+
+```
+Пользователь выбрал действие: [actionId]
+```
+
+Пример: Сообщение с намерением
+
+```json
+{
+  id: 'payment_alice_123',
+  actionId: 'send_10',
+  metadata: {
+    timestamp: Date.now(),
+    actionLabel: 'Send $10'
+  }
+}
+```
+
+<Frame caption='Пример сообщения с намерением'>
+  <img
+    src='/images/transaction_chat.jpeg'
+    alt='Analytics dashboard with charts'
+  />
+</Frame>

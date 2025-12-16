@@ -1,0 +1,126 @@
+---
+title: "coinbase_fetchPermissions"
+description: "Получение разрешений для конкретного тратящего лица (spender) и цепочки, с опциональной фильтрацией по аккаунту"
+---
+
+Специфичный для Coinbase RPC-метод
+
+<Info>
+Получает разрешения, связанные с конкретным аккаунтом и цепочкой. Если указан spender (тратящее лицо), возвращает только разрешения для этого spender. В противном случае возвращает все разрешения для аккаунта. Этот метод исключает разрешения, которые истекли или были отозваны, возвращая только активные разрешения на трату. Отсортированы по дате создания, старейшие первыми.
+</Info>
+
+## Параметры
+
+<ParamField body="spender" type="string" required>
+Лицо, которому предоставлено разрешение на трату средств. Это адрес, чьи разрешения запрашиваются.
+</ParamField>
+
+<ParamField body="chainId" type="string" required>
+Идентификатор блокчейна в шестнадцатеричном формате.
+</ParamField>
+
+<ParamField body="account" type="string">
+Опционально. Адрес аккаунта, чьи разрешения запрашиваются. Если не указан, возвращает все разрешения для spender.
+</ParamField>
+
+<ParamField body="pageOptions" type="object">
+Опциональные настройки пагинации для запроса.
+
+<Expandable title="PageOptions properties">
+<ParamField body="pageSize" type="number">
+Количество разрешений для получения в одном запросе. По умолчанию 50.
+</ParamField>
+
+<ParamField body="cursor" type="string">
+Уникальный идентификатор для начала выборки с конкретной страницы.
+</ParamField>
+</Expandable>
+</ParamField>
+
+## Возвращает
+
+<ResponseField name="result" type="object">
+Объект ответа с разрешениями.
+
+<Expandable title="Свойства FetchPermissionsResult">
+<ResponseField name="permissions" type="array">
+Массив объектов разрешений, упорядоченный от старейших к новейшим (более старые разрешения появляются первыми).
+</ResponseField>
+
+<ResponseField name="pageDescription" type="object">
+Информация о пагинации для ответа.
+</ResponseField>
+</Expandable>
+</ResponseField>
+
+<RequestExample>
+```json Request with account (filtered permissions)
+{
+  "id": 1,
+  "jsonrpc": "2.0",
+  "method": "coinbase_fetchPermissions",
+  "params": [{
+    "spender": "0x2a83b0e4462449660b6e7567b2c81ac6d04d877d",
+    "chainId": "0x14A34",
+    "account": "0xfB2adc8629FC9F54e243377ffcECEb437a42934C"
+  }]
+}
+```
+
+```json Request without account (all permissions for spender)
+{
+  "id": 1,
+  "jsonrpc": "2.0",
+  "method": "coinbase_fetchPermissions",
+  "params": [{
+    "spender": "0x2a83b0e4462449660b6e7567b2c81ac6d04d877d",
+    "chainId": "0x14A34"
+  }]
+}
+```
+</RequestExample>
+
+<ResponseExample>
+```json Success Response
+{
+  "id": 1,
+  "jsonrpc": "2.0",
+  "result": {
+    "permissions": [
+      {
+        "createdAt": 1640995200,
+        "permissionHash": "0xabc123...",
+        "signature": "0xdef456...",
+        "spendPermission": {
+          "account": "0xfB2adc8629FC9F54e243377ffcECEb437a42934C",
+          "spender": "0x2a83b0e4462449660b6e7567b2c81ac6d04d877d",
+          "token": "0xA0b86a33E6441b97B7cd5C4F5B42a6e2F8a38923",
+          "allowance": "1000000000000000000",
+          "period": 86400,
+          "start": 1640995200,
+          "end": 1672531200,
+          "salt": "12345678901234567890",
+          "extraData": "0x"
+        }
+      }
+    ],
+    "pageDescription": {
+      "pageSize": 1,
+      "nextCursor": "abc123next"
+    }
+  }
+}
+```
+</ResponseExample>
+
+## Обработка ошибок
+
+| Код  | Сообщение                      | Описание    |
+| ---- | ------------------------------ | ----------- |
+| 4001 | User rejected the request      | Пользователь отклонил запрос разрешения |
+| 4100 | Requested method not supported | Метод не поддерживается кошельком |
+| -32602 | Invalid params                 | Неверные параметры account, chainId или spender |
+
+<Warning>
+Убедитесь, что параметры `chainId` и `spender` правильно отформатированы и действительны для запрашиваемого блокчейна. Если указан, параметр `account` также должен быть действительным адресом.
+</Warning>

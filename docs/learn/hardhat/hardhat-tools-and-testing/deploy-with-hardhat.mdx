@@ -1,0 +1,405 @@
+---
+title: Развертывание смарт-контракта с помощью Hardhat
+slug: /deploy-with-hardhat
+description: "Учебник, который учит, как развернуть смарт-контракт в тестовой сети Base с помощью Hardhat. Включает инструкции по настройке окружения, компиляции и развертыванию смарт-контракта."
+author: taycaldwell
+---
+
+В этом разделе вы узнаете, как развернуть смарт-контракт NFT (ERC-721) в тестовой сети Base с помощью [Hardhat](https://hardhat.org/).
+
+Hardhat - это инструмент разработчика, который предоставляет простой способ развертывать, тестировать и отлаживать смарт-контракты.
+
+
+
+## Цели
+
+К концу этого учебника вы сможете:
+
+- Настроить Hardhat для работы с Base
+- Создать смарт-контракт NFT для Base
+- Скомпилировать смарт-контракт для Base
+- Развернуть смарт-контракт в сети Base
+- Взаимодействовать с развернутым смарт-контрактом в сети Base
+
+
+
+## Предварительные требования
+
+### Node v18+
+
+Для этого учебника требуется версия Node 18+.
+
+- Скачайте [Node v18+](https://nodejs.org/en/download/)
+
+Если вы используете `nvm` для управления версиями Node, вы можете просто выполнить `nvm install 18`.
+
+### Coinbase Wallet
+
+Чтобы развернуть смарт-контракт, вам сначала понадобится веб3-кошелек. Вы можете создать кошелек, скачав браузерное расширение Coinbase Wallet.
+
+- Скачайте [Coinbase Wallet](https://chrome.google.com/webstore/detail/coinbase-wallet-extension/hnfanknocfeofbddgcijnmhnfnkdnaad?hl=en)
+
+### Средства в кошельке
+
+Развертывание контрактов в блокчейне требует оплаты комиссии за газ (gas fee). Поэтому вам нужно будет пополнить свой кошелек ETH для покрытия этих комиссий.
+
+В этом учебнике вы будете развертывать контракт в тестовой сети Base Sepolia. Вы можете пополнить свой кошель ETH в сети Base Sepolia, используя один из кранов (faucets), перечисленных на странице [Network Faucets](https://docs.base.org/base-chain/tools/network-faucets) документации Base.
+
+
+
+## Создание проекта
+
+Прежде чем вы сможете начать развертывать смарт-контракты в сети Base, вам нужно настроить среду разработки, создав проект Node.js.
+
+Чтобы создать новый проект Node.js, выполните:
+
+```bash
+npm init --y
+```
+
+Затем вам нужно установить Hardhat и создать новый проект Hardhat.
+
+Чтобы установить Hardhat, выполните:
+
+```bash
+npm install --save-dev hardhat
+```
+
+Чтобы создать новый проект Hardhat, выполните:
+
+```bash
+npx hardhat init
+```
+
+Выберите `Create a TypeScript project`, затем нажмите enter для подтверждения корневой директории проекта.
+
+Выберите `y` для обоих пунктов: добавления `.gitignore` и загрузки примера проекта. Процесс настройки проекта займет некоторое время.
+
+
+
+## Настройка Hardhat для работы с Base
+
+Чтобы развертывать смарт-контракты в сети Base, вам нужно настроить проект Hardhat и добавить сеть Base.
+
+Чтобы настроить Hardhat на использование Base, добавьте Base как сеть в файл `hardhat.config.ts` вашего проекта:
+
+```tsx
+import { HardhatUserConfig } from 'hardhat/config';
+import '@nomicfoundation/hardhat-toolbox';
+
+require('dotenv').config();
+
+const config: HardhatUserConfig = {
+  solidity: {
+    version: '0.8.23',
+  },
+  networks: {
+    // для основной сети (mainnet)
+    'base-mainnet': {
+      url: 'https://mainnet.base.org',
+      accounts: [process.env.WALLET_KEY as string],
+      gasPrice: 1000000000,
+    },
+    // для тестовой сети (testnet)
+    'base-sepolia': {
+      url: 'https://sepolia.base.org',
+      accounts: [process.env.WALLET_KEY as string],
+      gasPrice: 1000000000,
+    },
+    // для локальной среды разработки
+    'base-local': {
+      url: 'http://localhost:8545',
+      accounts: [process.env.WALLET_KEY as string],
+      gasPrice: 1000000000,
+    },
+  },
+  defaultNetwork: 'hardhat',
+};
+
+export default config;
+```
+
+### Установка Hardhat toolbox
+
+Приведенная выше конфигурация использует плагин `@nomicfoundation/hardhat-toolbox`, который объединяет все часто используемые пакеты и плагины Hardhat, рекомендуемые для начала разработки с Hardhat.
+
+Чтобы установить `@nomicfoundation/hardhat-toolbox`, выполните:
+
+```bash
+npm install --save-dev @nomicfoundation/hardhat-toolbox
+```
+
+### Загрузка переменных окружения
+
+Приведенная выше конфигурация также использует [dotenv](https://www.npmjs.com/package/dotenv) для загрузки переменной окружения `WALLET_KEY` из файла `.env` в `process.env.WALLET_KEY`. Вам следует использовать аналогичный метод, чтобы избежать хардкода ваших приватных ключей в исходном коде.
+
+Чтобы установить `dotenv`, выполните:
+
+```bash
+npm install --save-dev dotenv
+```
+
+После установки `dotenv` вы можете создать файл `.env` со следующим содержимым:
+
+```
+WALLET_KEY="<YOUR_PRIVATE_KEY>"
+```
+
+Заменив `<YOUR_PRIVATE_KEY>` на приватный ключ вашего кошелька.
+
+<Info>
+
+`WALLET_KEY` - это приватный ключ кошелька, который будет использоваться для развертывания контракта. Инструкции о том, как получить приватный ключ из Coinbase Wallet, можно найти в [Coinbase Wallet documentation](https://docs.cloud.coinbase.com/wallet-sdk/docs/developer-settings#show-private-key). **Крайне важно НЕ коммитить этот ключ в публичный репозиторий.**
+
+</Info>
+
+### Локальные сети
+
+Вы можете запустить сеть Base локально и развертывать в ней контракты. Если это ваш вариант, ознакомьтесь с [репозиторием, содержащим соответствующие Docker-образы](https://github.com/base-org/node).
+
+Синхронизация вашего узла (node) с сетью может занять **очень** много времени. Если при попытке развертывания вы получаете ошибку о том, что `nonce has already been used` значит синхронизация еще не завершена.
+
+Для быстрого тестирования, например, если вы хотите добавить модульные тесты к NFT-контракту ниже, вы можете оставить `defaultNetwork` как `'hardhat'`.
+
+
+
+## Компиляция смарт-контракта
+
+Ниже приведен простой смарт-контракт NFT (ERC-721), написанный на языке программирования Solidity:
+
+```solidity
+// SPDX-License-Identifier: MIT
+pragma solidity ^0.8.23;
+
+import "@openzeppelin/contracts/token/ERC721/ERC721.sol";
+
+contract NFT is ERC721 {
+    uint256 public currentTokenId;
+
+    constructor() ERC721("NFT Name", "NFT") {}
+
+    function mint(address recipient) public payable returns (uint256) {
+        uint256 newItemId = ++currentTokenId;
+        _safeMint(recipient, newItemId);
+        return newItemId;
+    }
+}
+```
+
+Код Solidity выше определяет смарт-контракт с именем `NFT`. Код использует интерфейс `ERC721`, предоставляемый библиотекой [OpenZeppelin Contracts library](https://docs.openzeppelin.com/contracts/5.x/), для создания NFT смарт-контракта. OpenZeppelin позволяет разработчикам использовать проверенные в боях реализации смарт-контрактов, соответствующие официальным стандартам ERC.
+
+Чтобы добавить библиотеку OpenZeppelin Contracts в ваш проект, выполните:
+
+```bash
+npm install --save @openzeppelin/contracts
+```
+
+В вашем проекте удалите контракт `contracts/Lock.sol`, который был сгенерирован вместе с проектом, и добавьте приведенный выше код в новый файл с именем `contracts/NFT.sol`. (Вы также можете удалить тестовый файл `test/Lock.ts`, но вам стоит как можно скорее добавить свои собственные тесты!).
+
+Чтобы скомпилировать контракт с помощью Hardhat, выполните:
+
+```bash
+npx hardhat compile
+```
+
+
+
+## Развертывание смарт-контракта
+
+После успешной компиляции контракта вы можете развернуть его в тестовой сети Base Sepolia.
+
+Чтобы развернуть контракт в тестовой сети Base Sepolia, вам нужно изменить файл `scripts/deploy.ts` в вашем проекте:
+
+```tsx
+import { ethers } from 'hardhat';
+
+async function main() {
+  const nft = await ethers.deployContract('NFT');
+
+  await nft.waitForDeployment();
+
+  console.log('NFT Contract Deployed at ' + nft.target);
+}
+
+// Мы рекомендуем этот шаблон, чтобы иметь возможность использовать async/await везде
+// и корректно обрабатывать ошибки.
+main().catch((error) => {
+  console.error(error);
+  process.exitCode = 1;
+});
+```
+
+Вам также понадобятся тестовые ETH в вашем кошельке. См. раздел [Предварительные требования](#prerequisites), если вы этого еще не сделали. В противном случае попытка развертывания завершится неудачей.
+
+Наконец, выполните:
+
+```bash
+npx hardhat run scripts/deploy.ts --network base-sepolia
+```
+
+Контракт будет развернут в тестовой сети Base Sepolia. Вы можете просмотреть статус развертывания и контракт, используя [block explorer](/base-chain/tools/block-explorers) и выполнив поиск по адресу, возвращенному вашим скриптом развертывания. Если вы развернули точную копию NFT-контракта выше, он уже будет верифицирован, и вы сможете читать из контракта и писать в него, используя веб-интерфейс.
+
+<Info>
+
+Если вы хотите развернуть контракт в основной сети (mainnet), вам нужно изменить команду следующим образом:
+
+```bash
+npx hardhat run scripts/deploy.ts --network base-mainnet
+```
+
+</Info>
+
+Независимо от сети, в которую вы развертываете, если вы развертываете новый или измененный контракт, вам сначала нужно его верифицировать.
+
+
+
+## Верификация смарт-контракта
+
+Если вы хотите взаимодействовать с вашим контрактом через обозреватель блоков, вам или кому-то другому нужно сначала его верифицировать. Контракт выше уже верифицирован, поэтому вы уже должны видеть свою версию в обозревателе блоков. В оставшейся части этого учебника мы пройдемся по шагам верификации вашего контракта в тестовой сети Base Sepolia.
+
+В файле `hardhat.config.ts` настройте Base Sepolia как пользовательскую сеть. Добавьте следующее в ваш `HardhatUserConfig`:
+
+
+```tsx
+etherscan: {
+   apiKey: {
+    "base-sepolia": "PLACEHOLDER_STRING"
+   },
+   customChains: [
+     {
+       network: "base-sepolia",
+       chainId: 84532,
+       urls: {
+        apiURL: "https://api-sepolia.basescan.org/api",
+        browserURL: "https://sepolia.basescan.org"
+       }
+     }
+   ]
+ },
+```
+
+<Info>
+
+Вы можете получить свой API-ключ для Basescan на [basescan.org](https://basescan.org/myapikey) после регистрации аккаунта.
+
+</Info>
+
+Теперь вы можете верифицировать свой контракт. Возьмите адрес развернутого контракта и выполните:
+
+```bash
+npx hardhat verify --network base-sepolia <deployed address>
+```
+
+Вы должны увидеть вывод, похожий на:
+
+
+```
+Nothing to compile
+No need to generate any newer typings.
+Successfully submitted source code for contract
+contracts/NFT.sol:NFT at 0x6527E5052de5521fE370AE5ec0aFCC6cD5a221de
+for verification on the block explorer. Waiting for verification result...
+
+Successfully verified contract NFT on Etherscan.
+```
+
+<Tabs>
+  <Tab title="Basescan">
+    ```tsx
+    etherscan: {
+       apiKey: {
+        "base-sepolia": "PLACEHOLDER_STRING"
+       },
+       customChains: [
+         {
+           network: "base-sepolia",
+           chainId: 84532,
+           urls: {
+            apiURL: "https://api-sepolia.basescan.org/api",
+            browserURL: "https://sepolia.basescan.org"
+           }
+         }
+       ]
+     },
+    ```
+    <Info>
+    Вы можете получить свой API-ключ для Basescan на [basescan.org](https://basescan.org/myapikey) после регистрации аккаунта.
+    </Info>
+    
+    Теперь вы можете верифицировать свой контракт. Возьмите адрес развернутого контракта и выполните:
+    
+    ```bash
+    npx hardhat verify --network base-sepolia <deployed address>
+    ```
+    
+    Вы должны увидеть вывод, похожий на:
+    
+    ```
+    Nothing to compile
+    No need to generate any newer typings.
+    Successfully submitted source code for contract
+    contracts/NFT.sol:NFT at 0x6527E5052de5521fE370AE5ec0aFCC6cD5a221de
+    for verification on the block explorer. Waiting for verification result...
+    
+    Successfully verified contract NFT on Etherscan.
+    ```
+  </Tab>
+  <Tab title="Blockscout">
+    ```tsx
+    // Hardhat expects etherscan here, even if you're using Blockscout.
+    etherscan: {
+       apiKey: {
+        "base-sepolia": process.env.BLOCKSCOUT_KEY as string
+       },
+       customChains: [
+         {
+           network: "base-sepolia",
+           chainId: 84532,
+           urls: {
+            apiURL: "https://base-sepolia.blockscout.com/api",
+            browserURL: "https://base-sepolia.blockscout.com"
+           }
+         }
+       ]
+     },
+    ```
+    <Info>
+    Вы можете получить свой API-ключ для Blockscout [здесь](https://base-sepolia.blockscout.com/account/api_key) после регистрации аккаунта.
+    </Info>
+    
+    Теперь вы можете верифицировать свой контракт. Возьмите адрес развернутого контракта и выполните:
+    
+    ```bash
+    npx hardhat verify --network base-sepolia <deployed address>
+    ```
+    
+    Вы должны увидеть вывод, похожий на:
+    
+    ```
+    Nothing to compile
+    No need to generate any newer typings.
+    Successfully submitted source code for contract
+    contracts/NFT.sol:NFT at 0x6527E5052de5521fE370AE5ec0aFCC6cD5a221de
+    for verification on the block explorer. Waiting for verification result...
+    
+    Successfully verified contract NFT on Etherscan.
+    ```
+  </Tab>
+</Tabs>
+<Info>
+Нельзя повторно верифицировать контракт, идентичный уже верифицированному. Если вы попытаетесь это сделать, например, верифицировать контракт выше, вы получите ошибку, похожую на:
+
+```text
+Error in plugin @nomiclabs/hardhat-etherscan: The API responded with an unexpected message.
+Contract verification may have succeeded and should be checked manually.
+Message: Already Verified
+```
+</Info>
+
+Найдите свой контракт на [Blockscout](https://base-sepolia.blockscout.com/) или [Basescan](https://sepolia.basescan.org/), чтобы убедиться, что он верифицирован.
+
+## Взаимодействие со смарт-контрактом
+
+Если вы верифицировали контракт на Basescan, вы можете использовать вкладки `Read Contract` и `Write Contract` для взаимодействия с развернутым контрактом. Сначала вам нужно будет подключить свой кошелек, нажав кнопку Connect.
+
+

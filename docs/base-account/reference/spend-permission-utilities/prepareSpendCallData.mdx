@@ -1,0 +1,108 @@
+---
+title: "prepareSpendCallData"
+description: "Подготовить calldata для одобрения (при необходимости) и расходования средств с использованием разрешения на расходование"
+---
+
+Определено в [Base Account SDK](https://github.com/base/account-sdk)
+
+<Info>
+  Возвращает один или два вызова, которые получатель (spender) вашего приложения
+  может отправить для выполнения расходования. Если разрешение ещё не зарегистрировано 
+  в блокчейне, вызов `approveWithSignature` добавляется перед вызовом `spend`.
+</Info>
+
+## Параметры
+
+<ParamField body="permission" type="SpendPermission" required>
+  Подписанное разрешение, полученное из [`requestSpendPermission`](/base-account/reference/spend-permission-utilities/requestSpendPermission) или запрошенное через [`fetchPermissions`](/base-account/reference/spend-permission-utilities/fetchPermissions).
+
+<Expandable title="Свойства SpendPermission">
+<ParamField body="permissionHash" type="string">
+Детерминированный хеш EIP-712 разрешения.
+</ParamField>
+
+<ParamField body="signature" type="string">
+  Подпись для полезной нагрузки EIP-712.
+</ParamField>
+
+<ParamField body="chainId" type="number">
+  Идентификатор целевой цепочки (chain ID).
+</ParamField>
+
+<ParamField body="permission" type="object">
+Базовые поля разрешения.
+
+<Expandable title="Поля permission">
+<ParamField body="account" type="address" />
+<ParamField body="spender" type="address" />
+<ParamField body="token" type="address" />
+<ParamField body="allowance" type="bigint" />
+<ParamField body="period" type="number">Длительность в секундах.</ParamField>
+<ParamField body="start" type="number">Временная метка Unix (секунды).</ParamField>
+<ParamField body="end" type="number">Временная метка Unix (секунды).</ParamField>
+<ParamField body="salt" type="string" />
+<ParamField body="extraData" type="string" />
+</Expandable>
+</ParamField>
+</Expandable>
+</ParamField>
+
+<ParamField body="amount" type="bigint">
+  Сумма для расходования (в wei). Не указывайте, чтобы потратить оставшийся лимит.
+</ParamField>
+
+## Возвращает
+
+<ResponseField name="result" type="Call[]">
+Массив вызовов для отправки в указанном порядке.
+
+<Expandable title="Call type">
+<ResponseField name="to" type="string" />
+<ResponseField name="data" type="`0x${string}`" />
+<ResponseField name="value" type="`0x0`" />
+</Expandable>
+</ResponseField>
+
+<RequestExample>
+```typescript Prepare and submit spend calls
+import { prepareSpendCallData } from "@base-org/account/spend-permission";
+
+const spendCalls = await prepareSpendCallData({
+  permission,
+  amount: 10_000n, // опционально
+});
+
+// Если поддерживается, отправить оба вызова пачкой через wallet_sendCalls
+await provider.request({
+  method: "wallet_sendCalls",
+  params: [
+    {
+      version: "2.0",
+      atomicRequired: true,
+      from: spender,
+      calls: spendCalls,
+    },
+  ],
+});
+
+// Или отправить последовательно через eth_sendTransaction
+for (const call of spendCalls) {
+  await provider.request({
+    method: "eth_sendTransaction",
+    params: [{ ...call, from: spender }],
+  });
+}
+```
+</RequestExample>
+
+## Обработка ошибок
+
+Всегда заключайте вызов в блок `try-catch` для корректной обработки возможных ошибок.
+
+<Info>
+Используйте `getPermissionStatus` для проверки `isActive` и `remainingSpend` перед подготовкой расходования.
+</Info>
+
+import PolicyBanner from "/snippets/PolicyBanner.mdx";
+
+<PolicyBanner />

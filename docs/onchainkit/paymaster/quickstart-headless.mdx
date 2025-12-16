@@ -1,0 +1,196 @@
+---
+title: 'Быстрый старт: Отправьте свою первую спонсируемую транзакцию со смарт-аккаунта'
+sidebar_label: Быстрый старт (Headless)
+---
+
+Это руководство по быстрому старту Paymaster объясняет, как отправить вашу первую транзакцию со смарт-аккаунта в сети Base Sepolia с использованием [Viem](https://viem.sh/), и спонсирования газа от [Coinbase Developer Platform](https://portal.cdp.coinbase.com/products/bundler-and-paymaster). Пример ниже спонсирует минт NFT, но может быть адаптирован для вызова любого вашего смарт-контракта.
+
+## Предварительные требования
+
+```
+node >= 14.0.0
+npm >= 6.0.0
+```
+
+## Получение эндпоинта на Base Sepolia
+
+> **Как получить эндпоинт Paymaster & Bundler в тестовой сети Base (Sepolia) из CDP**
+
+1. [Создайте](https://coinbase.com/developer-platform) новый аккаунт CDP или [войдите](https://portal.cdp.coinbase.com) в существующий.
+2. Перейдите [Paymaster](https://portal.cdp.coinbase.com/products/bundler-and-paymaster).
+3.Адрес NFT-контракта, который мы вызываем: `0x66519FCAee1Ed65bc9e0aCc25cCD900668D3eD49`. Добавьте его в разрешенный список (allowlist) контрактов и сохраните политику.
+4. Переключитесь на тестовую сеть Base (Sepolia) в правом верхнем углу конфигурации.
+5. Скопируйте ваш эндпоинт для использования на следующих шагах.
+
+<Accordion title="Развернуть для просмотра изображений (кликните для увеличения)">
+<Frame caption="Paymaster - Политика Газа">
+<img
+  src="/images/paymaster/pb-paymaster-config-highlight.png"
+  width="700"
+  alt=""
+/>
+</Frame>
+</Accordion>
+
+## Отправка транзакции
+
+**Как вызвать функцию минта NFT-контракта в Base Sepolia (или любого другого контракта)**
+
+### 1. Инициализация проекта
+
+В вашем терминале создайте директорию `paymaster-tutorial` и инициализируйте проект с помощью [npm](https://www.npmjs.com/).
+
+```js
+mkdir paymaster-tutorial
+cd paymaster-tutorial
+npm init es6
+```
+
+### 2. Установка зависимостей
+
+2. Установите `viem`.
+
+```js
+npm install viem
+```
+
+### 3. Создание смарт-аккаунта с использованием приватного ключа
+
+Пример ниже использует Coinbase Smart Wallet, но подойдет любой смарт-аккаунт.
+a. Создайте новый приватный ключ с помощью [Foundry](https://book.getfoundry.sh/reference/cast/cast-wallet-new).
+b. Установите Foundry: `curl -L https://foundry.paradigm.xyz | bash`
+c. Сгенерируйте новую пару ключей: `cast wallet new`.
+d. Обновите ваш файл `config.js` добавив приватный ключ, и создайте аккаунт.
+
+```js
+//config.js
+import { createPublicClient, http } from 'viem';
+import { toCoinbaseSmartAccount } from 'viem/account-abstraction';
+import { baseSepolia } from 'viem/chains';
+import { privateKeyToAccount } from 'viem/accounts';
+
+// Ваш RPC URL. Убедитесь, что используете правильную сеть (base vs base-sepolia)
+export const RPC_URL = 'https://api.developer.coinbase.com/rpc/v1/base-sepolia/<your-rpc-token>';
+
+export const client = createPublicClient({
+  chain: baseSepolia,
+  transport: http(RPC_URL),
+});
+
+// Создает Coinbase Smart Wallet, используя подписанта EOA
+const owner = privateKeyToAccount('<your-private-key>');
+export const account = await toCoinbaseSmartAccount({
+  client,
+  owners: [owner],
+});
+```
+
+### 4. Добавление ABI вашего смарт-контракта
+
+Создайте файл `example-app-abi.js` для хранения ABI нашего NFT-контракта и его адреса. Вам нужно будет обновить это на ABI вашего собственного смарт-контракта.
+
+```js
+//example-app-abi.js
+export const abi = [
+  {
+    inputs: [
+      { internalType: 'address', name: 'recipient', type: 'address' },
+      { internalType: 'uint16', name: 'item', type: 'uint16' },
+    ],
+    name: 'mintTo',
+    outputs: [{ internalType: 'uint256', name: '', type: 'uint256' }],
+    stateMutability: 'payable',
+    type: 'function',
+  },
+];
+```
+
+### 5. Создание клиентов Bundler и Paymaster, отправка транзакции
+
+Создайте новый файл `index.js`
+
+```ts
+//index.js
+import { http } from 'viem';
+import { baseSepolia } from 'viem/chains';
+import { createBundlerClient } from 'viem/account-abstraction';
+import { account, client, RPC_URL } from './config.js';
+import { abi } from './example-app-abi.js';
+
+// Логирует детерминированный публичный адрес, сгенерированный вашим приватным ключом
+console.log(`Minting nft to ${account.address}`);
+
+// Бандлер - это специальный узел, который размещает вашу UserOperation в цепи
+const bundlerClient = createBundlerClient({
+  account,
+  client,
+  transport: http(RPC_URL),
+  chain: baseSepolia,
+});
+
+// Вызов для вашего приложения. Вам нужно будет изменить это в зависимости от ABI вашего dapp
+const nftContractAddress = '0x66519FCAee1Ed65bc9e0aCc25cCD900668D3eD49';
+const mintTo = {
+  abi: abi,
+  functionName: 'mintTo',
+  to: nftContractAddress,
+  args: [account.address, 1],
+};
+const calls = [mintTo];
+
+// Увеличивает preVerificationGas (или любые другие лимиты газа) для гарантии размещения UserOperation в цепи
+account.userOperation = {
+  estimateGas: async (userOperation) => {
+    const estimate = await bundlerClient.estimateUserOperationGas(userOperation);
+    // увеличиваем preVerificationGas
+    estimate.preVerificationGas = estimate.preVerificationGas * 2n;
+    return estimate;
+  },
+};
+
+// Подписать и отправить UserOperation
+try {
+  const userOpHash = await bundlerClient.sendUserOperation({
+    account,
+    calls,
+    paymaster: true,
+  });
+
+  const receipt = await bundlerClient.waitForUserOperationReceipt({
+    hash: userOpHash,
+  });
+
+  console.log('✅ Transaction successfully sponsored!');
+  console.log(
+    `⛽ View sponsored UserOperation on blockscout: https://base-sepolia.blockscout.com/op/${receipt.userOpHash}`,
+  );
+  console.log(
+    `🔍 View NFT mint on basescan: https://sepolia.basescan.org/address/${account.address}`,
+  );
+  process.exit();
+} catch (error) {
+  console.log('Error sending transaction: ', error);
+  process.exit(1);
+}
+```
+
+В вашем терминале вы можете запустить этот скрипт, используя команду ниже, находясь в правильной директории.
+
+```js
+node index.js
+```
+
+## Следующие шаги
+
+Измените ваш разрешенный список (allowlist) и политику газа, чтобы гарантировать спонсирование только желаемых операций!
+
+## Другие примеры
+
+Примеры работы с Coinbase Smart Wallet можно найти в нашем другом руководстве по быстрому старту или на [smartwallet.dev](https://smartwallet.dev/).
+
+Примеры интеграций с другими распространенными SDK можно найти здесь: [paymaster-bundler-examples](https://github.com/coinbase/paymaster-bundler-examples/tree/master/examples).
+
+## Устранение неполадок
+
+Если вы столкнетесь с какими-либо ошибками при работе с этим руководством, ознакомьтесь с нашим [troubleshooting guide](https://docs.cdp.coinbase.com/paymaster/docs/paymaster-bundler-troubleshooting).
+

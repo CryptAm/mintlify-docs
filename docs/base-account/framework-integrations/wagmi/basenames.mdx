@@ -1,0 +1,46 @@
+---
+title: "Basenames"
+description: "Добавьте поддержку имен Base (Basenames) в ваше приложение с помощью Wagmi и Viem"
+---
+
+
+
+## Обзор
+
+Basenames (имена Base) - это удобочитаемые имена для адресов в сети Base.
+Они построены поверх протокола ENS и соответствуют [ENSIP-19](https://docs.ens.domains/ensip/19/).
+Чтобы узнать больше о Basenames, ознакомьтесь с [часто задаваемыми вопросами о Basenames](/base-account/basenames/basenames-faq).
+
+В этом руководстве показано, как добавить поддержку Basenames в ваше приложение с помощью [Viem](https://viem.sh/).
+
+## Использование
+
+Используйте `getEnsName`, чтобы получить основное ENS-имя для адреса в сети Base:
+
+```ts
+import { createPublicClient, http, toCoinType } from 'viem'
+import { base } from 'viem/chains'
+
+const client = createPublicClient({
+  chain: mainnet,
+  transport: http(YOUR_PRIVATE_RPC_URL),
+})
+
+const name = await client.getEnsName({
+  address: '0x179A862703a4adfb29896552DF9e307980D19285',
+  coinType: toCoinType(base.id),
+})
+```
+
+<Tip>
+
+Необходимо использовать приватный RPC-провайдер (`YOUR_PRIVATE_RPC_URL`) из-за высоких вычислительных затрат, связанных с некоторыми шагами разрешения имен по спецификации ENSIP-19.
+
+</Tip>
+
+<Warning>
+
+Может возникать некоторая задержка между первоначальной регистрацией Basename и возможностью разрешить это имя через ENSIP-19 из-за медленного создания доказательств состояния, необходимых для разрешения имен без необходимости доверия.
+</Warning>
+
+[Узнайте больше о getEnsName →](https://viem.sh/docs/ens/actions/getEnsName)

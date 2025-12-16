@@ -1,0 +1,148 @@
+---
+title: 'Foundry: Настройка Foundry для работы с Base'
+slug: /intro-to-foundry-setup
+description: Руководство, которое научит, как настроить среду разработки для работы с Foundry.
+author: Edson Alcala
+---
+
+# Настройка Foundry для работы с Base
+
+В этом руководстве вы узнаете, как настроить [Foundry] - набор инструментов для разработки смарт-контрактов. Вы также узнаете, как настроить его для работы с Base.
+
+## Цели обучения
+
+После изучения этого руководства вы сможете:
+
+- Установить Foundry
+- Создать проект Foundry
+- Скомпилировать смарт-контракт с помощью Foundry
+- Настроить Foundry для работы с Base
+
+## Обзор
+
+Foundry - это набор инструментов для разработки смарт-контрактов, состоящий из нескольких небольших инструментов командной строки:
+
+- _[forge]_: Компилировать, тестировать и развертывать ваши смарт-контракты
+- _[cast]_: Взаимодействовать с блокчейном через RPC. Вы можете вызывать смарт-контракты, отправлять транзакции или получать любые данные из цепи
+- _[chisel]_: REPL для Solidity. Вы можете писать код Solidity напрямую
+- _[anvil]_: Локальный узел блокчейна для тестирования и разработки
+
+Используя Foundry, вы можете управлять зависимостями, компилировать проект, запускать тесты, развертывать смарт-контракты и взаимодействовать с цепью из командной строки и через скрипты Solidity.
+
+Для глубокого погружения в функции и полные возможности Foundry ознакомьтесь с [Foundry Book].
+
+## Установка Foundry
+
+Чтобы установить Foundry, вы можете использовать `Foundryup`, установщик инструментария Foundry.
+
+Чтобы установить `Foundryup` выполните в терминале:
+
+```bash
+$ curl -L https://foundry.paradigm.xyz | bash
+```
+
+После установки `Foundryup` вы можете установить `Foundry`, выполнив:
+
+```bash
+$ foundryup
+```
+
+Вы можете проверить установку, выполнив следующие команды:
+
+```bash
+$ forge --version
+$ cast --version
+$ chisel --version
+$ anvil --version
+```
+
+## Мой первый проект Foundry
+
+Чтобы создать проект Foundry, вы можете просто выполнить:
+
+```bash filename="terminal"
+$ forge init hello_foundry_in_base
+```
+
+Это создаст проект Foundry со следующей структурой:
+
+```text filename="project-structure"
+├── lib          # все установленные библиотеки
+├── script       # папка скриптов, например, скрипты развертывания
+├── src          # папка смарт-контрактов
+├── test         # папка тестов
+└── foundry.toml # файл конфигурации Foundry
+```
+
+Вы также заметите файл `.gitmodules` -- это потому, что Foundry обрабатывает зависимости с помощью [Git submodules].
+
+По умолчанию структура Foundry хранит смарт-контракты в папке `src`. Вы можете изменить это в файле конфигурации `foundry.toml`.
+
+Например:
+
+```toml filename="foundry.toml"
+[profile.default]
+src = 'contracts'
+```
+
+Чтобы скомпилировать проект, просто выполните:
+
+```bash filename="terminal"
+forge build
+```
+
+## Настройка Foundry для работы с Base
+
+Для работы с Base необходимо настроить несколько параметров в файле конфигурации `foundry.toml`.
+
+Первое - это версия Solidity.
+
+Вам нужно настроить ваш конфигурационный файл следующим образом:
+
+```toml filename="foundry.toml"
+[profile.default]
+src = 'src'
+out = 'out'
+libs = ['lib']
+solc_version = "0.8.23"
+```
+
+Убедитесь, что вы изменили pragma ваших контрактов, и просто выполните `forge build`, чтобы убедиться, что все работает хорошо.
+
+Мы также рекомендуем настроить JSON RPC endpoints для Base и API-ключ для [Basescan] в конфигурационном файле, чтобы ваша среда была готова к развертыванию ваших смарт-контрактов.
+
+Ваш конфигурационный файл должен выглядеть следующим образом:
+
+```toml filename="foundry.toml"
+[profile.default]
+src = "src"
+out = "out"
+libs = ["lib"]
+solc_version = "0.8.23"
+
+[rpc_endpoints]
+base = "https://mainnet.base.org"
+baseSepolia = "https://sepolia.base.org"
+
+[etherscan]
+baseSepolia = { key = "${BASESCAN_API_KEY}", url = "https://api-sepolia.basescan.org/api" }
+base = { key = "${BASESCAN_API_KEY}", url = "https://api.basescan.org/api" }
+```
+
+Мы включили 2 JSON RPC endpoints для `Base` и `Base Sepolia` и аналогично для раздела Etherscan мы включили конфигурацию для `Basescan` для Sepolia и Mainnet. Оба полагаются на один и тот же API-ключ `BASESCAN_API_KEY`.
+
+## Заключение
+
+В этом руководстве вы начали путь разработки смарт-контрактов с Base и Foundry. Вы изучили основные шаги: от установки Foundry с помощью удобного установщика `Foundryup` до создания вашего первого проекта и настройки Foundry для бесшовной интеграции с Base.
+
+[Foundry]: https://github.com/foundry-rs/foundry
+[Foundry Book]: https://book.getfoundry.sh/
+[chisel]: https://book.getfoundry.sh/chisel/
+[cast]: https://book.getfoundry.sh/cast/
+[anvil]: https://book.getfoundry.sh/anvil/
+[forge]: https://book.getfoundry.sh/forge/
+[Git submodules]: https://git-scm.com/book/en/v2/Git-Tools-Submodules
+[OP Stack]: https://docs.optimism.io/
+[Differences between Ethereum and Base]: https://docs.base.org/differences/
+[Basescan]: https://basescan.org/
+

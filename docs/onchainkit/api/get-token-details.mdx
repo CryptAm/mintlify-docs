@@ -1,0 +1,54 @@
+---
+title: getTokenDetails
+openapi: get /getTokenDetails
+---
+
+
+Функция `getTokenDetails` возвращает данные, необходимые для просмотра NFT.
+
+Перед использованием убедитесь, что у вас есть [Client API Key](https://portal.cdp.coinbase.com/projects/api-keys/client-key) от Coinbase Developer Platform.
+
+{/* ## Использование */}
+
+{/* <CodeGroup>
+```tsx code
+import { setOnchainKitConfig } from '@coinbase/onchainkit';
+import { getTokenDetails } from '@coinbase/onchainkit/api';
+
+const response = await getTokenDetails({
+  contractAddress: '0x...',
+  tokenId: '1',
+});
+```
+
+```json return value
+  "collectionName": "NFT Collection Name",
+  "collectionDescription": "NFT Collection Description",
+  "name": "NFT Name",
+  "description": "NFT Description",
+  "imageUrl": "https://example.com/image.png",
+  "animationUrl": "",
+  "ownerAddress": "0x...",
+  "lastSoldPrice": {
+    "amount": "0.0001",
+    "currency": "ETH",
+    "amountUSD": "0.242271"
+  },
+  "mimeType": "image/png",
+  "contractType": "ERC721"
+```
+</CodeGroup> */}
+
+## Возвращает
+
+[`Promise<GetTokenDetailsResponse>`](/onchainkit/api/types#gettokendetailsresponse)
+
+## Параметры
+
+[`GetTokenDetailsParams`](/onchainkit/api/types#gettokendetailsparams)
+
+## Типы
+
+- [`GetTokenDetailsResponse`](/onchainkit/api/types#gettokendetailsresponse)
+- [`GetTokenDetailsParams`](/onchainkit/api/types#gettokendetailsparams)
+

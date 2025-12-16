@@ -1,0 +1,100 @@
+---
+title: Руководство по интеграции Tailwind CSS · OnchainKit
+sidebarTitle: Руководство по интеграции Tailwind CSS
+description: Узнайте, как интегрировать Tailwind CSS с OnchainKit
+---
+
+OnchainKit поддерживает `tailwindcss` на первом уровне.
+
+<Steps>
+  <Step title="Используйте стили OnchainKit по умолчанию">
+  Вы можете использовать стили по умолчанию без какой-либо настройки. 
+  Просто разместите эту строку в начале точки входа вашего приложения, чтобы компоненты работали из коробки.
+
+  ```javascript
+  import '@coinbase/onchainkit/styles.css';
+  ```
+  </Step>
+  <Step title="Конфигурация Tailwind CSS">
+  В зависимости от вашей настройки темной темы, вам может потребоваться добавить `safelist: ['dark']` в вашу конфигурацию Tailwind.
+
+  ```javascript filename="tailwind.config.js"
+  /** @type {import('tailwindcss').Config} */
+  export default {
+    content: ['./src/**/*.{ts,tsx}'],
+    darkMode: ['class'], // [!code focus]
+    safelist: ['dark'], // [!code focus]
+    theme: {
+      fontFamily: {
+        sans: ['Inter', 'sans-serif'],
+      },
+    },
+    plugins: [],
+  };
+  ```
+  </Step>
+  <Step title="Переключение светлой / темной темы">
+  Существует много способов управления цветовым режимом.
+
+  В OnchainKit переключение цветового режима работает путем добавления/удаления имени класса `dark` к корневому тегу html.
+  </Step>
+  <Step title="Переопределение цветовой схемы">
+  Чтобы переопределить цветовую схему по умолчанию, вам нужно изменить следующие CSS-переменные:
+
+  ```css
+  @tailwind base;
+
+  @layer base {
+    :root {
+      --ock-font-family: 'your-custom-value';
+      --ock-border-radius: 'your-custom-value';
+      --ock-border-radius-inner: 'your-custom-value';
+      --ock-text-inverse: 'your-custom-value';
+      --ock-text-foreground: 'your-custom-value';
+      --ock-text-foreground-muted: 'your-custom-value';
+      --ock-text-error: 'your-custom-value';
+      --ock-text-primary: 'your-custom-value';
+      --ock-text-success: 'your-custom-value';
+      --ock-text-warning: 'your-custom-value';
+      --ock-text-disabled: 'your-custom-value';
+
+      --ock-bg-default: 'your-custom-value';
+      --ock-bg-default-hover: 'your-custom-value';
+      --ock-bg-default-active: 'your-custom-value';
+      --ock-bg-alternate: 'your-custom-value';
+      --ock-bg-alternate-hover: 'your-custom-value';
+      --ock-bg-alternate-active: 'your-custom-value';
+      --ock-bg-inverse: 'your-custom-value';
+      --ock-bg-inverse-hover: 'your-custom-value';
+      --ock-bg-inverse-active: 'your-custom-value';
+      --ock-bg-primary: 'your-custom-value';
+      --ock-bg-primary-hover: 'your-custom-value';
+      --ock-bg-primary-active: 'your-custom-value';
+      --ock-bg-primary-washed: 'your-custom-value';
+      --ock-bg-primary-disabled: 'your-custom-value';
+      --ock-bg-secondary: 'your-custom-value';
+      --ock-bg-secondary-hover: 'your-custom-value';
+      --ock-bg-secondary-active: 'your-custom-value';
+      --ock-bg-error: 'your-custom-value';
+      --ock-bg-warning: 'your-custom-value';
+      --ock-bg-success: 'your-custom-value';
+      --ock-bg-default-reverse: 'your-custom-value';
+
+      --ock-icon-color-primary: 'your-custom-value';
+      --ock-icon-color-foreground: 'your-custom-value';
+      --ock-icon-color-foreground-muted: 'your-custom-value';
+      --ock-icon-color-inverse: 'your-custom-value';
+      --ock-icon-color-error: 'your-custom-value';
+      --ock-icon-color-success: 'your-custom-value';
+      --ock-icon-color-warning: 'your-custom-value';
+
+      --ock-line-primary: 'your-custom-value';
+      --ock-line-default: 'your-custom-value';
+      --ock-line-heavy: 'your-custom-value';
+      --ock-line-inverse: 'your-custom-value';
+    }
+  }
+  ```
+  </Step>
+</Steps>
+

@@ -1,0 +1,108 @@
+---
+title: "Настройка"
+description: "Настройте Wagmi с коннектором Base Account для вашего React-приложения"
+---
+
+Узнайте, как настроить Wagmi с Base Account, чтобы включить функциональность Base Account SDK с помощью знакомых React-хуков.
+
+## Обзор
+
+[Wagmi](https://wagmi.sh/) - это набор React-хуков для сетей, совместимых с Ethereum Virtual Machine (EVM), который упрощает работу с кошельками, контрактами, транзакциями и подписью. Base Account идеально интегрируется с Wagmi, позволяя использовать все знакомые хуки.
+
+<Tip>
+Чтобы создать новый проект с Wagmi, вы можете использовать команду `npm create wagmi@latest`.
+</Tip>
+
+## Установка
+
+Если вы начинаете [новый проект с Wagmi](https://wagmi.sh/react/getting-started), вы можете пропустить шаг установки.
+
+Если у вас уже есть проект, вы можете установить зависимости с помощью вашего предпочтительного менеджера пакетов:
+
+<CodeGroup>
+```bash npm
+npm install wagmi viem @base-org/account
+```
+
+```bash pnpm
+pnpm add wagmi viem @base-org/account
+```
+
+```bash yarn
+yarn add wagmi viem @base-org/account
+```
+
+```bash bun
+bun add wagmi viem @base-org/account
+```
+</CodeGroup>
+
+<Tip>
+Чтобы получить доступ к последней версии Base Account SDK в рамках Wagmi, вы можете использовать следующую команду для ее переопределения:
+
+```bash
+npm pkg set overrides.@base-org/account="latest"
+```
+Или вы можете использовать конкретную версию, добавив ее в `overrides`:
+```bash
+npm pkg set overrides.@base-org/account="2.2.0"
+```
+
+Убедитесь, что удалили папку `node_modules` и файл `package-lock.json`, а затем выполните новую установку, чтобы переопределения применились.
+</Tip>
+
+## Конфигурация
+
+### 1. Настройте Wagmi с Base Account
+
+Создайте конфигурацию Wagmi с коннектором Base Account, настроенным для работы с Base Account:
+
+```typescript
+// config/wagmi.ts
+import { http, createConfig } from 'wagmi'
+import { base } from 'wagmi/chains'
+import { baseAccount } from 'wagmi/connectors'
+
+
+export const config = createConfig({
+  chains: [base],
+  connectors: [
+    baseAccount({
+      appName: 'Base App',
+    })
+  ],
+  transports: {
+    [base.id]: http()
+  },
+})
+```
+
+### 2. Оберните ваше приложение
+
+Оберните ваше приложение провайдером Wagmi:
+
+```tsx
+// app/layout.tsx or pages/_app.tsx
+import { WagmiProvider } from 'wagmi'
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
+import { config } from './config/wagmi'
+
+const queryClient = new QueryClient()
+
+export default function App({ children }: { children: React.ReactNode }) {
+  return (
+    <WagmiProvider config={config}>
+      <QueryClientProvider client={queryClient}>
+        {children}
+      </QueryClientProvider>
+    </WagmiProvider>
+  )
+}
+```
+
+## Следующие шаги
+
+Теперь, когда у вас настроен Wagmi с Base Account, вы можете:
+
+- [Подключать пользователей с помощью Sign in with Base](/base-account/framework-integrations/wagmi/sign-in-with-base)
+- [Получить доступ к провайдеру Base Account](/base-account/framework-integrations/wagmi/other-use-cases)

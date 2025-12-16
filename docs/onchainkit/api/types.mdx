@@ -1,0 +1,159 @@
+---
+title: Типы API
+sidebarTitle: API
+description: Глоссарий типов в API.
+---
+
+## `APIError`
+
+```ts
+type APIError = {
+  code: string; // Код ошибки
+  error: string; // Длинное сообщение об ошибке
+  message: string; // Короткое сообщение об ошибке
+};
+```
+
+## `BuildPayTransactionParams`
+
+```ts
+type BuildPayTransactionParams = {
+  address: Address; // Адрес кошелька, производящего оплату
+  chainId: number; // ID цепи (chain) сети оплаты (поддерживается только Base)
+  chargeId: string; // ID Commerce Charge для оплаты
+};
+```
+
+## `BuildPayTransactionResponse`
+
+```ts
+type BuildPayTransactionResponse = PayTransaction | APIError;
+```
+
+## `BuildSwapTransaction`
+
+```ts
+type BuildSwapTransaction = {
+  approveTransaction?: Transaction; // Транзакция approve для ERC20, позволяющая держателям токенов авторизовать расходы
+  fee: Fee; // Комиссия за обмен
+  quote: SwapQuote; // Котировка для обмена
+  transaction: Transaction; // Объект, который разработчики должны передать в signTransaction от Wagmi
+  warning?: QuoteWarning; // Предупреждение, связанное с обменом
+};
+```
+
+## `BuildSwapTransactionParams`
+
+```ts
+type BuildSwapTransactionParams = GetSwapQuoteParams & {
+  fromAddress: Address; // Адрес пользователя
+};
+```
+
+## `BuildSwapTransactionResponse`
+
+```ts
+type BuildSwapTransactionResponse = BuildSwapTransaction | APIError;
+```
+
+## `GetSwapQuoteParams`
+
+```ts
+type GetSwapQuoteParams = {
+  amount: string; // Количество для обмена
+  amountReference?: string; // Референсное количество для обмена
+  from: Token; // Исходный токен для обмена
+  isAmountInDecimals?: boolean; // Указано ли количество в десятичных единицах (decimals)
+  maxSlippage?: string; // Проскальзывание (slippage) для обмена
+  to: Token; // Целевой токен для обмена
+  useAggregator: boolean; // Использовать ли агрегатор DEX
+};
+```
+
+## `GetSwapQuoteResponse`
+
+```ts
+type GetSwapQuoteResponse = SwapQuote | APIError;
+```
+
+## `GetTokensOptions`
+
+```ts
+type GetTokensOptions = {
+  limit?: string; // Максимальное количество возвращаемых токенов (по умолчанию: 50)
+  page?: string; // Номер возвращаемой страницы (по умолчанию: 1)
+  search?: string; // Строка для поиска по имени, символу или адресу токена
+};
+```
+
+## `GetTokensResponse`
+
+```ts
+type GetTokensResponse = Token[] | APIError;
+```
+
+## `GetTokenDetailsParams`
+
+```ts
+type GetTokenDetailsParams = {
+  contractAddress: Address;
+  tokenId?: string;
+};
+```
+
+## `GetTokenDetailsResponse`
+
+```ts
+type GetTokenDetailsResponse = TokenDetails | APIError;
+```
+
+## `GetMintDetailsParams`
+
+```ts
+type GetMintDetailsParams = {
+  contractAddress: Address;
+  takerAddress?: Address;
+  tokenId?: string;
+};
+```
+
+## `GetMintDetailsResponse`
+
+```ts
+type GetMintDetailsResponse = MintDetails | APIError;
+```
+
+## `BuildMintTransactionParams`
+
+```ts
+type BuildMintTransactionParams = {
+  mintAddress: Address;
+  takerAddress: Address;
+  tokenId?: string;
+  quantity: number;
+  network?: string;
+};
+```
+
+## `BuildMintTransactionResponse`
+
+```ts
+type BuildMintTransactionResponse = MintTransaction | APIError;
+```
+
+## `GetPortfoliosParams`
+
+```ts
+type GetPortfoliosParams = {
+  addresses: Address[] | null | undefined;
+};
+```
+
+## `GetPortfoliosResponse`
+
+```ts
+type GetPortfoliosResponse = {
+  portfolios: Portfolio[];
+};
+```
+

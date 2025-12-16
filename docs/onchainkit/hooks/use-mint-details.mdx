@@ -1,0 +1,86 @@
+---
+title: useMintDetails
+---
+
+
+Хук `useMintDetails` реализует API `getMintDetails`, возвращая данные, необходимые для просмотра NFT, доступного для минтинга (создания).
+
+Он реализован с помощью [useQuery](https://tanstack.com/query/latest/docs/framework/react/reference/useQuery) из `@tanstack/react-query`, и возвращает объект `UseQueryResult`, позволяя вам передавать все опции `@tanstack/react-query`.
+
+Перед их использованием убедитесь, что вы получили [Client API Key](https://portal.cdp.coinbase.com/projects/api-keys/client-key) от Coinbase Developer Platform.
+
+## Использование
+
+<CodeGroup>
+```tsx code
+import { useMintDetails } from '@coinbase/onchainkit/nft';
+
+const Component = () => {
+  const { data, isLoading, error } = useMintDetails({
+    contractAddress: '0x...',
+    takerAddress: '0x...',
+    tokenId: '1',
+  });
+
+  if (isLoading) return <div>Loading...</div>;
+  
+  return <div>{JSON.stringify(data)}</div>;
+};
+```
+
+```tsx scaffolding
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import { OnchainKitProvider } from '@coinbase/onchainkit';
+import { useTokenDetails } from '@coinbase/onchainkit/nft';
+
+const queryClient = new QueryClient();
+
+<QueryClientProvider client={queryClient}>
+  <OnchainKitProvider
+    apiKey={...apiKey}
+    chain={base}
+  >
+    <Component />
+  </OnchainKitProvider>
+</QueryClientProvider>
+```
+
+
+```json return value
+{
+  "data": {
+    "name": "NFT Name",
+    "description": "NFT description",
+    "imageUrl": "https://example.com/image.png",
+    "animationUrl": "",
+    "mimeType": "image/png",
+    "contractType": "ERC721",
+    "price": {
+      "amount": "0.0001",
+      "currency": "ETH",
+      "amountUSD": "0.242271"
+    },
+    "mintFee": {
+      "amount": "0",
+      "currency": "ETH",
+      "amountUSD": "0"
+    },
+    "maxMintsPerWallet": 100,
+    "isEligibleToMint": true,
+    "creatorAddress": "0x...",
+    "network": "",
+    "totalTokens": "300",
+    "totalOwners": "200"
+  }
+}
+```
+</CodeGroup>
+
+## Возвращает
+
+[`UseQueryResult<MintDetails>`](/onchainkit/api/types#getmintdetailsresponse)
+
+## Параметры
+
+[`GetMintDetailsParams`](/onchainkit/api/types#getmintdetailsparams)
+

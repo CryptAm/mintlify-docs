@@ -1,0 +1,206 @@
+---
+title: "Мобильные приложения (React Native)"
+---
+
+import { Danger } from "/snippets/danger.mdx";
+import { GithubRepoCard } from "/snippets/GithubRepoCard.mdx"
+
+В этом руководстве объясняется, как добавить поддержку Base Account в приложение на React Native путем интеграции
+[Клиента Мобильного Протокола Кошелька](https://www.npmjs.com/package/@mobile-wallet-protocol/client).
+
+<Note>
+  Эта документация обновлена для Клиента Мобильного Протокола Кошелька версии `v1.0.0`
+</Note>
+
+<Danger>
+  **Обработка глубоких ссылок**
+
+  Критическое изменение в v1.0.0: требования к Universal Links и App Links удалены в пользу 
+  пользовательских схем (custom schemes), например `myapp://`.
+</Danger>
+
+## Перед началом работы
+
+Это руководство проведет вас через процесс добавления поддержки Base Account в существующее приложение React Native или стартовый проект.
+
+Если вы хотите сразу перейти к рабочему примеру, перейдите в репозиторий ниже:
+
+<GithubRepoCard title="Пример приложения на Expo для Mobile Wallet Protocol" githubUrl="https://github.com/MobileWalletProtocol/smart-wallet-expo-example" />
+
+
+Если вы хотите интегрировать Base Account в существующее приложение React Native или стартовый проект, следуйте приведенным ниже инструкциям.
+
+## Шаг 1: Установите Клиент Мобильного Протокола Кошелька
+
+Добавьте последнюю версию [Клиента Мобильного Протокола Кошелька](https://mobilewalletprotocol.github.io/wallet-mobile-sdk/) в ваш проект.
+
+<CodeGroup>
+```zsh npm
+npm i @mobile-wallet-protocol/client@latest
+```
+
+```zsh yarn
+yarn add @mobile-wallet-protocol/client@latest
+```
+</CodeGroup>
+
+## Шаг 2: Добавьте полифиллы
+
+### Установите peer-зависимости
+
+Библиотеке Клиента Мобильного Протокола Кошелька требуются установленные пакеты [Expo WebBrowser](https://docs.expo.dev/versions/latest/sdk/webbrowser/) и [Async Storage](https://react-native-async-storage.github.io/async-storage/docs/install).
+Следуйте инструкциям на соответствующих страницах для любой дополнительной настройки.
+
+<CodeGroup>
+```zsh npm
+npm i expo expo-web-browser @react-native-async-storage/async-storage
+```
+
+```zsh yarn
+yarn add expo expo-web-browser @react-native-async-storage/async-storage
+```
+</CodeGroup>
+
+### Полифиллы
+
+Клиенту Мобильного Протокола Кошелька требуются глобально доступные полифиллы для `crypto.randomUUID`, `crypto.getRandomValues` и `URL`, так как они недоступны в среде React Native.
+
+Ниже приведен пример, как добавить полифиллы для этих функций в ваше приложение с помощью пакетов [expo-crypto](https://docs.expo.dev/versions/latest/sdk/crypto/) и [expo-standard-web-crypto](https://github.com/expo/expo/tree/master/packages/expo-standard-web-crypto/).
+
+<CodeGroup>
+```zsh npm
+npm i expo-crypto expo-standard-web-crypto react-native-url-polyfill
+```
+
+```zsh yarn
+yarn add expo-crypto expo-standard-web-crypto react-native-url-polyfill
+```
+</CodeGroup>
+
+<CodeGroup>
+```js polyfills.js
+import "react-native-url-polyfill/auto";
+import { polyfillWebCrypto } from "expo-standard-web-crypto";
+import { randomUUID } from "expo-crypto";
+
+polyfillWebCrypto();
+crypto.randomUUID = randomUUID;
+```
+
+```tsx App.tsx
+import "./polyfills"; // import before @mobile-wallet-protocol/client
+
+import { CoinbaseWalletSDK } from "@mobile-wallet-protocol/client";
+
+/// ...
+```
+</CodeGroup>
+
+## Шаг 3: Использование
+
+Клиент Мобильного Протокола Кошелька предоставляет 2 интерфейса для взаимодействия мобильного приложения с Base Account: интерфейс провайдера, совместимый со стандартом EIP-1193, и коннектор для wagmi.
+
+<Check>
+  Если ваше приложение использует агрегатор кошельков, переходите сразу к 
+  [**Варианту 2: Коннектор Wagmi**](#option-2-wagmi-connector) для интеграции в одну строку.
+</Check>
+
+### Вариант 1: Провайдер EIP-1193
+
+<Warning>
+  Префикс `app` в параметрах конфигурации SDK удален в версии `v1.0.0`.
+</Warning>
+
+Создайте новый экземпляр `EIP1193Provider`, который совместим со стандартом EIP-1193.
+
+```tsx App.tsx
+import { EIP1193Provider } from "@mobile-wallet-protocol/client";
+
+// Шаг 1. Инициализируйте провайдер с метаданными вашего dapp и целевым кошельком
+const metadata = {
+  name: "My App Name",
+  customScheme: "myapp://", // в v1.0.0 поддерживаются только пользовательские схемы (например `myapp://`)
+  chainIds: [8453],
+  logoUrl: "https://example.com/logo.png",
+};
+const provider = new EIP1193Provider({
+  metadata,
+  wallet: Wallets.CoinbaseSmartWallet,
+});
+
+// ...
+
+// 2. Используйте провайдер
+const addresses = await provider.request({ method: "eth_requestAccounts" });
+const signedData = await provider.request({
+  method: "personal_sign",
+  params: ["0x48656c6c6f20776f726c6421", addresses[0]],
+});
+```
+
+### Вариант 2: Коннектор Wagmi
+
+Добавьте последнюю версию коннекторов Mobile Wallet Protocol для wagmi в ваш проект.
+
+<CodeGroup>
+```zsh npm
+npm i @mobile-wallet-protocol/wagmi-connectors@latest
+```
+
+```zsh yarn
+yarn add @mobile-wallet-protocol/wagmi-connectors@latest
+```
+</CodeGroup>
+
+Просто импортируйте функцию `createConnectorFromWallet` и передайте ей нужный кошелек в конфигурацию wagmi.
+
+```ts config.ts
+import {
+  createConnectorFromWallet,
+  Wallets,
+} from "@mobile-wallet-protocol/wagmi-connectors";
+
+const metadata = {
+  name: "My App Name",
+  customScheme: "myapp://", // в v1.0.0 поддерживаются только пользовательские схемы (например `myapp://`)
+  chainIds: [8453],
+  logoUrl: "https://example.com/logo.png",
+};
+
+export const config = createConfig({
+  chains: [base],
+  connectors: [
+    createConnectorFromWallet({
+      metadata,
+      wallet: Wallets.CoinbaseSmartWallet,
+    }),
+  ],
+  transports: {
+    [base.id]: http(),
+  },
+});
+```
+
+Затем вы можете использовать React-интерфейс wagmi для взаимодействия с Base Account.
+
+```tsx App.tsx
+import { useConnect } from "wagmi";
+
+// ...
+
+const { connect, connectors } = useConnect();
+
+return (
+  <Button
+    title={"Connect"}
+    onPress={() => {
+      connect({ connector: connectors[0] });
+    }}
+  />
+);
+```
+
+## Поделитесь отзывом!
+
+Отправьте нам отзыв в [дискорд Base](https://discord.com/invite/buildonbase/) или создайте новую проблему (issue) в репозитории [MobileWalletProtocol/react-native-client](https://github.com/MobileWalletProtocol/react-native-client/issues).
+

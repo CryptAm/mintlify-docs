@@ -1,0 +1,305 @@
+---
+title: "Прием повторяющихся платежей"
+description: "Включите модели дохода на основе подписок с автоматическими платежами в USDC"
+---
+
+import {BasePayButton} from "/snippets/BasePayButton.mdx"
+import {SignInWithBaseButton} from "/snippets/SignInWithBaseButton.mdx"
+
+## Начните принимать повторяющиеся платежи с помощью Base Pay Subscriptions
+
+Base Subscriptions позволяют создавать предсказуемые, повторяющиеся потоки доходов, принимая автоматические платежи в USDC. Независимо от того, управляете ли вы SaaS-платформой, сервисом подписки на контент или любой другой бизнес-моделью, требующей регулярных платежей, Base Subscriptions предоставляют бесшовное решение без комиссий для мерчантов.
+
+**Ключевые возможности:**
+
+<AccordionGroup>
+<Accordion title="Гибкие периоды выставления счетов">
+Поддержка любого цикла оплаты, подходящего для вашей бизнес-модели:
+- Ежедневные подписки для краткосрочных услуг 
+- Еженедельные для регулярных поставок или услуг
+- Ежемесячные для стандартных SaaS-подписок 
+- Годовые для долгосрочных обязательств со скидкой
+- Пользовательские периоды (например, 14 дней, 90 дней) для уникальных моделей
+</Accordion>
+
+<Accordion title="Частичная и покомпонентная оплата">
+Списание любой суммы в пределах разрешенного лимита:
+- Фиксированные повторяющиеся суммы для предсказуемого биллинга 
+- Переменные платежи на основе использования в пределах лимита 
+- Многоуровневое ценообразование с разными суммами списания 
+- Пропорциональные платежи за изменения в середине цикла
+</Accordion>
+
+<Accordion title="Управление подписками">
+Полный контроль над жизненным циклом подписки:
+- Проверка статуса в реальном времени для подтверждения активных подписок 
+- Оставшаяся сумма к списанию в текущем периоде 
+- Дата начала следующего периода для планирования 
+- Обнаружение отмены для немедленного обновления
+</Accordion>
+
+<Accordion title="Функции для корпоративного использования">
+Созданы для рабочих сценариев:
+- Отсутствие комиссий за транзакции или платформенных отчислений 
+- Мгновенное завершение расчетов в стейблкоине USDC 
+- Поддержка тестовой сети (testnet) для разработки и тестирования 
+- Подробная история транзакций для бухгалтерии 
+- Программный доступ через SDK
+</Accordion>
+</AccordionGroup>
+
+## Как это работает
+
+Base Subscriptions используют **Разрешения на траты** - мощную ончейн-примитив, которая позволяет пользователям предоставлять приложениям отзывные права на списание средств. Вот полная схема работы:
+
+<Steps>
+<Step title="Пользователь подтверждает подписку">
+Ваш клиент предоставляет вашему приложению разрешение на списание средств с его кошелька до определенной суммы за каждый расчетный период. Это одноразовое подтверждение, которое остается активным до отмены.
+</Step>
+
+<Step title="Автоматическое периодическое списание">
+Ваш бэкенд-сервис списывает средства по подписке, когда наступает срок платежа, без необходимости какого-либо взаимодействия с пользователем. Вы можете списывать средства до утвержденной суммы за период.
+</Step>
+
+<Step title="Умное управление периодами">
+Лимит трат автоматически сбрасывается в начале каждого нового периода. Если вы не списали полную сумму в одном периоде, она не переносится на следующий.
+</Step>
+
+<Step title="Пользователь сохраняет контроль">
+лиенты могут просматривать и отменять свои подписки в любое время через свой кошелек, что обеспечивает прозрачность и доверие.
+</Step>
+</Steps>
+
+## Руководство по реализации
+
+### Обзор архитектуры
+
+Полная реализация подписок требует как клиентских, так и серверных компонентов:
+
+**Клиентская часть (Фронтенд):**
+- Пользовательский интерфейс для создания подписки
+- Создание запросов к кошельку и обработка ответов пользователя
+
+**Серверная часть (Бэкенд):**
+- Кошелек для выполнения списаний
+-Запланированные задачи для периодического биллинга
+- База данных для отслеживания подписок
+- Обработчики обновлений статуса
+- Логика повторов для неудачных списаний
+
+<Warning>
+**Требования безопасности**
+
+Для приема повторяющихся платежей вам необходимо:
+1. Выделенный адрес кошелька, который будет выступать в роли владельца подписки
+2. Бэкенд-инфраструктура для безопасного выполнения списаний
+3. База данных для хранения и управления ID подписок
+4. Никогда не раскрывайте приватные ключи в клиентском коде
+</Warning>
+
+### Клиентская часть: Создание подписок
+
+Пользователи создают подписки из вашего фронтенд-приложения:
+
+```tsx SubscriptionButton.tsx expandable
+import React, { useState } from 'react';
+import { base } from '@base-org/account';
+
+export function SubscriptionButton() {
+  const [loading, setLoading] = useState(false);
+  const [subscribed, setSubscribed] = useState(false);
+  const [subscriptionId, setSubscriptionId] = useState('');
+  
+  const handleSubscribe = async () => {
+    setLoading(true);
+    
+    try {
+      // Создаем подписку
+      const subscription = await base.subscription.subscribe({
+        recurringCharge: "29.99",
+        subscriptionOwner: "0xYourAppWallet", // Замените на адрес вашего кошелька
+        periodInDays: 30,
+        testnet: false
+      });
+      
+      // Сохраняем ID подписки для дальнейшего использования
+      setSubscriptionId(subscription.id);
+      console.log('Subscription created:', subscription.id);
+      console.log('Payer:', subscription.subscriptionPayer);
+      console.log('Amount:', subscription.recurringCharge);
+      console.log('Period:', subscription.periodInDays, 'days');
+      
+      // Отправляем ID подписки на ваш бэкенд
+      await saveSubscriptionToBackend(subscription.id, subscription.subscriptionPayer);
+      
+      setSubscribed(true);
+      
+    } catch (error) {
+      console.error('Subscription failed:', error);
+      alert('Failed to create subscription: ' + error.message);
+    } finally {
+      setLoading(false);
+    }
+  };
+  
+  const saveSubscriptionToBackend = async (id: string, payer: string) => {
+    // Пример API-вызова для сохранения подписки в вашей базе данных
+    const response = await fetch('/api/subscriptions', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ subscriptionId: id, payerAddress: payer })
+    });
+    
+    if (!response.ok) {
+      throw new Error('Failed to save subscription');
+    }
+  };
+  
+  if (subscribed) {
+    return (
+      <div className="subscription-status">
+        <Check>✅ Subscription active</Check>
+        <p>Subscription ID: {subscriptionId.slice(0, 10)}...</p>
+      </div>
+    );
+  }
+  
+  return (
+    <button 
+      onClick={handleSubscribe} 
+      disabled={loading}
+      className="subscribe-button"
+    >
+      {loading ? 'Processing...' : 'Subscribe - $29.99/month'}
+    </button>
+  );
+}
+```
+
+### Серверная часть: Списание по подпискам
+
+Выполняйте списания из вашего бэкенд-сервиса, который контролирует кошелек владельца подписки:
+```typescript chargeSubscriptions.ts expandable
+import { base } from '@base-org/account';
+import { createWalletClient, http } from 'viem';
+import { privateKeyToAccount } from 'viem/accounts';
+import { base as baseChain } from 'viem/chains';
+
+// Инициализируем клиент кошелька с учетной записью владельца подписки
+const account = privateKeyToAccount('0x...'); // Приватный ключ вашего приложения
+const walletClient = createWalletClient({
+  account,
+  chain: baseChain,
+  transport: http()
+});
+
+async function chargeSubscription(subscriptionId: string) {
+  try {
+    // 1. Проверяем статус подписки
+const status = await base.subscription.getStatus({
+      id: subscriptionId,
+      testnet: false
+    });
+    
+    if (!status.isSubscribed) {
+      console.log('Subscription cancelled by user');
+      return { success: false, reason: 'cancelled' };
+    }
+    
+    const availableCharge = parseFloat(status.remainingChargeInPeriod || '0');
+    
+    if (availableCharge === 0) {
+      console.log(`No charge available until ${status.nextPeriodStart}`);
+      return { success: false, reason: 'no_charge_available' };
+    }
+    
+    // 2. Подготавливаем транзакцию списания на максимальную доступную сумму
+    const chargeCalls = await base.subscription.prepareCharge({
+      id: subscriptionId,
+      amount: 'max-remaining-charge',
+      testnet: false
+    });
+    
+    // 3. Выполняем каждый вызов списания с помощью стандартного sendTransaction
+    // Примечание: prepareCharge может вернуть несколько вызовов (например, approval + transfer)
+    // Мы выполняем их последовательно, чтобы обеспечить правильный порядок
+    const transactionHashes = [];
+    
+    for (const call of chargeCalls) {
+      const hash = await walletClient.sendTransaction({
+        to: call.to,
+        data: call.data,
+        value: call.value || 0n
+      });
+      
+      transactionHashes.push(hash);
+      
+      // Ждем подтверждения транзакции перед следующим вызовом
+      await walletClient.waitForTransactionReceipt({ hash });
+    }
+    
+    
+    console.log(`Charged ${availableCharge} USDC`);
+    console.log(`Transactions: ${transactionHashes.join(', ')}`);
+    
+    return {
+      success: true,
+      transactionHashes,
+      amount: availableCharge
+    };
+    
+  } catch (error) {
+    console.error('Charge failed:', error);
+    return { success: false, error: error.message };
+  }
+}
+```
+<Warning>
+**Безопасность приватного ключа**
+
+Никогда не раскрывайте приватный ключ владельца подписки.
+</Warning>
+
+### Тестирование в тестовой сети
+
+Протестируйте вашу реализацию подписок в сети Base Sepolia перед запуском в рабочую сеть:
+
+```typescript testnet.ts expandable
+// Используйте тестовую сеть для разработки
+const subscription = await base.subscription.subscribe({
+  recurringCharge: "10.00",
+  subscriptionOwner: "0xTestWallet",
+  periodInDays: 1, // Ежедневно для более быстрого тестирования
+  testnet: true     // Используем Base Sepolia
+});
+
+// Проверяем статус в тестовой сети
+const status = await base.subscription.getStatus({
+  id: subscription.id,
+  testnet: true
+});
+
+// Подготавливаем списание в тестовой сети
+const calls = await base.subscription.prepareCharge({
+  id: subscription.id,
+  amount: "10.00",
+  testnet: true
+});
+```
+
+## Поддержка сетей
+
+| Сеть    | Chain ID | Статус |
+|---------|----------|--------|
+| Base Mainnet | 8453 | ✅ Готово для продакшена |
+| Base Sepolia | 84532 | ✅ Доступно для тестирования |
+
+
+## Дополнительные ресурсы
+- [Справочник по подпискам](/base-account/reference/base-pay/subscriptions-overview)
+- [Разрешения на траты](/base-account/improve-ux/spend-permissions)
+
+
+import PolicyBanner from "/snippets/PolicyBanner.mdx";
+
+<PolicyBanner />

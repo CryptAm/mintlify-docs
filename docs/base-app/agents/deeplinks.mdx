@@ -1,0 +1,94 @@
+---
+title: 'Deeplinks для взаимодействия с агентами'
+description: 'Узнайте, как использовать deeplinks для создания бесшовных взаимодействий с агентами и прямых пользовательских действий в Base App.'
+sidebarTitle: 'Deeplinks'
+---
+
+> **Что вы узнаете**  
+> К концу этого руководства вы сможете:
+> - Реализовать deeplinks для прямого обмена сообщениями с агентами
+> - Создавать бесшовные пользовательские потоки между групповыми и приватными беседами
+> - Следовать лучшим практикам реализации deeplinks
+> - Обрабатывать запасные варианты и совместимость между клиентами
+
+## Обзор
+
+Deeplinks обеспечивают бесшовную навигацию в Base App, позволяя агентам создавать более вовлекающий и интуитивный пользовательский опыт. Наиболее распространённый вариант использования - направление пользователей к началу приватной беседы с агентом из контекста группового чата.
+
+## Deeplinks для личных сообщений
+
+### Вариант использования
+
+У вашего мини-приложения есть агент, и вы хотите побудить людей общаться с агентом напрямую. Или ваш агент существует в контексте группового чата и хочет, чтобы пользователи взаимодействовали с ним приватно. Вы можете добавить кнопку типа "Поговорить со мной" и использовать этот deeplink.
+
+### Синтаксис
+
+```
+cbwallet://messaging/address
+```
+
+### Параметры
+
+- **address** — 0x адрес пользователя, с которым вы хотите общаться (в шестнадцатеричном формате, например, 0xabc...1234)
+
+### Примеры реализации
+
+**Базовая реализация кнопки:**
+
+```typescript
+<button 
+  onClick={() => openUrl("cbwallet://messaging/0x5993B8F560E17E438310c76BCac1Af3E6DA2A58A")} 
+  className="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-lg"
+>
+  Chat with me privately
+</button>
+```
+
+**React-компонент с обработкой ошибок:**
+
+```typescript
+import { useState } from 'react';
+
+interface DeeplinkButtonProps {
+  agentAddress: string;
+  label?: string;
+  className?: string;
+}
+
+export function DeeplinkButton({ 
+  agentAddress, 
+  label = "Direct Message",
+  className = "btn-primary" 
+}: DeeplinkButtonProps) {
+  const [isLoading, setIsLoading] = useState(false);
+
+  const handleDeeplink = async () => {
+    setIsLoading(true);
+    try {
+      const deeplink = `cbwallet://messaging/${agentAddress}`;
+      
+      // Проверить, работает ли в поддерживаемой среде
+      if (typeof window !== 'undefined') {
+        window.location.href = deeplink;
+      } else {
+        // Запасной вариант для серверного рендеринга
+        console.warn('Deeplink not supported in this environment');
+      }
+    } catch (error) {
+      console.error('Failed to open deeplink:', error);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  return (
+    <button 
+      onClick={handleDeeplink}
+      disabled={isLoading}
+      className={className}
+    >
+      {isLoading ? 'Opening...' : label}
+    </button>
+  );
+}
+```

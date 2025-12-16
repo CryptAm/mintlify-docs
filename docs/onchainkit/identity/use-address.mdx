@@ -1,0 +1,31 @@
+---
+title: useAddress
+---
+
+
+Хук `useAddress` используется для получения адреса от провайдера ончейн-идентификации по заданному имени.
+
+Он реализован с помощью [useQuery](https://tanstack.com/query/latest/docs/framework/react/reference/useQuery) из `@tanstack/react-query` и возвращает объект `UseQueryResult`, позволяя вам передавать все опции `@tanstack/react-query`.
+
+## Использование
+
+```tsx
+import { useAddress } from '@coinbase/onchainkit/identity';
+
+const { data: address, isLoading } = useAddress({ name: 'zizzamia.base.eth' });
+```
+
+## Возвращает
+
+[`useQuery<Promise<GetAddressReturnType>>`](/onchainkit/identity/types#getaddressreturntype)
+
+## Параметры
+
+### UseAddressOptions
+
+[`UseAddressOptions`](/onchainkit/identity/types#useaddressoptions)
+
+### UseQueryOptions
+
+[`UseQueryOptions`](/onchainkit/identity/types#usequeryoptions)
+

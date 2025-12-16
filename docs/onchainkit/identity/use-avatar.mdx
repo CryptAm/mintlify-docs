@@ -1,0 +1,32 @@
+---
+title: useAvatar
+---
+
+
+Хук `useAvatar` используется для получения URL изображения аватара от провайдера 
+ончейн-идентификации по заданному имени.
+
+Он реализован с помощью [useQuery](https://tanstack.com/query/latest/docs/framework/react/reference/useQuery) из `@tanstack/react-query` и возвращает объект `UseQueryResult`, позволяя вам передавать все опции `@tanstack/react-query`.
+
+## Использование
+
+```tsx
+import { useAvatar } from '@coinbase/onchainkit/identity';
+
+const { data: avatar, isLoading } = useAvatar({ ensName: 'vitalik.eth' });
+```
+
+## Возвращает
+
+[`useQuery<Promise<GetAddressReturnType>>`](/onchainkit/identity/types#getaddressreturntype)
+
+## Параметры
+
+### UseAvatarOptions
+
+[`UseAvatarOptions`](/onchainkit/identity/types#useavataroptions)
+
+### UseQueryOptions
+
+[`UseQueryOptions`](/onchainkit/identity/types#usequeryoptions)
+

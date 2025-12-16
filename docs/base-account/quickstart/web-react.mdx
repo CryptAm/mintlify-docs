@@ -1,0 +1,241 @@
+---
+title: "Web (Next.js)"
+description: "Быстро добавьте Sign in with Base и Base Pay в любое приложение Next.js"
+---
+
+import { GithubRepoCard } from "/snippets/GithubRepoCard.mdx"
+
+Этот быстрый старт показывает минимальный код, необходимый для добавления Sign in with Base (SIWB) и Base Pay в любое приложение Next.js с использованием Base Account SDK.
+
+## 1. Создайте новое приложение Next.js
+
+Если вы начинаете с нуля, создайте новое приложение Next.js:
+
+<CodeGroup>
+```bash npm
+npx create-next-app@latest base-account-quickstart
+cd base-account-quickstart
+```
+
+```bash yarn
+yarn create next-app base-account-quickstart
+cd base-account-quickstart
+```
+
+```bash pnpm
+pnpm create next-app base-account-quickstart
+cd base-account-quickstart
+```
+
+```bash bun
+bunx create-next-app base-account-quickstart
+cd base-account-quickstart
+```
+</CodeGroup>
+
+При настройке вы можете выбрать стандартные параметры или изменить их по необходимости. Для этого быстрого старта стандартные настройки подходят идеально.
+
+## 2. Установите SDK
+
+<CodeGroup>
+```bash npm
+npm install @base-org/account @base-org/account-ui
+```
+
+```bash pnpm
+pnpm add @base-org/account @base-org/account-ui
+```
+
+```bash yarn
+yarn add @base-org/account @base-org/account-ui
+```
+
+```bash bun
+bun add @base-org/account @base-org/account-ui
+```
+</CodeGroup>
+
+<Tip>
+**Получили ошибку о peer dependency?**
+
+Используйте флаг `--legacy-peer-deps`, если получили ошибку о peer dependency.
+</Tip>
+
+## 3. Создайте основной компонент
+
+Замените содержимое `app/page.tsx` (или `app/page.js`, если не используете TypeScript) этим компонентом:
+
+```jsx title="app/page.tsx" lineNumbers
+'use client';
+
+import React, { useState } from 'react';
+import { createBaseAccountSDK, pay, getPaymentStatus } from '@base-org/account';
+import { SignInWithBaseButton, BasePayButton } from '@base-org/account-ui/react';
+
+export default function Home() {
+  const [isSignedIn, setIsSignedIn] = useState(false);
+  const [paymentStatus, setPaymentStatus] = useState('');
+  const [paymentId, setPaymentId] = useState('');
+  const [theme, setTheme] = useState('light');
+
+  // Инициализируем SDK
+  const sdk = createBaseAccountSDK(
+    {
+      appName: 'Base Account Quick-start',
+      appLogoUrl: 'https://base.org/logo.png',
+    }
+  );
+
+  // Опциональный шаг входа – не требуется для `pay()`, но полезен для получения адреса пользователя
+  const handleSignIn = async () => {
+    try {
+      await sdk.getProvider().request({ method: 'wallet_connect' });
+      setIsSignedIn(true);
+    } catch (error) {
+      console.error('Sign in failed:', error);
+    }
+  };
+
+  // Платеж USDC в одно нажатие с использованием функции `pay()`
+  const handlePayment = async () => {
+    try {
+      const { id } = await pay({
+        amount: '0.01', // USD – SDK конвертирует в эквивалент USDC
+        to: '0xRecipientAddress', // Замените на адрес получателя
+        testnet: true // установите false или опустите для Mainnet
+      });
+
+      setPaymentId(id);
+      setPaymentStatus('Payment initiated! Click "Check Status" to see the result.');
+    } catch (error) {
+      console.error('Payment failed:', error);
+      setPaymentStatus('Payment failed');
+    }
+  };
+
+  // Проверка статуса платежа с использованием сохраненного ID платежа
+  const handleCheckStatus = async () => {
+    if (!paymentId) {
+      setPaymentStatus('No payment ID found. Please make a payment first.');
+      return;
+    }
+
+    try {
+      const { status } = await getPaymentStatus({ id: paymentId });
+      setPaymentStatus(`Payment status: ${status}`);
+    } catch (error) {
+      console.error('Status check failed:', error);
+      setPaymentStatus('Status check failed');
+    }
+  };
+
+  const toggleTheme = () => {
+    setTheme(theme === 'light' ? 'dark' : 'light');
+  };
+
+  const dark = theme === 'dark';
+  const styles = {
+    container: { minHeight: '100vh', backgroundColor: dark ? '#111' : '#fff', color: dark ? '#fff' : '#000', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '20px' },
+    card: { backgroundColor: dark ? '#222' : '#f9f9f9', borderRadius: '12px', padding: '30px', maxWidth: '400px', textAlign: 'center' },
+    title: { fontSize: '24px', fontWeight: 'bold', marginBottom: '10px', color: dark ? '#fff' : '#00f' },
+    subtitle: { fontSize: '16px', color: dark ? '#aaa' : '#666', marginBottom: '30px' },
+    themeToggle: { position: 'absolute', top: '20px', right: '20px', background: 'none', border: 'none', cursor: 'pointer', fontSize: '18px' },
+    buttonGroup: { display: 'flex', flexDirection: 'column', gap: '16px', alignItems: 'center' },
+    status: { marginTop: '20px', padding: '12px', backgroundColor: dark ? '#333' : '#f0f0f0', borderRadius: '8px', fontSize: '14px' },
+    signInStatus: { marginTop: '8px', fontSize: '14px', color: dark ? '#0f0' : '#060' }
+  };
+
+  return (
+    <div style={styles.container}>
+      <button onClick={toggleTheme} style={styles.themeToggle}>
+        {theme === 'light' ? '🌙' : '☀️'}
+      </button>
+      
+      <div style={styles.card}>
+        <h1 style={styles.title}>Base Account</h1>
+        <p style={styles.subtitle}>Experience seamless crypto payments</p>
+        
+        <div style={styles.buttonGroup}>
+          <SignInWithBaseButton 
+            align="center"
+            variant="solid"
+            colorScheme={theme}
+            size="medium"
+            onClick={handleSignIn}
+          />
+          
+          {isSignedIn && (
+            <div style={styles.signInStatus}>
+              ✅ Connected to Base Account
+            </div>
+          )}
+          
+          <BasePayButton 
+            colorScheme={theme}
+            onClick={handlePayment}
+          />
+          
+          {paymentId && (
+            <button 
+              onClick={handleCheckStatus}
+              style={{
+                padding: '12px 24px',
+                backgroundColor: theme === 'dark' ? '#374151' : '#f3f4f6',
+                color: theme === 'dark' ? '#ffffff' : '#1f2937',
+                border: `1px solid ${theme === 'dark' ? '#6b7280' : '#d1d5db'}`,
+                borderRadius: '8px',
+                cursor: 'pointer',
+                fontSize: '14px'
+              }}
+            >
+              Check Payment Status
+            </button>
+          )}
+        </div>
+
+        {paymentStatus && (
+          <div style={styles.status}>
+            {paymentStatus}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+```
+
+<Note>
+**Примечание:**
+
+Убедитесь, что заменили `0xRecipientAddress` на адрес вашего получателя.
+</Note>
+
+<Tip>
+**Base Pay и SIWB работают независимо**
+
+Вам НЕ нужно использовать Sign in with Base (SIWB) для работы с Base Pay. Вы можете просто вызвать функцию `pay()` без какой-либо дополнительной настройки.
+</Tip>
+
+## 4. Запустите ваше приложение
+
+```bash
+npm run dev
+```
+
+Откройте http://localhost:3000, нажмите **Sign in with Base** (опционально) а затем **Pay**, подтвердите транзакцию, и вы отправили 5 USDC в сети Base Sepolia — готово! 🎉
+
+**Примечание:** Если у вас уже есть приложение на Next.js, просто установите SDK (`npm install @base-org/account @base-org/account-ui`) и добавьте приведенный выше компонент в ваш проект. Для других React-фреймворков вы можете адаптировать этот компонент по необходимости.
+
+## Следующие шаги
+
+* **[Аутентификация пользователей](/base-account/guides/authenticate-users)** - настройка надежной аутентификации с помощью Sign in with Base и проверкой на стороне сервера
+* **[Прием платежей](/base-account/guides/accept-payments)** изучите все возможности Base Pay
+* **[Кнопка Sign in with Base](/base-account/reference/ui-elements/sign-in-with-base-button)** – используйте компонент кнопки для быстрого добавления аутентификации в ваше приложение
+* **[Кнопка Base Pay](/base-account/reference/ui-elements/base-pay-button)** – используйте компонент кнопки для быстрого добавления платежей в ваше приложение
+
+<Warning>
+**Пожалуйста, следуйте руководству по бренду** 
+
+Если вы планируете использовать SignInWithBaseButton или BasePayButton, пожалуйста, следуйте [руководству по бренду](/base-account/reference/ui-elements/brand-guidelines) чтобы обеспечить единообразие в вашем приложении.
+
+</Warning>

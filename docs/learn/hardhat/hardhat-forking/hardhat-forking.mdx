@@ -1,0 +1,179 @@
+---
+title: Hardhat Forking
+description: Узнайте, как форкать
+hide_table_of_contents: false
+---
+
+# Hardhat Forking
+
+В этой статье вы узнаете, как форкать смарт-контракты в основной сети Ethereum с помощью Hardhat.
+
+---
+
+## Цели обучения
+
+После изучения этого урока вы сможете:
+
+- Использовать Hardhat Network для создания локальной копии (форка) основной сети и развернуть в нее контракт
+- Использовать функции форкинга Hardhat для настройки форка для различных случаев использования
+
+---
+
+## Обзор
+
+Хардкат-форкинг - это мощная функция, которая позволяет разработчикам создавать локальную копию или форк сети Ethereum или любого другого блокчейна, совместимого с EVM. Используя эту функцию, вы можете разрабатывать смарт-контракты, которые зависят от смарт-контрактов, уже развернутых в определенной сети.
+
+Вы создадите контракт `BalanceReader.sol`, который читает баланс USDC определенного держателя.
+
+Для этого вам необходимо:
+
+- Создать контракт BalanceReader.sol
+- Настроить Hardhat для поддержки форкинга
+- Создать тест для контракта BalanceReader.sol
+
+Hardhat forking также имеет другие возможности, такие как:
+
+- hardhat_impersonateAccount (полезно для выдачи себя за другую учетную запись и других целей)
+- hardhat_stopImpersonatingAccount
+- hardhat_setNonce
+- hardhat_setBalance
+- hardhat_setCode
+- hardhat_setStorageAt
+
+Они не будут рассмотрены в этом руководстве, однако рекомендуется изучить их подробнее по следующей ссылке:
+
+- https://hardhat.org/hardhat-network/guides/mainnet-forking.html
+
+## Создание контракта Balance Reader
+
+Контракт `BalanceReader` создается следующим образом:
+
+```tsx
+pragma solidity 0.8.9;
+
+import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+
+contract BalanceReader {
+    function getERC20BalanceOf(address _account, address _tokenAddress)
+        external
+        view
+        returns (uint256)
+    {
+        // создаем экземпляр, используя только интерфейс и адрес
+        return IERC20(_tokenAddress).balanceOf(_account);
+    }
+}
+```
+
+Вы просто передаете адрес учетной записи и адрес токена, затем получаете и возвращаете баланс.
+
+Вам нужно установить @openzeppelin, выполнив:
+
+```bash
+npm install @openzeppelin/contracts
+```
+
+Затем проверьте, что все работает правильно, запустив:
+
+```bash
+npx hardhat compile
+```
+
+Вы должны получить:
+
+```
+Generating typings for: 2 artifacts in dir: typechain-types for target: ethers-v6
+Successfully generated 18 typings!
+Compiled 2 Solidity files successfully
+```
+
+## Настройка Hardhat для поддержки форкинга
+
+По умолчанию Hardhat использует сеть с именем `hardhat`. Вы должны изменить ее конфигурацию по умолчанию, перейдя в файл `hardhat.config.ts` и включив следующее в сеть:
+
+```json
+hardhat: {
+    forking: {
+        url: `https://eth-mainnet.g.alchemy.com/v2/${process.env.ALCHEMY_MAINNET_KEY ?? ""}`,
+        enabled: true
+    }
+},
+```
+
+Убедитесь, что у вас есть `ALCHEMY_MAINNET_KEY` в вашем файле `.env file`. Вы можете получить его напрямую от [Alchemy](https://www.alchemy.com/).
+
+Также обратите внимание, что форкинг включен указанием `enabled: true`, однако это значение можно изменить с помощью переменных окружения.
+
+## Создание теста для контракта BalanceReader.sol
+
+Создайте тестовый файл в папке test с именем `BalanceReader.ts` и включите следующее:
+
+```tsx
+import { Signer } from 'ethers';
+import { ethers } from 'hardhat';
+
+import { BalanceReader, BalanceReader__factory } from '../typechain-types';
+
+describe('BalanceReader tests', () => {
+  let instance: BalanceReader;
+  let accounts: Signer[];
+
+  // Настроим адреса, для которых мы хотим проверить балансы
+  const USDC_MAINNET_ADDRESS = '0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48'; // https://etherscan.io/token/0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48
+  const ARBITRUM_ONE_GATEWAY = '0xcEe284F754E854890e311e3280b767F80797180d';
+  const USDC_DECIMALS = 6;
+
+  it('gets arbitrum gateway balance', async () => {
+    // Получаем подписантов, как в обычном тесте
+    accounts = await ethers.getSigners();
+    const factory = new BalanceReader__factory(accounts[0]);
+
+    // Развертываем контракт в нашей локальной тестовой среде
+    instance = await factory.deploy();
+
+    // Наш контракт сможет проверять балансы уже развернутых контрактов и адресов в основной сети
+    const balance = await instance.getERC20BalanceOf(ARBITRUM_ONE_GATEWAY, USDC_MAINNET_ADDRESS);
+    const balanceAsString = ethers.utils.formatUnits(balance, USDC_DECIMALS);
+
+    console.log(
+      'The USDC Balance of Arbitrum Gateway is $',
+      Number(balanceAsString).toLocaleString(),
+    );
+  });
+});
+```
+
+В этом примере используется [адрес USDC](https://etherscan.io/token/0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48), и поскольку USDC — это токен ERC-20, вы можете изучить держателей этого конкретного токена прямо в Etherscan:
+
+![Hardhat forking](/images/learn/hardhat-forking/hardhat-forking.png)
+
+Или посетите https://etherscan.io/token/0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48#balances, где вы можете увидеть, что на момент написания Arbitrum ONE Gateway является крупнейшим держателем токена.
+
+Затем выполните следующую команду:
+
+```bash
+npx hardhat test ./test/BalanceReader.ts
+```
+
+Вы должны получить:
+
+```
+BalanceReader tests
+Баланс USDC Arbitrum Gateway составляет $ 1,116,923,836.506
+    ✔ получает баланс arbitrum gateway (4345ms)
+
+  1 проходящий (4s)
+```
+
+## Заключение
+
+В этом уроке вы узнали, как использовать возможности форкинга Hardhat для тестирования смарт-контрактов. Вы узнали, как контракты могут легко взаимодействовать с уже развернутыми контрактами.
+
+---
+
+## Смотрите также
+
+[Solidity Docs]: https://docs.soliditylang.org/en/v0.8.17/
+[Remix Project]: https://remix-project.org/
+[Hardhat Deploy]: https://github.com/wighawag/hardhat-deploy
+[Hardhat Forking]: https://hardhat.org/hardhat-network/docs/guides/forking-other-networks

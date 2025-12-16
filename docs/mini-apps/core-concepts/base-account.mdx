@@ -1,0 +1,174 @@
+---
+title: "Base Account"
+description: "Узнайте, как Base Accounts улучшают пользовательский опыт мини-приложений и что нужно знать разработчикам мини-приложений для реализации возможностей Base Account."
+---
+
+> **Что вы узнаете**  
+> К концу этого руководства вы поймёте:
+> - Как эффективно обрабатывать транзакции кошелька в мини-приложениях, включая использование расширенных возможностей Base Account, когда они доступны.
+
+## Кошельки по умолчанию в мини-приложениях
+Мини-приложения, запущенные внутри Base App, автоматически подключаются к [Base Account](/base-account/overview), пользователя, исключая процессы подключения кошелька и обеспечивая мгновенные ончейн-взаимодействия. Этот подход с нулевым трением означает, что пользователи могут сразу обменивать, отправлять и совершать транзакции без какой-либо настройки кошелька, сохраняя привычный опыт работы со своим существующим Base Account и активами.
+
+## Для разработки мини-приложений
+
+<Steps>
+<Step title="Определите возможности Base Account">
+Base Accounts предоставляют расширенные функции, которые традиционные кошельки не поддерживают.
+
+- Используйте `wallet_getCapabilities` для проверки поддержки `atomicBatch`, `paymasterService` и `auxiliaryFunds`
+- Адаптируйте ваш интерфейс, чтобы показывать упрощённые рабочие процессы для пользователей Base Account
+- Предоставляйте запасные варианты опыта для традиционных кошельков
+
+<Check>
+Протестируйте как с Base Accounts, так и с традиционными кошельками, чтобы убедиться, что ваше определение возможностей работает корректно.
+</Check>
+
+Узнайте больше: [Обзор возможностей Base Account](/base-account/reference/core/capabilities/overview)
+</Step>
+
+<Step title="Реализуйте спонсируемые газовые транзакции">
+Включите спонсируемые газовые транзакции, где ваше мини-приложение оплачивает газовые сборы для пользователей.
+
+- Проверяйте возможность `paymasterService` перед предложением транзакций без газа
+- Используйте параметр `capabilities` в `writeContracts` для включения спонсируемого газа
+- Обрабатывайте случаи, когда служба паймастера недоступна
+
+<Check>
+Убедитесь, что ваше мини-приложение работает с Base Accounts, у которых нулевой баланс ETH.
+</Check>
+
+Узнайте больше: [Служба Paymaster Service](/base-account/reference/core/capabilities/paymasterService)
+</Step>
+
+<Step title="Оптимизируйте шаблоны транзакций">
+Base Accounts могут объединять несколько операций в единые транзакции.
+
+- Используйте возможность `atomicBatch` для группировки связанных транзакций
+- Реализуйте `wallet_sendCalls` для сложных рабочих процессов
+- Показывайте одно подтверждение вместо нескольких запросов
+
+<Tip>
+Рассмотрите пакетную обработку транзакций для многошаговых операций, таких как approve + transfer + mint.
+</Tip>
+
+Узнайте больше: [Руководства по пакетным транзакциям](/base-account/improve-ux/batch-transactions)
+</Step>
+</Steps>
+
+## Преимущества Base Account для мини-приложений
+
+| Функция | Что делает  | Польза для мини-приложения |
+|---------|-------------|------------------|
+| Atomic Batch | Объединяет несколько транзакций в одну | Многошаговые рабочие процессы требуют только одного подтверждения пользователя |
+| Paymaster Service | Приложение оплачивает газовые сборы, а не пользователь | Пользователи могут совершать транзакции без владения ETH |
+| Passkey Authentication | Использует биометрию устройства вместо приватных ключей | Более быстрая и безопасная аутентификация пользователя |
+
+## Примеры реализации
+
+### Определение возможностей
+
+```javascript
+function useBaseAccountCapabilities(address) {
+  const [capabilities, setCapabilities] = useState({});
+  
+  useEffect(() => {
+    async function detect() {
+      const caps = await publicClient.request({
+        method: 'wallet_getCapabilities',
+        params: [address]
+      });
+      
+      setCapabilities({
+        atomicBatch: caps['0x2105']?.atomicBatch?.supported,
+        paymasterService: caps['0x2105']?.paymasterService?.supported,
+        auxiliaryFunds: caps['0x2105']?.auxiliaryFunds?.supported
+      });
+    }
+    
+    if (address) detect();
+  }, [address]);
+  
+  return capabilities;
+}
+```
+
+### Реализация спонсируемого газа
+
+```javascript
+import { useCapabilities, useWriteContracts } from 'wagmi/experimental'
+
+function SponsoredTransactionButton() {
+  const account = useAccount()
+  const { writeContracts } = useWriteContracts()
+  const { data: availableCapabilities } = useCapabilities({
+    account: account.address,
+  })
+  
+  const capabilities = useMemo(() => {
+    if (!availableCapabilities || !account.chainId) return {}
+    const capabilitiesForChain = availableCapabilities[account.chainId]
+    if (
+      capabilitiesForChain['paymasterService'] &&
+      capabilitiesForChain['paymasterService'].supported
+    ) {
+      return {
+        paymasterService: {
+          url: `https://api.developer.coinbase.com/rpc/v1/base/v7HqDLjJY4e28qgIDAAN4JNYXnz88mJZ`,
+        },
+      }
+    }
+    return {}
+  }, [availableCapabilities, account.chainId])
+
+  const handleSponsoredMint = () => {
+    writeContracts({
+      contracts: [{
+        address: '0x...',
+        abi: contractAbi,
+        functionName: 'mint',
+        args: [account.address],
+      }],
+      capabilities,
+    })
+  }
+
+  return <button onClick={handleSponsoredMint}>Mint NFT (Gas Free)</button>
+}
+```
+
+### Интерфейс на основе возможностей
+
+```javascript
+function MiniAppWorkflow() {
+  const { address } = useAccount();
+  const { atomicBatch } = useBaseAccountCapabilities(address);
+  
+  if (atomicBatch) {
+    // Base Account: Одношаговый рабочий процесс
+    return <OneClickPurchaseFlow />;
+  } else {
+    // Традиционный кошелёк: Многошаговый рабочий процесс  
+    return <MultiStepPurchaseFlow />;
+  }
+}
+```
+
+## Дополнительные ресурсы
+
+Для подробной реализации функций Base Account:
+
+<CardGroup cols={3}>
+<Card title="Аутентификация пользователей" href="https://docs.base.org/base-account/guides/authenticate-users">
+Руководство по аутентификации пользователей
+</Card>
+
+<Card title="Руководство по Base Pay" href="https://docs.base.org/base-account/guides/accept-payments">
+Руководство по Base Pay
+</Card>
+
+<Card title="Подпись и проверка подписей" href="https://docs.base.org/base-account/guides/sign-and-verify-typed-data">
+Руководство по подписи и проверке типизированных данных
+</Card>
+</CardGroup>
+

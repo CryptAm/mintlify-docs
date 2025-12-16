@@ -1,0 +1,491 @@
+---
+title: <Checkout /> · OnchainKit
+sidebarTitle: <Checkout />
+description: Однокликовая оплата для ончейн-коммерции
+---
+import { Danger } from "/snippets/danger.mdx";
+
+Компонент `Checkout` предоставляет опыт однокликовой оплаты для ончейн-коммерции - и все это бесплатно.
+
+Наше комплексное решение упрощает обработку платежей для ончейн-разработчиков, устраняя сложные интеграции, высокие комиссии и трение при онбординге. Независимо от того, продаете ли вы цифровые товары, услуги или внутриигровые предметы, этот инструмент для вас.
+
+<Frame>
+<img alt="Оплата"
+  src="/images/onchainkit/checkout.gif"
+  height="364"/>
+</Frame>
+
+## Возможности
+
+- **Интеграция "подключи и работай:** Добавьте нашу кнопку `Checkout` всего несколькими строками кода. Бэкенд не требуется.
+- **Беспрепятственный онбординг:** Поддержка Passkey-кошельков для устранения оттока пользователей на этапе подключения.
+- **Инструменты для мерчантов в реальном времени:** Получайте мгновенное отслеживание платежей, аналитику и отчетность.
+- **Динамические платежные потоки:** Создавайте платежи (charges) на лету, работайте с переменным ценообразованием и передавайте пользовательские метаданные.
+
+## Предварительные требования
+
+Перед использованием компонента Checkout убедитесь, что вы выполнили шаги из ['Начало работы'](/onchainkit/getting-started).
+
+<Tip>
+Для использования компонента `Checkout` вам необходимо предоставить Client API Key в `OnchainKitProvider`. Вы можете получить его, следуя шагам из ['Начало работы'](/onchainkit/getting-started#get-your-client-api-key).
+</Tip>
+
+
+### Запуск нового проекта
+
+Если вы начинаете новый проект, мы рекомендуем использовать create onchain для создания каркаса проекта.
+
+```bash
+npm create onchain@latest
+```
+
+### Добавление к существующему проекту
+
+Если вы добавляете `Checkout` к существующему проекту, просто установите OnchainKit.
+
+<CodeGroup>
+```bash npm
+npm install @coinbase/onchainkit
+```
+
+```bash yarn
+yarn add @coinbase/onchainkit
+```
+
+```bash pnpm
+pnpm add @coinbase/onchainkit
+```
+
+```bash bun
+bun add @coinbase/onchainkit
+```
+</CodeGroup>
+
+Оберните `<OnchainKitProvider />` вокруг вашего приложения, следуя шагам в ['Начало работы'](/onchainkit/getting-started#add-providers).
+
+## Быстрый старт
+
+### Вариант 1: Простая оплата товара
+
+Идеально подходит для товаров с фиксированной ценой. Начните с минимальной настройки.
+
+<Steps>
+  <Step title="Зарегистрируйтесь в Coinbase Commerce">
+  Перейдите на [Coinbase Commerce](https://beta.commerce.coinbase.com/) и зарегистрируйтесь. Здесь вы будете управлять транзакциями, просматривать отчеты и настраивать платежи.
+  </Step>
+  <Step title="Создайте товар и скопируйте productId">
+  В панели управления Coinbase Commerce создайте новый товар и скопируйте `productId`.
+  </Step>
+  <Step title="Импортируйте компонент">
+  ```tsx
+  import { Checkout, CheckoutButton, CheckoutStatus } from '@coinbase/onchainkit/checkout';
+
+  <Checkout productId='my-product-id' >
+    <CheckoutButton coinbaseBranded/> // set coinbaseBranded for branding
+    <CheckoutStatus />
+  </Checkout>
+  ```
+  </Step>
+</Steps>
+
+
+### Вариант 2: Динамические платежи
+
+Для переменного ценообразования, пользовательских метаданных или мультитоварных оплат используйте платежи, сгенерированные на бэкенде.
+
+<Steps>
+  <Step title="Зарегистрируйтесь в Coinbase Commerce">
+  Перейдите на [Coinbase Commerce](https://beta.commerce.coinbase.com/) и зарегистрируйтесь. Здесь вы будете управлять транзакциями, просматривать отчеты и настраивать платежи.
+  </Step>
+  <Step title="Создайте API-ключ Coinbase Commerce">
+  В [панели управления Coinbase Commerce](https://beta.commerce.coinbase.com/settings/security), создайте новый API-ключ в разделе `Security` в `Settings`.
+  </Step>
+  <Step title="Настройте бэкенд для динамического создания платежей с помощью API Coinbase Commerce">
+  Смотрите [Using chargeHandler](/onchainkit/checkout/checkout#using-chargehandler) для примера кода.
+  </Step>
+  <Step title="Передайте chargeID в Checkout через свойство chargeHandler">
+  ```tsx
+  const chargeHandler = async () => {
+    const response = await fetch('/createCharge', { method: 'POST' });
+    const { id } = await response.json();
+    return id; // Return charge ID
+  };
+
+  <Checkout chargeHandler={chargeHandler}>
+    <CheckoutButton />
+  </Checkout>
+  ```
+  </Step>
+</Steps>
+
+Вот и все! Начните продавать в ончейн всего несколькими строками кода.
+
+## Использование
+
+### Настройка оплаты
+
+#### Использование `productId`
+
+Вы можете создавать товары в Coinbase Commerce Portal и использовать их в компоненте `Checkout` через свойство `productId`.
+
+```tsx
+import { Checkout, CheckoutButton } from '@coinbase/onchainkit/checkout';
+
+export default function PayComponents() {
+  return (
+// ---cut-before---
+<Checkout productId='my-product-id'>
+  <CheckoutButton />
+</Checkout>
+// ---cut-after---
+);
+}
+```
+
+{/* <App>
+  <Checkout>
+    <CheckoutButton disabled/>
+  </Checkout>
+</App> */}
+
+<iframe
+  src="https://684b5e62b1ff46bc5bf83966-aijszlfakk.chromatic.com/iframe.html?args=&id=onchainkit-checkout--disabled&viewMode=story&dark=true&hero=true"
+  width="100%"
+  height="auto"
+/>
+
+#### Использование `chargeHandler`
+
+Альтернативно, вы можете динамически создавать платежи с помощью конечной точки API Coinbase Commerce [Создать платеж (Create Charge)](https://docs.cdp.coinbase.com/commerce-onchain/reference/creates-a-charge), передавая chargeID в Checkout через свойство `chargeHandler`.
+
+Эта функция должна иметь сигнатуру `() => Promise<string>` и возвращать валидный chargeId, созданный конечной точкой создания платежа.
+
+<Tip>
+Для создания платежей вам понадобится [API ключ](https://docs.cdp.coinbase.com/commerce-onchain/docs/getting-started) Coinbase Commerce.
+</Tip>
+
+
+<Danger>
+**⚠️ Внимание**
+
+Вы должны защитить свой API-ключ Coinbase Commerce, создавая платежи только на стороне сервера.
+</Danger>
+
+
+<CodeGroup>
+```ts backend.ts
+// Эта конечная точка бэкенда должна создавать платеж и возвращать ответ.
+app.post('/createCharge', async (req: Request, res: Response) => {
+  const options = {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'Accept': 'application/json',
+      'X-CC-Api-Key': 'your_api_key_here' // Replace this with your Coinbase Commerce API Key
+    },
+    body: JSON.stringify({
+      local_price: { amount: '1', currency: 'USDC' },
+      pricing_type: 'fixed_price',
+      metadata: { some_field: "some_value" } // Опционально: Прикрепите метаданные, такие как ID заказа или данные клиента
+    }),
+  };
+
+  const response = await fetch('https://api.commerce.coinbase.com/charges', options);
+  const data = await response.json();
+
+  res.json(data);
+});
+
+```
+
+```tsx frontend.tsx
+import { Checkout, CheckoutButton } from '@coinbase/onchainkit/checkout';
+
+const chargeHandler = async () => {
+  const response = await fetch('https://your-backend.com/createCharge', { method: 'POST' });
+  const { id } = await response.json();
+  return id; // Return charge ID
+};
+
+<Checkout chargeHandler={chargeHandler}>
+  <CheckoutButton />
+</Checkout>
+```
+</CodeGroup>
+
+Обратите внимание, что `productId` и `chargeHandler` являются взаимоисключающими, и только одно из них можно передать как свойство в Checkout.
+
+### Обработка успешной оплаты
+
+Для обработки успешных оплат используйте свойство onStatus, чтобы отслеживать колбэк `success`.
+
+Этот колбэк вернет объект [LifecycleStatusData](/onchainkit/checkout/checkout#advanced-usage), включая [TransactionReceipt](https://github.com/wevm/viem/blob/main/src/types/transaction.ts#L38) и `chargeId`.
+
+Для идемпотентных действий, таких как отображение вашего собственного экрана успеха, вы можете просто проверить, что `statusName` равен `success`.
+
+Для неидемпотентных действий, таких как выполнение заказа, мы рекомендуем один из следующих подходов для проверки, что платеж был полностью оплачен.
+
+1. (**Рекомендуется**) Проверьте статус `chargeId` с помощью [Coinbase Commerce API](https://docs.cdp.coinbase.com/commerce-onchain/docs/web3-payments-faq#how-can-i-verify-if-a-charge-has-been-fully-paid).
+2. Настройте [Coinbase Commerce Webhook](https://docs.cdp.coinbase.com/commerce-onchain/docs/webhooks), который будет уведомлять вас об успешных платежах.
+
+```tsx
+import { Checkout, CheckoutButton } from '@coinbase/onchainkit/checkout';
+// ---cut-before---
+import type { LifecycleStatus } from '@coinbase/onchainkit/checkout'; // [!code focus]
+
+const statusHandler = async (status: LifecycleStatus) => { // [!code focus]
+  const { statusName, statusData } = status; // [!code focus]
+  switch (statusName) { // [!code focus]
+    case 'success': // [!code focus]
+      // обработка успеха // [!code focus]
+      const { chargeId } = statusData; // [!code focus]
+      // используйте API платежей для проверки chargeId // [!code focus]
+      const options = { // [!code focus]
+        method: 'GET', // [!code focus]
+        headers: { // [!code focus]
+          'Content-Type': 'application/json', // [!code focus]
+          'Accept': 'application/json', // [!code focus]
+          'X-CC-Api-Key': 'your_api_key_here' // Замените это на ваш API-ключ Coinbase Commerce // [!code focus]
+        } // [!code focus]
+      }; // [!code focus]
+      const response = await fetch(`https://api.commerce.coinbase.com/charges/${chargeId}`); // [!code focus]
+  } // [!code focus]
+} // [!code focus]
+
+<Checkout onStatus={statusHandler}>
+  <CheckoutButton />
+</Checkout>
+// ---cut-after---
+```
+
+<Tip>
+Для проверки платежей вам понадобится [API ключ](https://docs.cdp.coinbase.com/commerce-onchain/docs/getting-started) Coinbase Commerce.
+</Tip>
+
+
+<Danger>
+**⚠️ Внимание**
+
+Вы должны защитить свой API-ключ Coinbase Commerce, проверяя платежи на стороне сервера. Этот клиентский код предоставлен только в качестве примера.
+</Danger>
+
+
+### Просмотр успешных оплат
+
+Вы можете просматривать успешные оплаты в [Панели управления мерчанта Coinbase Commerce](https://beta.commerce.coinbase.com/payments).
+
+<Frame>
+<img alt="Viewing successful checkouts"
+src="/images/onchainkit/commerce-3.png"
+height="364"/>
+</Frame>
+
+## Настройка
+
+### Добавление названия и логотипа
+
+Чтобы настроить название и логотип вашего приложения, отображаемые во всплывающем окне, установите значения `name` и `logo` внутри [OnchainKitProvider](/onchainkit/config/onchainkit-provider#usage).
+
+```tsx providers.tsx
+// @noErrors: 2304 - Cannot find name 'children'
+import { base } from 'wagmi/chains';
+// ---cut-before---
+import { OnchainKitProvider } from '@coinbase/onchainkit';
+
+<OnchainKitProvider
+    chain={base}
+    config={{
+      appearance: {
+        name: 'OnchainKit Playground', // [!code ++]
+        logo: '/images/onchainkit/favicon/48x48.png?v4-19-24', // [!code ++]
+      },
+    }}
+  >
+    {children}
+</OnchainKitProvider>
+// ---cut-after---
+```
+
+<Frame>
+<div style={{ display: 'flex', justifyContent: 'center' }}>
+  <img
+    alt="Add name and logo"
+    src="/images/onchainkit/commerce-4.png"
+  />
+</div>
+</Frame>
+
+### Добавление брендинга Coinbase
+
+Вы можете добавить брендинг Coinbase к компоненту, используя свойство `coinbaseBranded` на `CheckoutButton`.
+
+```tsx
+import { Checkout, CheckoutButton } from '@coinbase/onchainkit/checkout';
+
+export default function PayComponents() {
+  return (
+// ---cut-before---
+<Checkout >
+  <CheckoutButton coinbaseBranded/>
+</Checkout>
+// ---cut-after---
+);
+}
+```
+
+{/* <App>
+  <Checkout>
+    <CheckoutButton coinbaseBranded disabled/>
+  </Checkout>
+</App> */}
+
+<iframe
+  src="https://684b5e62b1ff46bc5bf83966-aijszlfakk.chromatic.com/iframe.html?args=&id=onchainkit-checkout--branded&viewMode=story&dark=true&hero=true"
+  width="100%"
+  height="auto"
+/>
+
+### Отключение кнопки
+
+Вы можете отключить кнопку, используя свойство `disabled` на `CheckoutButton`.
+
+```tsx
+
+import { Checkout, CheckoutButton } from '@coinbase/onchainkit/checkout';
+
+export default function PayComponents() {
+  return (
+// ---cut-before---
+<Checkout >
+  <CheckoutButton disabled/>
+</Checkout>
+// ---cut-after---
+);
+}
+```
+
+{/* <App>
+  <Checkout>
+    <CheckoutButton disabled/>
+  </Checkout>
+</App> */}
+
+<iframe
+  src="https://684b5e62b1ff46bc5bf83966-aijszlfakk.chromatic.com/iframe.html?args=&id=onchainkit-checkout--disabled&viewMode=story&dark=true&hero=true"
+  width="100%"
+  height="auto"
+/>
+
+### Настройка кнопки
+
+Вы можете настроить текст кнопки, используя свойство `text` на `CheckoutButton`.
+
+```tsx
+
+import { Checkout, CheckoutButton } from '@coinbase/onchainkit/checkout';
+
+export default function PayComponents() {
+  return (
+// ---cut-before---
+<Checkout >
+  <CheckoutButton text='Checkout with USDC'/>
+</Checkout>
+// ---cut-after---
+);
+}
+```
+
+{/* <App>
+  <Checkout>
+    <CheckoutButton text='Checkout with USDC' disabled/>
+  </Checkout>
+</App> */}
+
+<iframe
+  src="https://684b5e62b1ff46bc5bf83966-aijszlfakk.chromatic.com/iframe.html?args=&id=onchainkit-checkout--with-custom-text&viewMode=story&dark=true&hero=true"
+  width="100%"
+  height="auto"
+/>
+
+### Переопределение стилей
+
+Мы рекомендуем настройку стилей путем установки пользовательской [темы OnchainKit](/onchainkit//guides/themes#custom-theme). Вы также можете переопределить стили отдельных компонентов, используя `className`.
+
+```tsx
+
+import { Checkout, CheckoutButton } from '@coinbase/onchainkit/checkout';
+
+export default function PayComponents() {
+  return (
+// ---cut-before---
+<Checkout >
+  <CheckoutButton className='bg-[#EA580C]' />
+</Checkout>
+// ---cut-after---
+);
+}
+```
+
+{/* <App>
+  <Checkout>
+    <CheckoutButton className='bg-[#EA580C]' disabled/>
+  </Checkout>
+</App> */}
+
+<iframe
+  src="https://684b5e62b1ff46bc5bf83966-aijszlfakk.chromatic.com/iframe.html?args=&id=onchainkit-checkout--with-custom-class&viewMode=story&dark=true&hero=true"
+  width="100%"
+  height="auto"
+/>
+
+## Продвинутое использование
+
+### Отслеживание жизненного цикла компонента
+
+Вы можете использовать наш [`LifecycleStatus`](/onchainkit/checkout/types#lifecyclestatus) Checkout и свойство `onStatus` для отслеживания состояний транзакции.
+
+```tsx
+import { Checkout, CheckoutButton } from '@coinbase/onchainkit/checkout';
+// ---cut-before---
+import type { LifecycleStatus } from '@coinbase/onchainkit/checkout'; // [!code focus]
+
+const statusHandler = (status: LifecycleStatus) => { // [!code focus]
+  const { statusName, statusData } = status; // [!code focus]
+  switch (statusName) { // [!code focus]
+    case 'success': // обработка успеха // [!code focus]
+    case 'pending': // обработка ожидания платежа // [!code focus]
+    case 'error': // обработка ошибки // [!code focus]
+    default: // [!code focus]
+      // обработка состояния 'init'
+  } // [!code focus]
+} // [!code focus]
+
+<Checkout // [!code focus]
+  onStatus={statusHandler} // [!code focus]
+>
+  <CheckoutButton />
+</Checkout>
+// ---cut-after---
+```
+
+## Примеры использования
+
+- **Ценообразование на основе спроса**: Позволяйте пользователям выбирать места или типы билетов на мероприятия и динамически рассчитывать платежи на основе доступности и спроса.
+- **Наборы товаров (бандлы)**: Предоставляйте пользователям возможность создавать пользовательские наборы товаров, применяя скидки или специальные цены на основе выбранных товаров.
+- **Фриланс-услуги**: Позволяйте клиентам указывать детали проекта, такие как часы, результаты работы и сроки, и генерировать платежи на основе этих пользовательских данных.
+
+## Компоненты
+
+Компоненты разработаны для совместной иерархической работы. Для каждого компонента убедитесь в следующем:
+
+- `<Checkout />` - Устанавливает свойство `productId` или `chargeHandler`.
+- `<CheckoutButton />` - Брендинг и настройка кнопки оплаты.
+- `<CheckoutStatus />` - Статус платежа.
+
+## Свойства (Props)
+
+- [`LifecycleStatus`](/onchainkit/checkout/types#lifecyclestatus)
+- [`CheckoutReact`](/onchainkit/checkout/types#checkoutreact)
+- [`CheckoutButtonReact`](/onchainkit/checkout/types#checkoutbuttonreact)
+- [`CheckoutStatusReact`](/onchainkit/checkout/types#checkoutstatusreact)
+

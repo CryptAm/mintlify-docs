@@ -1,0 +1,78 @@
+---
+title: getNames
+---
+
+
+Утилита `getNames` предназначена для получения нескольких имен от провайдера 
+ончейн-идентификации для массива адресов в одном пакетном запросе.
+
+Рассмотрите использование утилиты вместо хука, 
+когда вы используете ее с Next.js или любым бэкендом на Node.js.
+
+## Использование
+
+Получение имен ENS для нескольких адресов:
+
+<CodeGroup>
+```tsx code
+import { getNames } from '@coinbase/onchainkit/identity';
+
+const addresses = [
+  '0x4bEf0221d6F7Dd0C969fe46a4e9b339a84F52FDF',
+  '0x838aD0EAE54F99F1926dA7C3b6bFbF617389B4D9'
+];
+const names = await getNames({ addresses });
+```
+
+```ts return value
+['paulcramer.eth', 'vitalik.eth']
+```
+</CodeGroup>
+
+Получение Basenames для нескольких адресов:
+
+<CodeGroup>
+```tsx code
+import { getNames } from '@coinbase/onchainkit/identity';
+import { base } from 'viem/chains';
+
+const addresses = [
+  '0x4bEf0221d6F7Dd0C969fe46a4e9b339a84F52FDF',
+  '0x4bEf0221d6F7Dd0C969fe46a4e9b339a84F52FDF'
+];
+const names = await getNames({ addresses, chain: base });
+```
+
+```ts return value
+['paul.base.eth', 'coinbase.base.eth']
+```
+</CodeGroup>
+
+Получение смеси имен ENS и сокращенных адресов, когда у некоторых адресов нет имен:
+
+<CodeGroup>
+```tsx code
+import { getNames } from '@coinbase/onchainkit/identity';
+
+const addresses = [
+  '0x4bEf0221d6F7Dd0C969fe46a4e9b339a84F52FDF',
+  '0x1234567890abcdef1234567890abcdef12345678'
+];
+const names = await getNames({ addresses });
+```
+
+```ts return value
+['paulcramer.eth', null]
+```
+</CodeGroup>
+
+## Возвращает
+
+Массив [`GetNameReturnType`](/onchainkit/identity/types#getnamereturntype)
+
+## Параметры
+
+### GetNames
+
+[`GetNames`](/onchainkit/identity/types#getnames) 
+

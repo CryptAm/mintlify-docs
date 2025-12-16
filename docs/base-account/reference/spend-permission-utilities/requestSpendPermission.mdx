@@ -1,0 +1,129 @@
+---
+title: "requestSpendPermission"
+description: "Создать и подписать разрешение на расходование EIP-712 для Base Account пользователя"
+---
+
+Определено в [Base Account SDK](https://github.com/base/account-sdk)
+
+<Info>
+  Создаёт полезную нагрузку EIP-712 для разрешения на расходование и запрашивает у пользователя
+  её подпись. Возвращает объект `SpendPermission`, содержащий подпись и нормализованные данные
+  разрешения, которые впоследствии можно использовать для расходования или регистрации в блокчейне.
+</Info>
+
+## Параметры
+
+<ParamField body="account" type="address" required>
+  Смарт-аккаунт, к которому применяется это разрешение на расходование.
+</ParamField>
+
+<ParamField body="spender" type="address" required>
+  Получатель (spender), который может перемещать средства с `account` в пределах установленных лимитов.
+</ParamField>
+
+<ParamField body="token" type="address" required>
+  Адрес токена. Поддерживается нативный адрес токена ERC-7528 и контракты ERC-20.
+</ParamField>
+
+<ParamField body="chainId" type="number" required>
+  Идентификатор цепочки (chain ID), где это разрешение действительно.
+</ParamField>
+
+<ParamField body="allowance" type="bigint" required>
+  Максимальная сумма, которую можно потратить в течение каждого периода (в wei).
+</ParamField>
+
+<ParamField body="periodInDays" type="number" required>
+  Длительность каждого периода лимита в днях.
+</ParamField>
+
+<ParamField body="start" type="Date">
+  Время начала, когда разрешение на расходование становится действительным. По умолчанию: текущий момент.
+</ParamField>
+
+<ParamField body="end" type="Date">
+  Время, когда разрешение на расходование истекает. По умолчанию: никогда.
+</ParamField>
+
+<ParamField body="salt" type="string">
+  Произвольная соль (salt) для различения в остальном идентичных разрешений. Шестнадцатеричная строка (hex). 
+  По умолчанию: случайное значение.
+</ParamField>
+
+<ParamField body="extraData" type="string">
+  Произвольные данные, прикрепляемые к разрешению. Шестнадцатеричная строка (hex). 
+  По умолчанию: `0x`.
+</ParamField>
+
+<ParamField body="provider" type="EIP1193Provider" required>
+  Экземпляр провайдера Ethereum, совместимый со стандартом EIP-1193. Получите его с помощью `sdk.getProvider()`.
+</ParamField>
+
+## Возвращает
+
+<ResponseField name="permission" type="SpendPermission">
+Подписанная полезная нагрузка разрешения на расходование.
+
+<Expandable title="SpendPermission properties">
+<ResponseField name="permissionHash" type="string">
+Детерминированный хеш EIP-712 разрешения.
+</ResponseField>
+
+<ResponseField name="signature" type="string">
+  Подпись для полезной нагрузки EIP-712.
+</ResponseField>
+
+<ResponseField name="chainId" type="number">
+  Идентификатор целевой цепочки (chain ID).
+</ResponseField>
+
+<ResponseField name="permission" type="object">
+Базовые поля разрешения.
+
+<Expandable title="Поля permission">
+<ResponseField name="account" type="address" />
+<ResponseField name="spender" type="address" />
+<ResponseField name="token" type="address" />
+<ResponseField name="allowance" type="bigint" />
+<ResponseField name="period" type="number">Длительность в секундах.</ResponseField>
+<ResponseField name="start" type="number">Временная метка Unix (секунды).</ResponseField>
+<ResponseField name="end" type="number">Временная метка Unix (секунды).</ResponseField>
+<ResponseField name="salt" type="string" />
+<ResponseField name="extraData" type="string" />
+</Expandable>
+</ResponseField>
+</Expandable>
+</ResponseField>
+
+<RequestExample>
+```typescript Create and sign a spend permission
+import { requestSpendPermission } from "@base-org/account/spend-permission";
+import { createBaseAccountSDK } from "@base-org/account";
+
+const sdk = createBaseAccountSDK({
+  appName: 'My App',
+  appLogoUrl: 'https://example.com/logo.png',
+  appChainIds: [84532],
+});
+
+const permission = await requestSpendPermission({
+  account: "0xUserBaseAccountAddress",
+  spender: "0xAppSpenderAddress",
+  token: "0xTokenContractAddress",
+  chainId: 84532,
+  allowance: 1_000_000n,
+  periodInDays: 30,
+  provider: sdk.getProvider(),
+});
+
+console.log("Spend Permission:", permission);
+```
+</RequestExample>
+
+## Обработка ошибок
+
+Всегда заключайте вызов в блок `try-catch` для корректной обработки возможных ошибок.
+
+import PolicyBanner from "/snippets/PolicyBanner.mdx";
+
+<PolicyBanner />

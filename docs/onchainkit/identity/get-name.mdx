@@ -1,0 +1,68 @@
+---
+title: getName
+---
+
+
+Утилита `getName` предназначена для получения имени от провайдера 
+ончейн-идентификации для конкретного адреса.
+
+Рассмотрите использование утилиты вместо хука, 
+когда вы используете ее с Next.js или любым бэкендом на Node.js.
+
+## Использование
+
+Получение имени ENS по адресу:
+
+<CodeGroup>
+```tsx code
+import { getName } from '@coinbase/onchainkit/identity';
+
+const address = '0x02feeb0AdE57b6adEEdE5A4EEea6Cf8c21BeB6B1';
+const name = await getName({ address });
+```
+
+```ts return value
+zizzamia.eth;
+```
+</CodeGroup>
+
+Получение Basename по адресу:
+
+<CodeGroup>
+```tsx code
+import { getName } from '@coinbase/onchainkit/identity';
+import { base } from 'viem/chains';
+
+const address = '0x02feeb0AdE57b6adEEdE5A4EEea6Cf8c21BeB6B1';
+const name = await getName({ address, chain: base });
+```
+
+```ts return value
+zizzamia.base.eth;
+```
+</CodeGroup>
+
+Получение сокращенного адреса, когда у адреса нет имени ENS:
+
+<CodeGroup>
+```tsx code
+import { getName } from '@coinbase/onchainkit/identity';
+
+const address = '0x1234567890abcdef1234567890abcdef12345678';
+const name = await getName({ address });
+```
+
+```ts return value
+0x123...5678
+```
+</CodeGroup>
+
+## Возвращает
+
+Подробности смотрите в [GetNameReturnType](/onchainkit/identity/types#getnamereturntype) и [GetName](/onchainkit/identity/types#getname).
+
+## Параметры
+
+Подробности смотрите в [GetNameReturnType](/onchainkit/identity/types#getnamereturntype) и [GetName](/onchainkit/identity/types#getname).
+
+

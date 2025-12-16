@@ -1,0 +1,94 @@
+---
+title: "eth_sendTransaction"
+description: "Создать и отправить новую транзакцию или вызов сообщения"
+---
+
+Определено в [Спецификации Ethereum JSON-RPC](https://ethereum.org/en/developers/docs/apis/json-rpc/)
+
+<Info>
+Создаёт новый вызов сообщения или создание контракта, если поле data содержит код. Этот метод отправляет транзакцию в сеть и возвращает хэш транзакции после её принятия сетью.
+</Info>
+
+## Параметры
+
+<ParamField body="transaction" type="object" required>
+Объект транзакции для отправки.
+
+<Expandable title="Свойства объекта транзакции">
+<ParamField body="to" type="string">
+Адрес получателя (20 байт). Для транзакций создания контракта это поле следует опустить.
+</ParamField>
+
+<ParamField body="from" type="string" required>
+Адрес отправителя (20 байт).
+</ParamField>
+
+<ParamField body="gas" type="string">
+Количество газа, предоставленного для выполнения транзакции, в виде целого числа (hex).
+</ParamField>
+
+<ParamField body="gasPrice" type="string">
+Цена газа, используемая за каждую единицу оплаченного газа, в виде целого числа (hex).
+</ParamField>
+
+<ParamField body="value" type="string">
+Значение, отправленное с этой транзакцией, в виде целого числа (hex).
+</ParamField>
+
+<ParamField body="data" type="string">
+Скомпилированный код контракта ИЛИ хэш подписи вызываемого метода и закодированные параметры.
+</ParamField>
+
+<ParamField body="nonce" type="string">
+Целое число nonce. Позволяет перезаписать ваши собственные ожидающие транзакции с тем же nonce.
+</ParamField>
+</Expandable>
+</ParamField>
+
+## Возвращает
+
+<ResponseField name="result" type="string">
+Хэш транзакции (32 байта) в виде шестнадцатеричной строки (hex).
+</ResponseField>
+
+<RequestExample>
+```json Request
+{
+  "id": 1,
+  "jsonrpc": "2.0",
+  "method": "eth_sendTransaction",
+  "params": [{
+    "from": "0xd46e8dd67c5d32be8058bb8eb970870f07244567",
+    "to": "0xd46e8dd67c5d32be8d24c6b0afe7c5c3f4e9c3b2",
+    "gas": "0x76c0",
+    "gasPrice": "0x9184e72a000",
+    "value": "0x9184e72a",
+    "data": "0xd46e8dd67c5d32be8d24c6b0afe7c5c3f4e9c3b2"
+  }]
+}
+```
+</RequestExample>
+
+<ResponseExample>
+```json Success Response
+{
+  "id": 1,
+  "jsonrpc": "2.0",
+  "result": "0xb903239f8543d04b5dc1ba6579132b143087c68db1b2168786408fcbce568238"
+}
+```
+</ResponseExample>
+
+## Обработка ошибок
+
+| Код  | Сообщение                      | Описание    |
+| ---- | ------------------------------ | ----------- |
+| 4001 | User rejected the request      | Пользователь отклонил запрос на транзакцию |
+| 4100 | Requested method not supported | Метод не поддерживается кошельком |
+| 4200 | Wallet not connected           | Отсутствует подключение к кошельку |
+| -32602 | Invalid params                 | Некорректные параметры транзакции |
+| -32000 | Insufficient funds             | Недостаточно средств на аккаунте |
+
+<Warning>
+Обязательно проверяйте параметры транзакции перед отправкой, особенно адрес `to` и значение `value`, чтобы избежать потери средств.
+</Warning>

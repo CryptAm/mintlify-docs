@@ -1,0 +1,162 @@
+---
+title: "coinbase_fetchPermission"
+description: "Получение одного разрешения по его хэшу"
+---
+
+Специфичный для Coinbase RPC-метод
+
+<Info>
+Получает одно разрешение на трату по его уникальному идентификатору хэша. Этот метод позволяет напрямую искать конкретное разрешение без необходимости знать данные аккаунта, цепочки или тратящей стороны.
+</Info>
+
+## Параметры
+
+<ParamField body="permissionHash" type="string" required>
+Уникальный идентификатор хэша разрешения для получения.
+</ParamField>
+
+## Возвращает
+
+<ResponseField name="result" type="object">
+Объект ответа с разрешением.
+
+<Expandable title="Свойства FetchPermissionResult">
+<ResponseField name="permission" type="object">
+Объект разрешения, содержащий все детали запрашиваемого разрешения.
+
+<Expandable title="Свойства Permission">
+<ResponseField name="createdAt" type="number">
+Unix-метка времени, когда разрешение было создано.
+</ResponseField>
+
+<ResponseField name="permissionHash" type="string">
+Уникальный идентификатор хэша разрешения.
+</ResponseField>
+
+<ResponseField name="signature" type="string">
+Криптографическая подпись, авторизующая это разрешение.
+</ResponseField>
+
+<ResponseField name="spendPermission" type="object">
+Подробные параметры разрешения на трату.
+
+<Expandable title="Свойства SpendPermission">
+<ResponseField name="account" type="string">
+Адрес аккаунта, предоставляющего разрешение.
+</ResponseField>
+
+<ResponseField name="spender" type="string">
+Адрес, авторизованный для траты с аккаунта.
+</ResponseField>
+
+<ResponseField name="token" type="string">
+Адрес контракта токена, для которого авторизована трата.
+</ResponseField>
+
+<ResponseField name="allowance" type="string">
+Максимальная сумма, которую можно потратить (в наименьшей единице).
+</ResponseField>
+
+<ResponseField name="period" type="number">
+Продолжительность в секундах, в течение которой разрешение действительно в каждом периоде.
+</ResponseField>
+
+<ResponseField name="start" type="number">
+Unix-метка времени, когда разрешение становится активным.
+</ResponseField>
+
+<ResponseField name="end" type="number">
+Unix-метка времени, когда разрешение истекает.
+</ResponseField>
+
+<ResponseField name="salt" type="string">
+Уникальное значение, используемое для генерации хэша разрешения.
+</ResponseField>
+
+<ResponseField name="extraData" type="string">
+Дополнительные данные, связанные с разрешением (шестнадцатеричное (hex) кодирование).
+</ResponseField>
+</Expandable>
+</ResponseField>
+</Expandable>
+</ResponseField>
+</Expandable>
+</ResponseField>
+
+<RequestExample>
+```json Request
+{
+  "id": 1,
+  "jsonrpc": "2.0",
+  "method": "coinbase_fetchPermission",
+  "params": [{
+    "permissionHash": "0x1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef"
+  }]
+}
+```
+</RequestExample>
+
+<ResponseExample>
+```json Success Response
+{
+  "id": 1,
+  "jsonrpc": "2.0",
+  "result": {
+    "permission": {
+      "createdAt": 1640995200,
+      "permissionHash": "0x1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef",
+      "signature": "0xdef456...",
+      "spendPermission": {
+        "account": "0xfB2adc8629FC9F54e243377ffcECEb437a42934C",
+        "spender": "0x2a83b0e4462449660b6e7567b2c81ac6d04d877d",
+        "token": "0xA0b86a33E6441b97B7cd5C4F5B42a6e2F8a38923",
+        "allowance": "1000000000000000000",
+        "period": 86400,
+        "start": 1640995200,
+        "end": 1672531200,
+        "salt": "12345678901234567890",
+        "extraData": "0x"
+      }
+    }
+  }
+}
+```
+
+```json Error Response - Permission Not Found
+{
+  "id": 1,
+  "jsonrpc": "2.0",
+  "error": {
+    "code": -32602,
+    "message": "Permission not found"
+  }
+}
+```
+</ResponseExample>
+
+## Обработка ошибок
+
+| Код  | Сообщение |  Описание   |
+| ---- | --------- | ----------- |
+| -32602 | Invalid params | Параметр permissionHash неверен или отсутствует |
+| -32603 | Internal error | Разрешение не найдено или внутренняя ошибка сервера |
+| -32001 | Failed precondition | Метод в настоящее время отключен через kill switch |
+
+<Warning>
+`permissionHash` должен быть допустимой строкой хэша в шестнадцатеричном кодировании. Метод вернет ошибку, если разрешение не существует или было удалено.
+</Warning>
+
+## Примечания по использованию
+
+<Note>
+Этот метод особенно полезен, когда:
+- У вас есть хэш разрешения из предыдущей операции, и вам нужно получить его детали
+- Вы хотите проверить текущее состояние конкретного разрешения
+- Вам нужно найти детали разрешения, не зная информации об аккаунте или тратящей стороне
+</Note>
+
+В отличие от `coinbase_fetchPermissions`, этот метод:
+- Возвращает одно разрешение вместо списка
+- Не требует параметров аккаунта, цепочки или тратящей стороны
+- Не поддерживает пагинацию
+- Предоставляет прямой доступ через уникальный идентификатор разрешения

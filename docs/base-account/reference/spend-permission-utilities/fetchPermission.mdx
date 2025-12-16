@@ -1,0 +1,125 @@
+---
+title: "fetchPermission"
+description: "Получить отдельное разрешение на расходование по его хешу"
+---
+
+Определено в [Base Account SDK](https://github.com/base/account-sdk)
+
+<Info>
+  Возвращает одно разрешение на расходование по его уникальному идентификатору-хешу. Это полезно, когда у вас есть хеш разрешения из предыдущей операции и необходимо получить его текущие данные.
+</Info>
+
+## Параметры
+
+<ParamField body="permissionHash" type="string" required>
+  Уникальный идентификатор-хеш разрешения, которое нужно получить.
+</ParamField>
+
+<ParamField body="provider" type="EIP1193Provider">
+  Опционально. Экземпляр провайдера Ethereum, совместимый со стандартом EIP-1193. Получите его с помощью `sdk.getProvider()`. Если не указан, используется провайдер SDK по умолчанию.
+</ParamField>
+
+## Возвращает
+
+<ResponseField name="permission" type="SpendPermission | null">
+  Разрешение на расходование, соответствующее хешу, или `null`, если не найдено.
+
+<Expandable title="Свойства SpendPermission">
+<ResponseField name="permissionHash" type="string">
+Детерминированный хеш EIP-712 разрешения.
+</ResponseField>
+
+<ResponseField name="signature" type="string">
+  Подпись для полезной нагрузки EIP-712.
+</ResponseField>
+
+<ResponseField name="chainId" type="number">
+  Идентификатор целевой цепочки (chain ID).
+</ResponseField>
+
+<ResponseField name="permission" type="object">
+Базовые поля разрешения.
+
+<Expandable title="Поля permission">
+<ResponseField name="account" type="address" />
+<ResponseField name="spender" type="address" />
+<ResponseField name="token" type="address" />
+<ResponseField name="allowance" type="bigint" />
+<ResponseField name="period" type="number">Длительность в секундах.</ResponseField>
+<ResponseField name="start" type="number">Временная метка Unix (секунды).</ResponseField>
+<ResponseField name="end" type="number">Временная метка Unix (секунды).</ResponseField>
+<ResponseField name="salt" type="string" />
+<ResponseField name="extraData" type="string" />
+</Expandable>
+</ResponseField>
+</Expandable>
+</ResponseField>
+
+<RequestExample>
+```typescript Fetch single permission
+import { fetchPermission } from "@base-org/account/spend-permission";
+import { createBaseAccountSDK } from "@base-org/account";
+
+const sdk = createBaseAccountSDK({
+  appName: 'My App',
+  appLogoUrl: 'https://example.com/logo.png',
+  appChainIds: [84532],
+});
+
+// Получить конкретное разрешение по его хешу
+const permission = await fetchPermission({
+  permissionHash: "0x1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef",
+  provider: sdk.getProvider(),
+});
+
+if (permission) {
+  console.log('Permission found:', permission);
+} else {
+  console.log('Permission not found');
+}
+
+// Использование без явного указания провайдера (используется провайдер SDK по умолчанию)
+const permission2 = await fetchPermission({
+  permissionHash: "0x1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef",
+});
+```
+</RequestExample>
+
+## Обработка ошибок
+
+Функция возвращает `null`, если разрешение не найдено, вместо выброса ошибки. Всегда проверяйте наличие значений `null`:
+
+```typescript
+const permission = await fetchPermission({
+  permissionHash: hash,
+});
+
+if (!permission) {
+  // Обработка случая, когда разрешение не найдено
+  console.error('Permission not found');
+  return;
+}
+
+// Здесь можно безопасно использовать `permission`
+console.log('Permission details:', permission);
+```
+
+## Примечания по использованию
+
+<Note>
+Эта функция особенно полезна, когда:
+- У вас есть хеш разрешения из предыдущей операции (например, из `requestSpendPermission`)
+- Вы хотите проверить текущее состояние конкретного разрешения
+- Вам нужно найти данные разрешения, не зная информации об аккаунте или получателе
+- Вы отслеживаете определенные разрешения между сессиями
+</Note>
+
+В отличие от `fetchPermissions`, эта функция:
+- Возвращает одно разрешение вместо массива
+- Не требует параметров аккаунта, цепочки или получателя
+- Предоставляет прямой доступ через уникальный идентификатор разрешения
+- Возвращает `null` вместо пустого массива, если разрешение не найдено
+
+import PolicyBanner from "/snippets/PolicyBanner.mdx";
+
+<PolicyBanner />

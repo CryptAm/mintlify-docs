@@ -1,0 +1,312 @@
+---
+title: useViewCast
+description: Просмотр каста по его хэшу из вашего мини-приложения
+---
+
+Определен в [@coinbase/onchainkit](https://github.com/coinbase/onchainkit)
+
+<Info>
+Открывает конкретный Farcaster каст в хост-приложении с использованием уникального хэш-идентификатора каста.
+</Info>
+
+## Параметры
+
+<ParamField body="hash" type="string" required>
+Уникальный хэш-идентификатор каста для просмотра. Это криптографический хэш, который уникально идентифицирует каст в сети Farcaster.
+</ParamField>
+
+## Возвращает
+
+<ResponseField name="viewCast" type="() => void">
+Функция, которая открывает указанный каст при вызове.
+</ResponseField>
+
+<RequestExample>
+```tsx components/CastReference.tsx
+import { useViewCast } from '@coinbase/onchainkit/minikit';
+
+export default function CastReference({ castHash, castAuthor }) {
+  const viewCast = useViewCast(castHash);
+
+  return (
+    <div className="cast-reference">
+      <p>Referenced cast by {castAuthor}</p>
+      <button onClick={viewCast}>
+        View Original Cast
+      </button>
+    </div>
+  );
+}
+```
+
+```tsx components/GameAchievement.tsx
+import { useViewCast, useComposeCast } from '@coinbase/onchainkit/minikit';
+import { useState } from 'react';
+
+export default function GameAchievement({ achievement }) {
+  const [sharedCastHash, setSharedCastHash] = useState(null);
+  
+  const composeCast = useComposeCast();
+  const viewSharedCast = useViewCast(sharedCastHash);
+
+  const shareAchievement = () => {
+    composeCast({
+      text: `🎮 Just unlocked "${achievement.name}" in this Mini App! Can you beat my score?`,
+      embeds: [window.location.href]
+    });
+    
+    // Сохранить хэш каста, когда пользователь поделится (это придет из вашего бэкенда)
+    // setSharedCastHash(returnedCastHash);
+  };
+
+  return (
+    <div className="achievement-card">
+      <h3>🏆 {achievement.name}</h3>
+      <p>{achievement.description}</p>
+      
+      <div className="actions">
+        <button onClick={shareAchievement}>
+          Share Achievement
+        </button>
+        
+        {sharedCastHash && (
+          <button onClick={viewSharedCast}>
+            View My Share
+          </button>
+        )}
+      </div>
+    </div>
+  );
+}
+```
+
+```tsx components/ThreadNavigation.tsx
+import { useViewCast } from '@coinbase/onchainkit/minikit';
+
+export default function ThreadNavigation({ parentCastHash, replyCastHashes }) {
+  const viewParentCast = useViewCast(parentCastHash);
+
+  return (
+    <div className="thread-navigation">
+      <div className="parent-cast">
+        <h4>Original Discussion</h4>
+        <button onClick={viewParentCast}>
+          View Parent Cast
+        </button>
+      </div>
+      
+      <div className="replies">
+        <h4>Replies in Thread</h4>
+        {replyCastHashes.map((hash, index) => (
+          <ReplyItem key={hash} castHash={hash} replyNumber={index + 1} />
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function ReplyItem({ castHash, replyNumber }) {
+  const viewCast = useViewCast(castHash);
+  
+  return (
+    <button onClick={viewCast} className="reply-item">
+      Reply #{replyNumber}
+    </button>
+  );
+}
+```
+
+```tsx Community Highlights
+import { useViewCast } from '@coinbase/onchainkit/minikit';
+
+export default function CommunityHighlights({ featuredCasts }) {
+  return (
+    <div className="community-highlights">
+      <h2>Community Highlights</h2>
+      <div className="featured-casts">
+        {featuredCasts.map(cast => (
+          <FeaturedCast key={cast.hash} cast={cast} />
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function FeaturedCast({ cast }) {
+  const viewCast = useViewCast(cast.hash);
+  
+  return (
+    <div className="featured-cast-card">
+      <div className="cast-preview">
+        <h4>{cast.author}</h4>
+        <p>{cast.preview}</p>
+        <span className="engagement">{cast.likes} likes · {cast.recasts} recasts</span>
+      </div>
+      
+      <button onClick={viewCast} className="view-cast-btn">
+        View Full Cast
+      </button>
+    </div>
+  );
+}
+```
+</RequestExample>
+
+## Паттерны использования
+
+### Атрибуция контента
+Ссылайтесь на оригинальные касты, которые вдохновили контент вашего мини-приложения:
+
+```tsx components/AttributionFooter.tsx
+const AttributionFooter = ({ originalCastHash, authorName }) => {
+  const viewOriginalCast = useViewCast(originalCastHash);
+  
+  return (
+    <footer className="content-attribution">
+      <span>Inspired by cast from {authorName}</span>
+      <button onClick={viewOriginalCast}>
+        View Original
+      </button>
+    </footer>
+  );
+};
+```
+
+### Ветки обсуждения
+Навигация по беседам и ответам в кастах:
+
+```tsx components/DiscussionThread.tsx
+const DiscussionThread = ({ threadCasts }) => {
+  return (
+    <div className="discussion-thread">
+      {threadCasts.map((cast, index) => (
+        <ThreadItem 
+          key={cast.hash}
+          cast={cast}
+          isRoot={index === 0}
+        />
+      ))}
+    </div>
+  );
+};
+
+const ThreadItem = ({ cast, isRoot }) => {
+  const viewCast = useViewCast(cast.hash);
+  
+  return (
+    <div className={`thread-item ${isRoot ? 'root' : 'reply'}`}>
+      <span>{cast.author}: {cast.preview}</span>
+      <button onClick={viewCast}>View</button>
+    </div>
+  );
+};
+```
+
+### Социальное доказательство
+Демонстрируйте вовлеченность сообщества с вашим мини-приложением:
+
+```tsx components/SocialProof.tsx
+const SocialProof = ({ testimonialCasts }) => {
+  return (
+    <section className="social-proof">
+      <h3>What Users Are Saying</h3>
+      {testimonialCasts.map(cast => (
+        <TestimonialCard key={cast.hash} cast={cast} />
+      ))}
+    </section>
+  );
+};
+
+const TestimonialCard = ({ cast }) => {
+  const viewCast = useViewCast(cast.hash);
+  
+  return (
+    <div className="testimonial" onClick={viewCast}>
+      <blockquote>"{cast.text}"</blockquote>
+      <cite>— {cast.author}</cite>
+    </div>
+  );
+};
+```
+
+## Рекомендации
+
+### Валидация хэша
+Всегда проверяйте хэши кастов перед их использованием:
+
+```tsx components/SafeCastViewer.tsx
+const validateCastHash = (hash) => {
+  // Хэши кастов обычно представляют собой 40-значные шестнадцатеричные строки
+  return /^0x[a-fA-F0-9]{40}$/.test(hash);
+};
+
+const SafeCastViewer = ({ castHash }) => {
+  const viewCast = useViewCast(castHash);
+  
+  const handleViewCast = () => {
+    if (validateCastHash(castHash)) {
+      viewCast();
+    } else {
+      console.error('Invalid cast hash:', castHash);
+    }
+  };
+  
+  return (
+    <button onClick={handleViewCast}>
+      View Cast
+    </button>
+  );
+};
+```
+
+### Оптимизация производительности
+Кэшируйте метаданные кастов, чтобы избежать повторных запросов:
+
+```tsx components/CastLibrary.tsx
+import { useMemo } from 'react';
+
+const CastLibrary = ({ castHashes }) => {
+  const sortedCasts = useMemo(() => {
+    return castHashes.sort((a, b) => {
+      // Сортировка по временной метке или другим критериям
+      return a.timestamp - b.timestamp;
+    });
+  }, [castHashes]);
+  
+  return (
+    <div className="cast-library">
+      {sortedCasts.map(cast => (
+        <CastItem key={cast.hash} castHash={cast.hash} />
+      ))}
+    </div>
+  );
+};
+```
+
+### Пользовательский опыт
+Предоставляйте контекст о касте перед открытием:
+
+```tsx components/ContextualCastLink.tsx
+const ContextualCastLink = ({ castHash, context }) => {
+  const viewCast = useViewCast(castHash);
+  
+  return (
+    <div className="contextual-cast-link">
+      <p className="context">{context}</p>
+      <button onClick={viewCast} className="cast-link">
+        View Related Cast →
+      </button>
+    </div>
+  );
+};
+```
+
+<Warning>
+Хэши кастов должны быть действительными идентификаторами кастов Farcaster. Неверные хэши могут вызвать ошибки или неожиданное поведение в хост-приложении.
+</Warning>
+
+<Info>
+Просмотр кастов обеспечивает плавный способ ссылаться на контент Farcaster из вашего мини-приложения. Используйте это для популярных кастов сообщества, атрибуции контента и веток обсуждений, связанных с вашим приложением.
+</Info>
+
+

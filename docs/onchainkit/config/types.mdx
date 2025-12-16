@@ -1,0 +1,74 @@
+---
+title: Основные типы OnchainKit верхнего уровня
+sidebarTitle: Config
+description: Глоссарий основных типов OnchainKit верхнего уровня.
+---
+
+## `AppConfig`
+
+```ts
+type AppConfig = {
+  appearance?: {
+    name?: string | null; // Название вашего приложения
+    logo?: string | null; // URL логотипа вашего приложения
+    mode?: Mode | null; // Опционально определяет цветовую схему на основе предпочтений ОС или выбора пользователя
+    theme?: ComponentTheme | null; // Опционально устанавливает визуальный стиль для компонентов
+  };
+  paymaster?: string | null; // URL Paymaster для спонсирования газа
+};
+```
+
+## `isBaseOptions`
+
+```ts
+type isBaseOptions = {
+  chainId: number;
+  isMainnetOnly?: boolean; // Проверять chainId только на mainnet
+};
+```
+
+## `isEthereumOptions`
+
+```ts
+type isEthereumOptions = {
+  chainId: number;
+  isMainnetOnly?: boolean; // Проверять chainId только на mainnet
+};
+```
+
+## `OnchainKitConfig`
+
+```ts
+type OnchainKitConfig = {
+  address: Address | null; // Адрес опционален, так как у новых пользователей его может не быть
+  apiKey: string | null; // ApiKey для API Coinbase Developer Platform
+  chain: Chain; // Цепь (chain) должна быть указана, так как нужно знать, какую цепь использовать
+  config?: AppConfig; // Опции конфигурации для приложения
+  rpcUrl: string | null; // RPC URL для ончейн-запросов. По умолчанию использует CDP Node, если установлен API Key
+  schemaId: EASSchemaUid | null; // SchemaId опционален, так как не всем приложениям нужно использовать EAS
+  projectId: string | null; // ProjectId из Coinbase Developer Platform, требуется только для поддержки Coinbase Onramp
+};
+```
+
+## `OnchainKitContextType`
+
+```ts
+type OnchainKitContextType = OnchainKitConfig;
+```
+
+## `OnchainKitProviderReact`
+
+```ts
+type OnchainKitProviderReact = {
+  address?: Address;
+  apiKey?: string;
+  chain: Chain;
+  children: ReactNode;
+  config?: AppConfig;
+  rpcUrl?: string;
+  schemaId?: EASSchemaUid;
+  projectId?: string;
+};
+```
+
+

@@ -1,0 +1,220 @@
+---
+title: <Identity /> · OnchainKit
+sidebarTitle: <Identity />
+description: Компоненты и утилиты для идентификации
+---
+
+`Identity` - это провайдер контекста React, который организует компоненты идентификации.
+
+## Использование
+
+Показать аватар пользователя, имя с аттестацией и адрес:
+
+```tsx
+import { Avatar, Identity, Name, Badge, Address } from '@coinbase/onchainkit/identity';
+
+<Identity
+  address="0x838aD0EAE54F99F1926dA7C3b6bFbF617389B4D9"
+  schemaId="0xf8b05c79f090979bf4a80270aba232dff11a10d9ca55c4f88de95317970f0de9"
+>
+  <Avatar />
+  <Name>
+    <Badge />
+  </Name>
+  <Address />
+</Identity>
+```
+
+<iframe
+  src="https://684b5e62b1ff46bc5bf83966-aijszlfakk.chromatic.com/iframe.html?args=&id=onchainkit-identity-identity--default-identity&viewMode=story&dark=true&hero=true"
+  width="100%"
+  height="auto"
+/>
+{/* <App>
+  <Identity
+    address="0x838aD0EAE54F99F1926dA7C3b6bFbF617389B4D9"
+    schemaId="0xf8b05c79f090979bf4a80270aba232dff11a10d9ca55c4f88de95317970f0de9"
+  >
+    <Avatar />
+    <Name>
+      <Badge />
+    </Name>
+    <Address />
+  </Identity>
+</App> */}
+
+### Бейдж с подсказкой (Tooltip)
+
+Вы можете включить подсказку для бейджа аттестации, чтобы предоставить контекст о том, что представляет собой бейдж:
+
+```tsx
+import { Avatar, Identity, Name, Badge, Address } from '@coinbase/onchainkit/identity';
+
+<Identity
+  address="0x838aD0EAE54F99F1926dA7C3b6bFbF617389B4D9"
+  schemaId="0xf8b05c79f090979bf4a80270aba232dff11a10d9ca55c4f88de95317970f0de9"
+>
+  <Avatar />
+  <Name> 
+    <Badge 
+      tooltip={true} // [!code focus]
+    />
+  </Name>
+  <Address />
+</Identity>
+```
+
+<iframe
+  src="https://684b5e62b1ff46bc5bf83966-aijszlfakk.chromatic.com/iframe.html?args=&id=onchainkit-identity-identity--badge-tooltip&viewMode=story&dark=true&hero=true"
+  width="100%"
+  height="auto"
+/>
+{/* <App>
+  <Identity
+    address="0x838aD0EAE54F99F1926dA7C3b6bFbF617389B4D9"
+    schemaId="0xf8b05c79f090979bf4a80270aba232dff11a10d9ca55c4f88de95317970f0de9"
+  >
+    <Avatar />
+    <Name>
+      <Badge tooltip={true} />
+    </Name>
+    <Address />
+  </Identity>
+</App> */}
+
+Вы также можете указать пользовательский текст подсказки:
+```tsx
+// @errors: 2304 2552
+import { Avatar, Identity, Name, Badge, Address } from '@coinbase/onchainkit/identity';
+
+<Identity
+  address="0x838aD0EAE54F99F1926dA7C3b6bFbF617389B4D9"
+  schemaId="0xf8b05c79f090979bf4a80270aba232dff11a10d9ca55c4f88de95317970f0de9"
+>
+  <Avatar />
+  <Name>
+    <Badge 
+      tooltip="Coinbase Verified Account" // [!code focus]
+    />
+  </Name>
+  <Address />
+</Identity>
+```
+
+<iframe
+  src="https://684b5e62b1ff46bc5bf83966-aijszlfakk.chromatic.com/iframe.html?args=&id=onchainkit-identity-identity--badge-custom-tooltip&viewMode=story&dark=true&hero=true"
+  width="100%"
+  height="auto"
+/>
+{/* <App>
+  <Identity
+    address="0x838aD0EAE54F99F1926dA7C3b6bFbF617389B4D9"
+    schemaId="0xf8b05c79f090979bf4a80270aba232dff11a10d9ca55c4f88de95317970f0de9"
+  >
+    <Avatar />
+    <Name>
+      <Badge tooltip="Coinbase Verified Account" />
+    </Name>
+    <Address />
+  </Identity>
+</App> */}
+
+Измените любые стили с помощью свойства `className`.
+
+```tsx
+// @errors: 2304 2552 2657
+import { Avatar, Identity, Name, Badge, Address } from '@coinbase/onchainkit/identity';
+
+<Identity
+  address="0x838aD0EAE54F99F1926dA7C3b6bFbF617389B4D9"
+  schemaId="0xf8b05c79f090979bf4a80270aba232dff11a10d9ca55c4f88de95317970f0de9"
+>
+  <Avatar>
+    <Badge
+      className="bg-error" // [!code focus]
+    />
+  </Avatar>
+  <Name
+    className="text-orange-600" // [!code focus]
+  />
+  <Address
+    className="text-zinc-500 font-bold" // [!code focus]
+  />
+</Identity>
+```
+
+<iframe
+  src="https://684b5e62b1ff46bc5bf83966-aijszlfakk.chromatic.com/iframe.html?args=&id=onchainkit-identity-identity--class-name-prop&viewMode=story&dark=true&hero=true"
+  width="100%"
+  height="auto"
+/>
+
+{/* <App>
+  <Identity
+    address="0x838aD0EAE54F99F1926dA7C3b6bFbF617389B4D9"
+    schemaId="0xf8b05c79f090979bf4a80270aba232dff11a10d9ca55c4f88de95317970f0de9"
+  >
+    <Avatar>
+      <Badge className="bg-error" />
+    </Avatar>
+    <Name className="text-orange-600" />
+    <Address className="text-zinc-500 font-bold"/>
+  </Identity>
+</App> */}
+
+Выберите, какие компоненты идентификации отображать:
+
+```tsx
+import { Avatar, Identity, Name, Badge, Address } from '@coinbase/onchainkit/identity';
+// ---cut-start---
+<div>
+// ---cut-end---
+
+<Identity address="0x838..." schemaId="0xf8b...">
+  <Avatar />
+  <Name>
+    <Badge />
+  </Name>
+</Identity>
+
+<Identity address="0x838..." schemaId="0xf8b...">
+  <Name>
+    <Badge />
+  </Name>
+  <Address />
+</Identity>
+// ---cut-after---
+</div>
+```
+
+<iframe
+  src="https://684b5e62b1ff46bc5bf83966-aijszlfakk.chromatic.com/iframe.html?args=&id=onchainkit-identity-identity--choose-components&viewMode=story&dark=true&hero=true"
+  width="100%"
+  height="auto"
+/>
+{/* <App>
+  <Identity
+    address="0x838aD0EAE54F99F1926dA7C3b6bFbF617389B4D9"
+    schemaId="0xf8b05c79f090979bf4a80270aba232dff11a10d9ca55c4f88de95317970f0de9"
+  >
+    <Avatar />
+    <Name>
+      <Badge />
+    </Name>
+  </Identity>
+  <Identity
+    address="0x838aD0EAE54F99F1926dA7C3b6bFbF617389B4D9"
+    schemaId="0xf8b05c79f090979bf4a80270aba232dff11a10d9ca55c4f88de95317970f0de9"
+    className="mt-2"
+  >
+    <Name>
+      <Badge />
+    </Name>
+    <Address />
+  </Identity>
+</App> */}
+
+## Свойства (Props)
+
+[IdentityReact](/onchainkit/identity/types#identityreact)
+

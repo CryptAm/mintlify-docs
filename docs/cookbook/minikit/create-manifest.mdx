@@ -1,0 +1,58 @@
+---
+title: Создайте манифест
+description: Предоставьте обязательный endpoint /.well-known/farcaster.json
+---
+
+Манифест вашего мини-приложения подтверждает владение приложением и обеспечивает поиск, обнаружение и расширенные эмбеды (rich embeds) в Base App.
+
+Ниже мы создадим Next.js маршрут в  `app/.well-known/farcaster.json/route.ts` который возвращает ваши accountAssociation и метаданные фрейма.
+
+<Check>
+Посетите `https://ваш-домен.com/.well-known/farcaster.json` для проверки JSON вывода.
+</Check>
+
+
+```ts app/.well-known/farcaster.json/route.ts
+function withValidProperties(properties: Record<string, undefined | string | string[]>) {
+  return Object.fromEntries(
+    Object.entries(properties).filter(([_, value]) => (Array.isArray(value) ? value.length > 0 : !!value))
+  );
+}
+
+export async function GET() {
+  const URL = process.env.NEXT_PUBLIC_URL as string;
+  return Response.json({
+    accountAssociation: {
+      header: process.env.FARCASTER_HEADER,
+      payload: process.env.FARCASTER_PAYLOAD,
+      signature: process.env.FARCASTER_SIGNATURE,
+    },
+    frame: withValidProperties({
+      version: '1',
+      name: process.env.NEXT_PUBLIC_ONCHAINKIT_PROJECT_NAME,
+      subtitle: process.env.NEXT_PUBLIC_APP_SUBTITLE,
+      description: process.env.NEXT_PUBLIC_APP_DESCRIPTION,
+      screenshotUrls: [],
+      iconUrl: process.env.NEXT_PUBLIC_APP_ICON,
+      splashImageUrl: process.env.NEXT_PUBLIC_APP_SPLASH_IMAGE,
+      splashBackgroundColor: process.env.NEXT_PUBLIC_SPLASH_BACKGROUND_COLOR,
+      homeUrl: URL,
+      webhookUrl: `${URL}/api/webhook`,
+      primaryCategory: process.env.NEXT_PUBLIC_APP_PRIMARY_CATEGORY,
+      tags: [],
+      heroImageUrl: process.env.NEXT_PUBLIC_APP_HERO_IMAGE,
+      tagline: process.env.NEXT_PUBLIC_APP_TAGLINE,
+      ogTitle: process.env.NEXT_PUBLIC_APP_OG_TITLE,
+      ogDescription: process.env.NEXT_PUBLIC_APP_OG_DESCRIPTION,
+      ogImageUrl: process.env.NEXT_PUBLIC_APP_OG_IMAGE,
+      // использовать только во время тестирования
+      noindex: true,
+    }),
+  });
+}
+```
+
+Ознакомьтесь с полным [руководством по манифесту](/mini-apps/features/manifest) и обновите все поля. Не забудьте обновить ваше деплой-окружение этими значениями.
+
+
+

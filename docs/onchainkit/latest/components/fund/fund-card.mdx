@@ -1,0 +1,295 @@
+---
+title: "FundCard"
+---
+
+<Frame>
+<img alt="FundCard"
+  src="/images/onchainkit/fund-card.gif"
+  height="364"/>
+</Frame>
+
+Компонент `<FundCard />` предоставляет полный опыт фиатного пополнения (onramp) внутри вашего приложения. Он включает:
+
+- Ввод суммы с переключением между фиатом и криптовалютой
+- Выбор метода оплаты (Coinbase, Apple Pay, дебетовая карта)
+- Автоматическое обновление курса обмена
+- Умная обработка ограничений методов оплаты (на основе страны и региона)
+
+<Note>
+Опции пополнения через Apple Pay и дебетовую карту доступны только для активов, поддерживаемых Coinbase.
+</Note>
+
+
+<Tip>
+Для использования компонента `FundCard` вам потребуется предоставить Client API Key в `OnchainKitProvider`. Вы можете получить его, следуя шагам в нашем руководстве [Getting Started](/onchainkit/getting-started#get-your-client-api-key).
+</Tip>
+
+
+<Note>
+Для этого компонента требуется установка `projectId` в `OnchainKitProvider`. Вы можете найти свой `projectId` на [Coinbase Developer Platform](https://portal.cdp.coinbase.com/products/onchainkit).
+</Note>
+
+<Note>
+Вам потребуется токен сессии для аутентификации. Узнайте, как его получить, в [session token documentation](https://docs.cdp.coinbase.com/onramp-&-offramp/session-token-authentication).
+</Note>
+
+
+## Использование
+
+### Добавьте компонент `<FundCard />`
+
+```tsx
+import { FundCard } from '@coinbase/onchainkit/fund';
+
+const sessionToken = "YOUR_SESSION_TOKEN";
+
+<FundCard
+  sessionToken={sessionToken}
+  assetSymbol="ETH"
+  country="US"
+  currency="USD"
+/>;
+```
+
+<iframe
+  src="https://684b5e62b1ff46bc5bf83966-aijszlfakk.chromatic.com/iframe.html?args=&id=onchainkit-fund-card--default&viewMode=story&dark=true&hero=true"
+  width="100%"
+  height="370px"
+/>
+{/* <App>
+  <FundWrapper>
+    {({ address }) => {
+      if (address) {
+        return <FundCard sessionToken={sessionToken} assetSymbol="ETH" country="US" currency="USD" />;
+      }
+      return (
+        <>
+          <Wallet>
+            <ConnectWallet>
+              <Avatar className="h-6 w-6" />
+              <Name />
+            </ConnectWallet>
+          </Wallet>
+        </>
+      );
+    }}
+  </FundWrapper>
+</App> */}
+
+## Кастомизация
+
+### Кастомный заголовок и текст кнопки
+
+Вы можете кастомизировать заголовок и текст кнопки:
+
+```tsx
+<FundCard
+  sessionToken={sessionToken}
+  assetSymbol="ETH"
+  country="US"
+  currency="USD"
+  headerText="Purchase Ethereum"
+  buttonText="Purchase"
+/>
+```
+
+<iframe
+  src="https://684b5e62b1ff46bc5bf83966-aijszlfakk.chromatic.com/iframe.html?args=&id=onchainkit-fund-card--with-custom-text&viewMode=story&dark=true&hero=true"
+  width="100%"
+  height="370px"
+/>
+{/* <App>
+  <FundWrapper>
+    {({ address }) => {
+      if (address) {
+        return (
+          <FundCard
+            sessionToken={sessionToken}
+            assetSymbol="ETH"
+            country="US"
+            currency="USD"
+            headerText="Purchase Ethereum"
+            buttonText="Purchase"
+          />
+        );
+      }
+      return (
+        <>
+          <Wallet>
+            <ConnectWallet>
+              <Avatar className="h-6 w-6" />
+              <Name />
+            </ConnectWallet>
+          </Wallet>
+        </>
+      );
+    }}
+  </FundWrapper>
+</App> */}
+
+### Кастомная валюта
+
+Вы можете указать, какую фиатную валюту использовать:
+
+```tsx
+<FundCard
+  sessionToken={sessionToken}
+  assetSymbol="ETH"
+  country="GB"
+  currency="GBP"
+/>
+```
+
+### Предустановленные суммы для ввода
+
+Вы можете указать кнопки с предустановленными суммами:
+
+```tsx
+const presetAmountInputs = ['10', '20', '50'] as const;
+
+<FundCard
+  sessionToken={sessionToken}
+  assetSymbol="ETH"
+  country="US"
+  currency="USD"
+  presetAmountInputs={presetAmountInputs}
+/>;
+```
+
+<Note>
+**Примечание: Для отображения кнопок с предустановленными суммами требуется 3 варианта суммы.**
+</Note>
+
+
+### Кастомный контент
+
+Вы можете предоставить кастомные дочерние элементы, чтобы полностью кастомизировать содержимое карточки, сохраняя функциональность кнопки пополнения:
+
+```tsx
+<FundCard
+  sessionToken={sessionToken}
+  assetSymbol="ETH"
+  country="US"
+  currency="USD"
+>
+  <div className="space-y-4">
+    <h2>Custom Header</h2>
+    <input type="number" placeholder="Enter amount" />
+    <select>
+      <option>Payment Method 1</option>
+      <option>Payment Method 2</option>
+    </select>
+  </div>
+</FundCard>
+```
+
+Вы также можете повторно использовать дочерние элементы из реализации по умолчанию и добавить свой собственный кастомный контент.
+
+```tsx
+import {
+  FundCardHeader,
+  FundCardAmountInput,
+  FundCardAmountInputTypeSwitch,
+  FundCardPresetAmountInputList,
+  FundCardPaymentMethodDropdown,
+  FundCardSubmitButton,
+ } from '@coinbase/onchainkit/fund';
+
+<FundCard
+  sessionToken={sessionToken}
+  assetSymbol="ETH"
+  country="US"
+  currency="USD"
+>
+
+  <h2>Custom Header instead of the default "FundCardHeader" </h2>
+  <FundCardAmountInput />
+  <FundCardAmountInputTypeSwitch />
+  <FundCardPresetAmountInputList />
+  <div>Any custom content</div>
+  <FundCardPaymentMethodDropdown />
+  <FundCardSubmitButton />
+  <div>Any custom content</div>
+</FundCard>
+```
+
+<Note>
+**Примечание:** Если вы используете кастомные компоненты, вам потребуется доступ к состоянию компонента `FundCard`. Вы можете сделать это с помощью хука `useFundContext`.
+</Note>
+
+
+```tsx
+const {
+    asset,
+    currency,
+    selectedPaymentMethod,
+    setSelectedPaymentMethod,
+    fundAmountFiat,
+    setFundAmountFiat,
+    fundAmountCrypto,
+    setFundAmountCrypto,
+    selectedInputType,
+    setSelectedInputType,
+    exchangeRate,
+    setExchangeRate,
+    exchangeRateLoading,
+    setExchangeRateLoading,
+    submitButtonState,
+    setSubmitButtonState,
+    paymentMethods,
+    setPaymentMethods,
+    paymentMethodsLoading,
+    setPaymentMethodsLoading,
+    headerText,
+    buttonText,
+    country,
+    subdivision,
+    lifecycleStatus,
+    updateLifecycleStatus,
+    presetAmountInputs,
+ } = useFundContext();
+```
+
+## Свойства
+
+[`FundCardProps`](#fundcardprops)
+
+```ts
+type FundCardProps = {
+  children?: ReactNode;
+  assetSymbol: string;
+  placeholder?: string | React.ReactNode;
+  headerText?: string;
+  buttonText?: string;
+  country: string;
+  subdivision?: string;
+  currency?: string;
+  className?: string;
+  presetAmountInputs?: PresetAmountInputs;
+  /** Опциональный пропс для предоставления токена сессии. Обязателен, если fundingUrl не предоставлен */
+  sessionToken?: string;
+} & LifecycleEvents;
+```
+
+### FundCardSubmitButtonProps
+
+```ts
+type FundCardSubmitButtonProps =
+  | {
+      render?: (props: {
+        state: 'default' | 'success' | 'error' | 'loading';
+        onClick: () => void;
+        disabled: boolean;
+      }) => React.ReactNode; // Кастомная функция рендеринга для полного контроля над отображением кнопки отправки
+      children?: never;
+    }
+  | {
+      render?: never;
+      children?: ReactNode;
+    };
+```
+
+## Связанные компоненты
+
+- [`<FundButton />`](/onchainkit/fund/fund-button)
+

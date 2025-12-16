@@ -1,0 +1,318 @@
+---
+title: <Signature /> · OnchainKit
+sidebarTitle: <Signature />
+description: Компонент `<Signature />` поддерживает подписание сообщений EIP712 и personal_sign.
+---
+
+Компоненты `<Signature />` предоставляют обертку вокруг хуков wagmi `useSignTypedData` и `useSignMessage`.
+Эти хуки обрабатывают подписи EIP712 и сообщения personal_sign, с откатом на eth_sign.
+
+Перед их использованием убедитесь, что вы выполнили все [Getting Started steps](/onchainkit/getting-started).
+
+## Быстрый старт
+
+Вы можете использовать компонент `Signature` со стандартной реализацией, не передавая никаких дочерних компонентов, или передать дочерние компоненты для полной кастомизации пользовательского интерфейса.
+
+### Стандартная реализация для подписей EIP712
+
+<CodeGroup>
+```tsx Signature.tsx
+// @noErrors: 2307 2395 2554 2834 - Cannot find module 'data'
+import { Signature } from '@coinbase/onchainkit/signature';
+import { domain, types, message } from './data';
+// ---cut-start---
+import { encodeAbiParameters } from 'viem';
+import { base } from 'viem/chains';
+
+export const domain = {
+  name: 'EAS Attestation',
+  version: '1.0.0',
+  chainId: base.id,
+  verifyingContract: '0x4200000000000000000000000000000000000021',
+};
+
+export const types = {
+  Attest: [
+    { name: 'schema', type: 'bytes32' },
+    { name: 'recipient', type: 'address' },
+    { name: 'time', type: 'uint64' },
+    { name: 'revocable', type: 'bool' },
+    { name: 'refUID', type: 'bytes32' },
+    { name: 'data', type: 'bytes' },
+    { name: 'value', type: 'uint256' },
+  ],
+};
+
+export const message = {
+  schema: '0xf58b8b212ef75ee8cd7e8d803c37c03e0519890502d5e99ee2412aae1456cafe',
+  recipient: '0x1230000000000000000000000000000000000000000',
+  time: BigInt(0),
+  revocable: false,
+  refUID: '0x0000000000000000000000000000000000000000000000000000000000000000',
+  data: encodeAbiParameters([{ type: 'string' }], ['test attestation']),
+  value: BigInt(0),
+};
+// ---cut-end---
+<Signature
+  domain={domain}
+  types={types}
+  primaryType="Attest"
+  message={message}
+  label="Sign EIP712"
+  onSuccess={(signature: string) => console.log(signature)}
+/>
+```
+
+```tsx data
+// @noErrors: 2554 - Expected 0 arguments, but got 2
+import { encodeAbiParameters } from 'viem';
+import { base } from 'viem/chains';
+
+export const domain = {
+  name: 'EAS Attestation',
+  version: '1.0.0',
+  chainId: base.id,
+  verifyingContract: '0x4200000000000000000000000000000000000021',
+};
+
+export const types = {
+  Attest: [
+    { name: 'schema', type: 'bytes32' },
+    { name: 'recipient', type: 'address' },
+    { name: 'time', type: 'uint64' },
+    { name: 'revocable', type: 'bool' },
+    { name: 'refUID', type: 'bytes32' },
+    { name: 'data', type: 'bytes' },
+    { name: 'value', type: 'uint256' },
+  ],
+};
+
+export const message = {
+  schema: '0xf58b8b212ef75ee8cd7e8d803c37c03e0519890502d5e99ee2412aae1456cafe',
+  recipient: '0x1230000000000000000000000000000000000000000',
+  time: BigInt(0),
+  revocable: false,
+  refUID: '0x0000000000000000000000000000000000000000000000000000000000000000',
+  data: encodeAbiParameters([{ type: 'string' }], ['test attestation']),
+  value: BigInt(0),
+};
+```
+</CodeGroup>
+
+<iframe
+  src="https://684b5e62b1ff46bc5bf83966-aijszlfakk.chromatic.com/iframe.html?args=&id=onchainkit-signature--second-signature&viewMode=story&dark=true&hero=true"
+  width="100%"
+  height="auto"
+/>
+{/* <EIP712Signature /> */}
+
+
+### Стандартная реализация для сообщений personal_sign
+
+```tsx Signature.tsx
+import { Signature } from '@coinbase/onchainkit/signature';
+
+<Signature
+  message="Hello, OnchainKit!"
+  label="Personal_Sign me"
+  onSuccess={(signature: string) => console.log(signature)}
+/>
+```
+
+<iframe
+  src="https://684b5e62b1ff46bc5bf83966-aijszlfakk.chromatic.com/iframe.html?args=&id=onchainkit-signature--personal-sign&viewMode=story&dark=true&hero=true"
+  width="100%"
+  height="auto"
+/>
+{/* <PersonalSignSignature /> */}
+
+## Компоненты
+
+Компоненты Signature предоставляют полный процесс подписания:
+
+### Основной компонент
+
+- `<Signature />` - Основной контейнер, управляющий жизненным циклом подписания.
+
+### Дочерние компоненты `<Signature />`
+
+- `<SignatureButton />` - Обрабатывает инициацию подписи с настраиваемыми метками.
+- `<SignatureStatus />` - Отображает текущий статус подписания и действия.
+- `<SignatureToast />` - Показывает уведомления toast для событий подписания.
+
+### Дочерние компоненты `<SignatureStatus />` и `<SignatureToast />`
+
+- `<SignatureLabel />` - Отображает текстовый статус («Успех», «Подтвердите в кошельке» и т.д.).
+- `<SignatureIcon />` - Показывает иконки статуса (в ожидании, успех, ошибка).
+
+## API компонентов
+
+### Signature
+
+Основной компонент-обертка, управляющий процессом подписания.
+
+```tsx
+<Signature
+  // Обязательно для типизированных данных EIP-712
+  domain={domain}
+  types={types}
+  message={message}
+  primaryType="Test"
+
+  // ИЛИ для personal_sign
+  message="Hello World"
+
+  // Необязательные свойства
+  label="Sign"
+  onSuccess={(signature: string) => {}}
+  onError={(error: APIError) => {}}
+  onStatus={(status: LifecycleStatus) => {}}
+  resetAfter={5000} // время в мс для сброса после успеха
+  className="custom-class"
+  disabled={false}
+/>
+```
+
+### SignatureButton
+
+Компонент кнопки, который запускает запрос на подпись.
+
+```tsx
+<SignatureButton
+  label="Sign Message" // По умолчанию: "Sign"
+  connectLabel="Connect Wallet" // По умолчанию: "Connect Wallet"
+  errorLabel="Try Again" // По умолчанию: "Try again"
+  successLabel="Signed!" // По умолчанию: "Signed"
+  pendingLabel="Signing..." // По умолчанию: "Signing..."
+  disabled={false}
+  className="custom-class"
+/>
+```
+
+### SignatureStatus
+
+Контейнер для информации о статусе подписания.
+
+```tsx
+<SignatureStatus className="custom-class">
+  <SignatureLabel />
+  {/* Пользовательский контент статуса */}
+</SignatureStatus>
+```
+
+### SignatureToast
+
+Уведомление toast для событий подписания.
+
+```tsx
+<SignatureToast
+  durationMs={5000} // По умолчанию: 5000
+  position="bottom-center" // По умолчанию: "bottom-center"
+  className="custom-class"
+>
+  <SignatureIcon />
+  <SignatureLabel />
+  {/* Пользовательский контент toast */}
+</SignatureToast>
+```
+
+## Состояния жизненного цикла
+
+Процесс подписания имеет следующие состояния:
+
+- `init` - Начальное состояние.
+- `pending` - Ожидание подписи от кошелька.
+- `success` - Подписание успешно завершено.
+- `error` - Произошла ошибка при подписании.
+- `reset` - Компонент сброшен в начальное состояние.
+
+Доступ к текущему состоянию через колбэк `onStatus`:
+
+```tsx
+<Signature
+  onStatus={(status: LifecycleStatus) => {
+    switch (status.statusName) {
+      case 'success':
+        console.log('Signature:', status.statusData.signature);
+        break;
+      case 'error':
+        console.log('Error:', status.statusData.message);
+        break;
+    }
+  }}
+/>
+```
+
+## Обработка ошибок
+
+Ошибки обрабатываются автоматически и отображаются в пользовательском интерфейсе. Распространенные ошибки включают:
+
+- Пользователь отклонил запрос.
+- Неверный формат сообщения.
+- Проблемы с подключением к кошельку.
+
+Пользовательская обработка ошибок:
+
+```tsx
+<Signature
+  onError={(error: APIError) => {
+    console.error('Error code:', error.code);
+    console.error('Error message:', error.message);
+  }}
+/>
+```
+
+## Типы сообщений
+
+Компонент `<Signature />` поддерживает два типа сообщений:
+
+### Типизированные данные EIP-712
+
+```tsx
+<Signature
+  domain={{
+    name: 'Example App',
+    version: '1.0.0',
+    chainId: 1,
+    verifyingContract: '0x...'
+  }}
+  types={{
+    Person: [
+      { name: 'name', type: 'string' },
+      { name: 'wallet', type: 'address' }
+    ]
+  }}
+  message={{
+    name: 'Bob',
+    wallet: '0x...'
+  }}
+  primaryType="Person"
+/>
+```
+
+### Personal Sign (personal_sign)
+
+```tsx
+<Signature
+  message="Welcome to Example App! Click to sign in."
+/>
+```
+
+## Типы компонентов
+
+- [`SignatureReact`](/onchainkit/signature/types#signaturereact)
+- [`SignatureButtonProps`](/onchainkit/signature/types#signaturebuttonprops)
+- [`SignatureStatusProps`](/onchainkit/signature/types#signaturestatusprops)
+- [`SignatureToastProps`](/onchainkit/signature/types#signaturetoastprops)
+- [`SignatureIconProps`](/onchainkit/signature/types#signatureiconprops)
+- [`SignatureLabelProps`](/onchainkit/signature/types#signaturelabelprops)
+- [`MessageType`](/onchainkit/signature/types#messagetype)
+- [`ValidateMessageResult`](/onchainkit/signature/types#validatemessageresult)
+- [`MessageData`](/onchainkit/signature/types#messagedata)
+- [`SignatureProviderProps`](/onchainkit/signature/types#signatureproviderprops)
+
+## Связанные компоненты
+
+- [`<Wallet />`](/onchainkit/wallet/wallet) - Обрабатывает подключение кошелька.
+- [`<Transaction />`](/onchainkit/transaction/transaction) - Обрабатывает подписание транзакций.
+

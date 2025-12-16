@@ -1,0 +1,157 @@
+---
+title: Оракулы
+description: Документация по различным блокчейн-оракулам для Base. Включает поддержку ценовых фидов и верифицируемых случайных функций (VRF).
+---
+
+import {HeaderNoToc} from "/snippets/headerNoToc.mdx";
+
+
+## API3
+
+Рынок API3 предоставляет доступ к 200+ ценовым фидам в [Base Mainnet](https://market.api3.org/base) и [Base Testnet](https://market.api3.org/base-sepolia-testnet). Ценовые фиды работают как нативный push-оракул и могут быть активированы мгновенно через интерфейс рынка.
+
+Ценовые фиды доставляются агрегатом [оракулов первого уровня](https://docs.api3.org/explore/airnode/why-first-party-oracles.html) с использованием подписанных данных и поддерживают [возврат OEV](https://docs.api3.org/explore/introduction/oracle-extractable-value.html).
+
+В отличие от традиционных фидов данных, чтение [ценовых фидов API3](https://docs.api3.org/guides/dapis/) позволяет dApp торговать правом обновления ценовых фидов ботам-поисковикам, что способствует более эффективным процессам ликвидации для пользователей и LP децентрализованных финансовых рынков. Возвращенный OEV возвращается dApp.
+
+Помимо фидов данных, API3 также предоставляет [Генерацию Квантовых Случайных Чисел](https://docs.api3.org/explore/qrng/) в Base Mainnet и Testnet. QRNG — это бесплатный сервис, предоставляющий квантовую случайность в ончейне. Он работает на [Airnode](https://docs.api3.org/reference/airnode/latest/understand/), оракуле первого уровня, которым напрямую управляют [провайдеры QRNG API](https://docs.api3.org/reference/qrng/providers.html). Подробнее о QRNG [здесь](https://docs.api3.org/reference/qrng).
+
+Ознакомьтесь с этими руководствами, чтобы узнать больше:
+
+- [dAPIs](https://docs.api3.org/guides/dapis/subscribing-to-dapis/): Агрегированные фиды данных первого уровня, получаемые напрямую от поставщиков данных.
+- [Airnode](https://docs.api3.org/guides/airnode/calling-an-airnode/): Бессерверное решение оракула первого уровня для вывода любого REST API в ончейн.
+- [QRNG](https://docs.api3.org/guides/qrng/): Генератор квантовых случайных чисел для верифицируемой квантовой ГСЧ в ончейне.
+
+<HeaderNoToc title="Поддерживаемые сети"/>
+
+- Base Mainnet
+- Base Sepolia (Testnet)
+
+## Chainlink
+
+[Chainlink](https://chain.link/) предоставляет ряд [ценовых фидов](https://docs.chain.link/data-feeds/price-feeds/addresses/?network=base) для Base.
+
+Смотрите [это руководство](https://docs.chain.link/docs/get-the-latest-price/) как использовать фиды Chainlink..
+
+<Note>
+Для использования фидов данных Chainlink вам может понадобиться токен [LINK](https://docs.chain.link/resources/link-token-contracts?parent=dataFeeds).
+</Note>
+
+
+<HeaderNoToc title="Поддерживаемые сети"/>
+
+- Base Mainnet
+- Base Sepolia (Testnet)
+
+## Chronicle
+
+[Chronicle](https://chroniclelabs.org/) предоставляет ряд [Оракулов](https://chroniclelabs.org/dashboard) для Base.
+
+Смотрите [это руководство](https://docs.chroniclelabs.org/Builders/tutorials/Remix) чтобы узнать, как использовать оракулы Chronicle.
+
+<HeaderNoToc title="Поддерживаемые сети"/>
+
+- Base Mainnet
+- Base Sepolia (Testnet)
+
+## DIA
+
+[DIA](https://www.diadata.org/) предоставляет 2000+ [ценовых фидов](https://www.diadata.org/app/price/) для Base.
+Смотрите [это руководство](https://docs.diadata.org/introduction/intro-to-dia-oracles/request-an-oracle) чтобы узнать, как использовать фиды DIA.
+
+<HeaderNoToc title="Поддерживаемые сети"/>
+
+- Base Mainnet
+- Base Sepolia (Testnet)
+
+## Gelato
+
+Gelato VRF (Верифицируемая Случайная Функция) предоставляет уникальную систему, предлагающую доверяемую случайность в Base.
+
+Смотрите это руководство, чтобы узнать, как начать работу с [Gelato VRF](https://docs.gelato.network/web3-services/vrf/quick-start).
+
+<HeaderNoToc title="Поддерживаемые сети"/>
+
+- Base Mainnet
+- Base Sepolia (Testnet)
+
+## ORA
+
+[ORA](https://ora.io) предоставляет [Ончейн AI Оракул](https://docs.ora.io/doc/oao-onchain-ai-oracle/introduction) для Base.
+
+Смотрите [это руководство](https://docs.ora.io/doc/oao-onchain-ai-oracle/develop-guide/tutorials/interaction-with-oao-tutorial) чтобы узнать, как использовать ORA Onchain AI Oracle.
+
+<HeaderNoToc title="Supported Networks"/>
+
+- Base Mainnet
+
+## Orochi Network's Orocle Service
+[Orochi Network's Orocle](https://orochi.network/orocle) предоставляет децентрализованный способ для DApps получать доступ к реальным данным без reliance на централизованные оракулы.
+
+- Устраняет единые точки отказа.
+- Обеспечивает точность и проверку данных.
+- Поддерживает безопасную интеграцию с внешними источниками данных.
+
+### Готовы строить?
+Изучите документацию:
+- [Orochi Network Orocle V2](https://docs.orochi.network/Orocle/introduction)
+- Сгенерируйте API: [Orocle V2 Dashboard](https://dashboard.orochi.network/home)
+
+<HeaderNoToc title="Поддерживаемые сети"/>
+- Base Mainnet
+- Base Sepolia (Testnet)
+
+## Pyth
+
+The [Pyth Network](https://pyth.network/) одна из крупнейших сетей оракулов первого уровня, доставляющая данные в реальном времени через [огромное количество цепочек](https://docs.pyth.network/price-feeds/contract-addresses). Pyth представляет инновационный [дизайн pull-оракула](https://docs.pyth.network/documentation/pythnet-price-feeds/on-demand), с низкой задержкой, где пользователи могут вытягивать обновления цен в ончейн по мере необходимости, позволяя всем в ончейн-среде получать доступ к этой точке данных наиболее эффективно. Сеть Pyth обновляет цены каждые 400 мс, что делает Pyth одним из самых быстрых ончейн-оракулов.
+
+### Особенности ценовых фидов Pyth:
+
+- Задержка 400 мс
+- Эффективный и экономичный оракул
+- [Данные первого уровня](https://pyth.network/publishers) получаемые напрямую от финансовых институтов
+- [Ценовые фиды, включая Крипто, Акции, Валюты, Металлы](https://pyth.network/developers/price-feed-ids)
+- [Доступно во всех основных цепочках](https://docs.pyth.network/price-feeds/contract-addresses)
+
+<HeaderNoToc title="Поддерживаемые сети"/> для Base (Pyth Price Feeds):
+- Base Mainnet: [`0x8250f4aF4B972684F7b336503E2D6dFeDeB1487a`](https://basescan.org/address/0x8250f4aF4B972684F7b336503E2D6dFeDeB1487a) 
+- Base Sepolia: [`0xA2aa501b19aff244D90cc15a4Cf739D2725B5729`](https://base-sepolia.blockscout.com/address/0xA2aa501b19aff244D90cc15a4Cf739D2725B5729)
+
+### Pyth Entropy
+Pyth Entropy позволяет разработчикам быстро и легко генерировать безопасные **случайные числа** в ончейне.
+
+Проверьте [как генрировать случайные числа в контрактах EVM](https://docs.pyth.network/entropy/generate-random-numbers/evm) для подробного пошагового руководства.
+
+<HeaderNoToc title="Поддерживаемые сети"/> для Base (Pyth Entropy):
+- Base Mainnet: [`0x6E7D74FA7d5c90FEF9F0512987605a6d546181Bb`](https://basescan.org/address/0x6E7D74FA7d5c90FEF9F0512987605a6d546181Bb) 
+- Base Sepolia: [`0x41c9e39574F40Ad34c79f1C99B66A45eFB830d4c`](https://base-sepolia.blockscout.com/address/0x41c9e39574F40Ad34c79f1C99B66A45eFB830d4c)
+
+Ознакомьтесь со следующими ссылками, чтобы начать работу с Pyth.
+
+- [Руководство по интеграции ценовых фидов Pyth в EVM](https://docs.pyth.network/price-feeds/use-real-time-data/evm)
+- [Документация Pyth](https://docs.pyth.network/home)
+- [Справочник API ценовых фидов Pyth](https://api-reference.pyth.network/price-feeds/evm/getPrice)
+- [Примеры Pyth](https://github.com/pyth-network/pyth-examples)
+- [Сайт](https://pyth.network/)
+- [Твиттер](https://x.com/PythNetwork)
+
+## RedStone
+
+[RedStone](https://redstone.finance/) предоставляет 1200+ [ценовых фидов](https://app.redstone.finance/) для Base.
+
+Смотрите [это руководство](https://docs.redstone.finance/) чтобы узнать, как использовать фиды RedStone.
+
+<HeaderNoToc title="Поддерживаемые сети"/>
+
+- Base Mainnet
+
+## Supra
+
+[Supra](https://supraoracles.com) предоставляет VRF и децентрализованные ценовые фиды оракулов, которые могут использоваться для ончейн и офчейн случаев использования, таких как спотовые и Perp DEX, кредитные протоколы и платежные протоколы. Цепочка оракулов и алгоритм консенсуса Supra делают его одним из самых быстрых по финализации провайдеров оракулов с гарантиями безопасности уровня L1. Pull-оракул имеет время отклика менее секунды. Помимо скорости и безопасности, вращающаяся архитектура узлов Supra собирает данные из 40+ источников данных и применяет надежную методологию расчета для получения наиболее точного значения. Происхождение узлов на панели управления данными также предоставляет полностью прозрачный исторический аудиторский след. Документ Distributed Oracle Agreement (DORA) от Supra был принят на ICDCS 2023, старейшей конференции по распределенным системам.
+
+Посетите [документацию Supra](https://supraoracles.com/docs/) чтобы узнать больше об интеграции оракула и VRF Supra в ваш проект на Base.
+
+<HeaderNoToc title="Поддерживаемые сети"/>
+
+- Base Mainnet
+- Base Sepolia (Testnet)

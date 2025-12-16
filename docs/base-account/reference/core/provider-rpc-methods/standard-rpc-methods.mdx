@@ -1,0 +1,195 @@
+---
+title: "Стандартные RPC методы"
+description: "Стандартные Ethereum RPC методы, поддерживаемые Base Account"
+---
+
+Base Account поддерживает все стандартные Ethereum RPC методы, обеспечивая совместимость с существующими web3 приложениями и библиотеками. Каждый метод ниже содержит ссылку на подробную документацию, включая параметры, возвращаемые значения и обработку ошибок.
+
+## Методы аккаунтов
+
+### [eth_accounts](/base-account/reference/core/provider-rpc-methods/eth_accounts)
+
+Возвращает список адресов, принадлежащих клиенту.
+
+### [eth_requestAccounts](/base-account/reference/core/provider-rpc-methods/eth_requestAccounts)
+
+Запрашивает у пользователя предоставление адреса Ethereum для идентификации. Этот метод используется для инициализации подключения между вашим приложением и кошельком пользователя.
+
+## Информация о цепи
+
+### [eth_chainId](/base-account/reference/core/provider-rpc-methods/eth_chainId)
+
+Возвращает идентификатор цепи (chain ID) текущей сети.
+
+### [eth_blockNumber](/base-account/reference/core/provider-rpc-methods/eth_blockNumber)
+
+Возвращает номер последнего блока.
+
+### [eth_coinbase](/base-account/reference/core/provider-rpc-methods/eth_coinbase)
+
+Возвращает адрес coinbase клиента.
+
+## Баланс и данные транзакций
+
+### [eth_getBalance](/base-account/reference/core/provider-rpc-methods/eth_getBalance)
+
+Возвращает баланс аккаунта по указанному адресу.
+
+### [eth_getTransactionCount](/base-account/reference/core/provider-rpc-methods/eth_getTransactionCount)
+
+Возвращает количество транзакций, отправленных с адреса.
+
+### [eth_getTransactionByHash](/base-account/reference/core/provider-rpc-methods/eth_getTransactionByHash)
+
+Возвращает информацию о транзакции по её хэшу.
+
+### [eth_getTransactionReceipt](/base-account/reference/core/provider-rpc-methods/eth_getTransactionReceipt)
+
+Возвращает квитанцию транзакции по её хэшу.
+
+## Информация о блоках
+
+### [eth_getBlockByNumber](/base-account/reference/core/provider-rpc-methods/eth_getBlockByNumber)
+
+Возвращает информацию о блоке по его номеру.
+
+### [eth_getBlockByHash](/base-account/reference/core/provider-rpc-methods/eth_getBlockByHash)
+
+Возвращает информацию о блоке по его хэшу.
+
+### [eth_getBlockTransactionCountByNumber](/base-account/reference/core/provider-rpc-methods/eth_getBlockTransactionCountByNumber)
+
+Возвращает количество транзакций в блоке по его номеру.
+
+### [eth_getBlockTransactionCountByHash](/base-account/reference/core/provider-rpc-methods/eth_getBlockTransactionCountByHash)
+
+Возвращает количество транзакций в блоке по его хэшу.
+
+## Методы транзакций
+
+### [eth_sendTransaction](/base-account/reference/core/provider-rpc-methods/eth_sendTransaction)
+
+Создает новый вызов сообщения или создание контракта для подписанных транзакций.
+
+### [eth_sendRawTransaction](/base-account/reference/core/provider-rpc-methods/eth_sendRawTransaction)
+
+Создает новый вызов сообщения или создание контракта для подписанных транзакций.
+
+## Методы газа и комиссий
+
+### [eth_estimateGas](/base-account/reference/core/provider-rpc-methods/eth_estimateGas)
+
+Генерирует и возвращает оценку необходимого количества газа для завершения транзакции.
+
+### [eth_gasPrice](/base-account/reference/core/provider-rpc-methods/eth_gasPrice)
+
+Возвращает текущую цену за единицу газа в wei.
+
+### [eth_feeHistory](/base-account/reference/core/provider-rpc-methods/eth_feeHistory)
+
+Возвращает историю базовой комиссии за газ и фактической приоритетной комиссии за газ для запрошенного/поддерживаемого диапазона блоков.
+
+## Методы контрактов и хранилища
+
+### [eth_getCode](/base-account/reference/core/provider-rpc-methods/eth_getCode)
+
+Возвращает код по указанному адресу.
+
+### [eth_getStorageAt](/base-account/reference/core/provider-rpc-methods/eth_getStorageAt)
+
+Возвращает значение из позиции хранилища по указанному адресу.
+
+### [eth_getLogs](/base-account/reference/core/provider-rpc-methods/eth_getLogs)
+
+Возвращает массив всех логов, соответствующих заданному объекту фильтра.
+
+### [eth_getProof](/base-account/reference/core/provider-rpc-methods/eth_getProof)
+
+Возвращает значения аккаунта и хранилища указанного аккаунта, включая Меркле доказательство.
+
+## Методы подписи
+
+### [personal_sign](/base-account/reference/core/provider-rpc-methods/personal_sign)
+
+Подписывает сообщение с использованием приватного ключа указанного аккаунта.
+
+### [eth_signTypedData_v4](/base-account/reference/core/provider-rpc-methods/eth_signTypedData_v4)
+
+Подписывает типизированные данные в соответствии со стандартом EIP-712.
+
+## Методы сети
+
+### [wallet_addEthereumChain](/base-account/reference/core/provider-rpc-methods/wallet_addEthereumChain)
+
+Добавляет цепь Ethereum в кошелек.
+
+### [wallet_switchEthereumChain](/base-account/reference/core/provider-rpc-methods/wallet_switchEthereumChain)
+
+Переключает кошелек на указанную цепь Ethereum.
+
+### [wallet_watchAsset](/base-account/reference/core/provider-rpc-methods/wallet_watchAsset)
+
+Запрашивает у пользователя отслеживание токена в его кошельке.
+
+## Расширенные методы
+
+### [eth_getTransactionByBlockHashAndIndex](/base-account/reference/core/provider-rpc-methods/eth_getTransactionByBlockHashAndIndex)
+
+Возвращает информацию о транзакции по хэшу блока и позиции индекса транзакции.
+
+### [eth_getTransactionByBlockNumberAndIndex](/base-account/reference/core/provider-rpc-methods/eth_getTransactionByBlockNumberAndIndex)
+
+Возвращает информацию о транзакции по номеру блока и позиции индекса транзакции.
+
+### [eth_getUncleCountByBlockHash](/base-account/reference/core/provider-rpc-methods/eth_getUncleCountByBlockHash)
+
+Возвращает количество uncles в блоке по его хэшу.
+
+### [eth_getUncleCountByBlockNumber](/base-account/reference/core/provider-rpc-methods/eth_getUncleCountByBlockNumber)
+
+Возвращает количество uncles в блоке по его номеру.
+
+### [web3_clientVersion](/base-account/reference/core/provider-rpc-methods/web3_clientVersion)
+
+Возвращает текущую версию клиента.
+
+## Обработка ошибок
+
+Все RPC методы могут вызывать ошибки. Распространенные коды ошибок включают:
+
+- `-32700`: Parse error (Ошибка парсинга)
+- `-32600`: Invalid request (Некорректный запрос)
+- `-32601`: Method not found (Метод не найден)
+- `-32602`: Invalid params (Некорректные параметры)
+- `-32603`: Internal error (Внутренняя ошибка)
+- `-32000`: Server error (Ошибка сервера)
+
+```javascript
+try {
+  const result = await provider.request({
+    method: 'eth_getBalance',
+    params: ['0x1234...', 'latest']
+  });
+} catch (error) {
+  console.error('RPC Error:', error.code, error.message);
+}
+```
+
+## Рекомендации
+
+1. **Всегда обрабатывайте ошибки**: RPC вызовы могут завершиться неудачей по разным причинам
+2. **Используйте соответствующие параметры блоков**: `latest`, `earliest`, `pending` или конкретные номера блоков
+3. **Проверяйте адреса**: Убедитесь, что адреса правильно отформатированы
+4. **Кэшируйте ответы**: Некоторые данные меняются нечасто
+5. **Используйте пакетные запросы**: При поддержке выполняйте несколько вызовов пакетно для эффективности
+
+## Совместимость
+
+Base Account обеспечивает полную совместимость с:
+- Web3.js
+- Ethers.js
+- Wagmi
+- Viem
+- Другими стандартными web3 библиотеками
+
+Все стандартные RPC методы работают точно так, как ожидается, что позволяет вашим существующим приложениям интегрироваться с Base Account без модификаций.

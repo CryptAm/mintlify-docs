@@ -1,0 +1,244 @@
+---
+title: Доступ к данным об активах в реальном времени с использованием Pyth Price Feeds
+slug: /oracles-pyth-price-feeds
+description: Руководство, которое учит, как использовать Pyth Price Feeds для доступа к данным об активах в реальном времени напрямую из ваших смарт-контрактов в тестнете Base.
+author: taycaldwell
+---
+
+# Доступ к данным об активах в реальном времени с использованием Pyth Price Feeds
+
+Это руководство проведет вас через процесс создания смарт-контракта на Base, который использует оракулы сети Pyth для получения ценового фида (price feed).
+
+## Цели
+
+К концу этого руководства вы должны уметь делать следующее:
+
+- Настроить проект смарт-контрактов для Base с использованием Foundry
+- Установить смарт-контракты Pyth
+- Использовать ценовой фид сети Pyth в вашем смарт-контракте
+- Развернуть и протестировать ваши смарт-контракты на Base
+
+## Предварительные требования
+
+### Foundry
+
+Для этого руководства требуется установленный Foundry.
+
+- Из командной строки (терминала) выполните: `curl -L https://foundry.paradigm.xyz | bash`
+- Затем выполните `foundryup`, чтобы установить последнюю (ночную) сборку Foundry
+
+Для получения дополнительной информации см. [руководство по установке](https://book.getfoundry.sh/getting-started/installation) в Foundry Book.
+
+### Coinbase Wallet
+
+Чтобы развернуть смарт-контракт, вам сначала понадобится кошелек. Вы можете создать кошелек, скачав браузерное расширение Coinbase Wallet.
+
+- Скачайте [Coinbase Wallet](https://chrome.google.com/webstore/detail/coinbase-wallet-extension/hnfanknocfeofbddgcijnmhnfnkdnaad?hl=en)
+
+### Средства в кошельке
+
+Развертывание контрактов в блокчейне требует оплаты комиссии за газ. Поэтому вам нужно будет пополнить ваш кошелек ETH для покрытия этих комиссий за газ.
+
+Для этого руководства вы будете развертывать контракт в тестовой сети Base Sepolia. Вы можете пополнить свой кошель ETH из Base Sepolia, используя один из кранов, перечисленных на странице [Network Faucets](https://docs.base.org/base-chain/tools/network-faucets).
+
+## Что такое Pyth Network?
+
+**Pyth Network** фокусируется на сверхнизкой задержке и данных в реальном времени, что делает его подходящим для финансовых приложений, требующих обновлений с субсекундной скоростью. Дизайн Pyth делает упор на производительность, и он предназначен для предоставления данных для ряда традиционных и DeFi активов.
+
+## Создание проекта
+
+Прежде чем вы сможете начать писать смарт-контракты для Base и использовать ценовые фиды Pyth, вам нужно настроить среду разработки, создав проект Foundry.
+
+Чтобы создать новый проект Foundry, сначала создайте новую директорию:
+
+```bash
+mkdir myproject
+```
+
+Затем выполните:
+
+```bash
+cd myproject
+forge init
+```
+
+Это создаст проект Foundry, который имеет следующую базовую структуру:
+
+```bash
+.
+├── foundry.toml
+├── script
+ │   └── Counter.s.sol
+├── src
+ │   └── Counter.sol
+└── test
+    └── Counter.t.sol
+```
+
+## Установка смарт-контрактов Pyth
+
+Чтобы использовать ценовые фиды Pyth в вашем проекте, вам нужно установить контракты оракулов Pyth в качестве зависимости проекта с помощью `forge install`.
+
+Чтобы установить контракты оракулов Pyth, выполните:
+
+```bash
+forge install pyth-network/pyth-sdk-solidity@v2.2.0 --no-git --no-commit
+```
+
+После установки обновите ваш файл `foundry.toml`, добавив следующую строку:
+
+```bash
+remappings = ['@pythnetwork/pyth-sdk-solidity/=lib/pyth-sdk-solidity']
+```
+
+## Написание и компиляция смарт-контракта
+
+После того как ваш проект создан и зависимости установлены, вы можете приступить к написанию смарт-контракта.
+
+Код Solidity ниже определяет смарт-контракт с именем `ExampleContract`. Код использует интерфейс IPyth из [Pyth Solidity SDK](https://github.com/pyth-network/pyth-crosschain/tree/main/target_chains/ethereum/sdk/solidity).
+
+В контракте определен экземпляр `IPyth`, который предоставляет функции для получения ценовых фидов Pyth. Конструктор для интерфейса `IPyth` ожидает предоставления адреса контракта. Адрес, указанный в примере кода ниже (`0xA2aa501b19aff244D90cc15a4Cf739D2725B5729`) соответствует адресу контракта Pyth для тестнета Base Sepolia.
+
+<Info>
+Pyth также поддерживает другие сети EVM, такие как Base Mainnet. Для получения списка всех адресов контрактов сети посетите [документацию Pyth](https://docs.pyth.network/documentation/pythnet-price-feeds/evm).
+</Info>
+
+Контракт также содержит функцию с именем `getLatestPrice`. Эта функция принимает предоставленные `priceUpdateData`, которые используются для получения обновленных данных о цене, и возвращает цену для заданного `priceId` ценового фида. В приведенном ниже смарт-контракте используется `priceId`, равный `0xff61491a931112ddf1bd8147cd1b641375f79f5825126d665480874634fd0ace`, который соответствует ценовому фиду для `ETH / USD`.
+
+<Info>
+Pyth предоставляет ряд ценовых фидов. Для списка доступных ценовых фидов посетите [документацию Pyth](https://pyth.network/developers/price-feed-ids#pyth-evm-stable).
+</Info>
+
+```solidity
+// SPDX-License-Identifier: MIT
+pragma solidity ^0.8.0;
+
+import "@pythnetwork/pyth-sdk-solidity/IPyth.sol";
+import "@pythnetwork/pyth-sdk-solidity/PythStructs.sol";
+
+contract ExampleContract {
+  IPyth pyth;
+
+  /**
+  * Network: Base Sepolia (testnet)
+  * Address: 0xA2aa501b19aff244D90cc15a4Cf739D2725B5729
+  */
+  constructor() {
+    pyth = IPyth(0xA2aa501b19aff244D90cc15a4Cf739D2725B5729);
+  }
+
+  function getLatestPrice(
+    bytes[] calldata priceUpdateData
+  ) public payable returns (PythStructs.Price memory) {
+    // Update the prices to the latest available values and pay the required fee for it. The `priceUpdateData` data
+    // should be retrieved from our off-chain Price Service API using the `pyth-evm-js` package.
+    // See section "How Pyth Works on EVM Chains" below for more information.
+    uint fee = pyth.getUpdateFee(priceUpdateData);
+    pyth.updatePriceFeeds{ value: fee }(priceUpdateData);
+
+    bytes32 priceID = 0xff61491a931112ddf1bd8147cd1b641375f79f5825126d665480874634fd0ace;
+    // Читаем текущее значение priceID, прерывая транзакцию, если цена не обновлялась недавно.
+    // Каждая цепь имеет пороговое значение актуальности по умолчанию, которое можно получить, вызвав функцию getValidTimePeriod() в контракте.
+    // Пожалуйста, смотрите IPyth.sol для вариантов этой функции, которые поддерживают настраиваемые пороги актуальности и другие полезные функции.
+    return pyth.getPrice(priceID);
+  }
+}
+```
+
+В вашем проекте добавьте код, приведенный выше, в новый файл с именем `src/ExampleContract.sol` и удалите контракт `src/Counter.sol`, который был сгенерирован вместе с проектом (вы также можете удалить файлы `test/Counter.t.sol` и `script/Counter.s.sol`).
+
+Чтобы скомпилировать новый смарт-контракт, выполните:
+
+```bash
+forge build
+```
+
+## Развертывание смарт-контракта
+
+### Настройка вашего кошелька как развертывающего
+
+Прежде чем вы сможете развернуть свой смарт-контракт в сети Base, вам нужно настроить кошелек, который будет использоваться как развертывающий.
+
+Для этого вы можете использовать команду [`cast wallet import`](https://getfoundry.sh/cast/reference/wallet/import/#cast-wallet-import), чтобы импортировать приватный ключ кошелька в безопасно зашифрованное хранилище ключей Foundry:
+
+```bash
+cast wallet import deployer --interactive
+```
+
+После выполнения команды выше вам будет предложено ввести ваш приватный ключ, а также пароль для подписи транзакций.
+
+<Warning>
+Инструкции о том, как получить ваш приватный ключ из Coinbase Wallet, см. в [документации Coinbase Wallet](https://docs.cloud.coinbase.com/wallet-sdk/docs/developer-settings#show-private-key).
+
+**Крайне важно, чтобы вы НЕ сохраняли это в публичном репозитории.**.
+</Warning>
+
+Чтобы подтвердить, что кошелек был импортирован как учетная запись `deployer` в вашем проекте Foundry, выполните:
+
+```bash
+cast wallet list
+```
+
+### Настройка переменных окружения для Base Sepolia
+
+Чтобы настроить ваше окружение для развертывания в сети Base, создайте файл `.env` в домашней директории вашего проекта и добавьте RPC URL для тестнета Base Sepolia:
+
+```
+BASE_SEPOLIA_RPC="https://sepolia.base.org"
+```
+
+После создания файла `.env` выполните следующую команду, чтобы загрузить переменные окружения в текущую сессию командной строки:
+
+```bash
+source .env
+```
+
+### Развертывание смарт-контракта в Base Sepolia
+
+Когда ваш контракт скомпилирован и окружение настроено, вы готовы развернуть смарт-контракт в тестнете Base Sepolia!
+
+Для развертывания одного смарт-контракта с использованием Foundry вы можете использовать команду `forge create`. Команда требует указать смарт-контракт, который вы хотите развернуть, RPC URL сети, в которую вы хотите развернуть, и учетную запись, с которой вы хотите развернуть.
+
+Чтобы развернуть смарт-контракт `ExampleContract` в тестовой сети Base Sepolia, выполните следующую команду:
+
+```bash
+forge create ./src/ExampleContract.sol:ExampleContract --rpc-url $BASE_SEPOLIA_RPC --account deployer
+```
+
+Когда появится запрос, введите пароль, который вы установили ранее, при импорте приватного ключа вашего кошелька.
+
+<Info>
+Ваш кошелек должен быть пополнен ETH в тестнете Base Sepolia для покрытия комиссий за газ, связанных с развертыванием смарт-контракта. В противном случае развертывание завершится неудачей.
+
+Чтобы получить тестовый ETH для Base Sepolia, см. [prerequisites](#prerequisites).
+</Info>
+
+После выполнения команды выше контракт будет развернут в тестовой сети Base Sepolia. Вы можете просмотреть статус развертывания и контракт с помощью [block explorer](/base-chain/tools/block-explorers).
+
+## Взаимодействие со смарт-контрактом
+
+Функция `getLatestPrice(bytes[])` развернутого контракта принимает аргумент `priceUpdateData`, который используется для получения последней цены. Эти данные можно получить с помощью веб-сервиса Hermes. Hermes позволяет пользователям легко запрашивать последние обновления цен через REST API. Выполните curl-запрос, чтобы получить `priceUpdateData` для `priceId`, `0xff61491a931112ddf1bd8147cd1b641375f79f5825126d665480874634fd0ace`:
+
+```
+curl https://hermes.pyth.network/api/latest_vaas?ids[]=0xff61491a931112ddf1bd8147cd1b641375f79f5825126d665480874634fd0ace
+```
+
+Получив `priceUpdateData`, вы можете использовать инструмент командной строки `cast` от Foundry для взаимодействия со смарт-контрактом и вызова функции `getLatestPrice(bytes[])`, чтобы получить последнюю цену ETH.
+
+Чтобы вызвать функцию `getLatestPrice(bytes[])` смарт-контракта, выполните следующую команду, заменив `<DEPLOYED_ADDRESS>` адресом вашего развернутого контракта, а `<PRICE_UPDATE_DATA>` - данными `priceUpdateData`, возвращенными конечной точкой Hermes:
+
+```bash
+cast call <DEPLOYED_ADDRESS> --rpc-url $BASE_SEPOLIA_RPC "getLatestPrice(bytes[])" <PRICE_UPDATE_DATA>
+```
+
+Вы должны получить последнюю цену `ETH / USD` в шестнадцатеричной форме.
+
+## Заключение
+
+Поздравляем! Вы успешно развернули и взаимодействовали со смарт-контрактом, который использует оракул сети Pyth для доступа к ценовому фиду в реальном времени на Base.
+
+Чтобы узнать больше об оракулах и использовании ценовых фидов Pyth Network в ваших смарт-контрактах на Base, ознакомьтесь со следующими ресурсами:
+
+- [Oracles](https://docs.base.org/chain/oracles)
+- [Pyth Network Price Feeds](https://docs.pyth.network/documentation/pythnet-price-feeds/evm)
+

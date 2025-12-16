@@ -1,0 +1,88 @@
+---
+title: "eth_estimateGas"
+description: "Оценка необходимого газа для транзакции"
+---
+
+Определено в [Ethereum JSON-RPC Specification](https://ethereum.org/en/developers/docs/apis/json-rpc/)
+
+<Info>
+Генерирует и возвращает оценку того, сколько газа необходимо для завершения транзакции.
+</Info>
+
+## Параметры
+
+<ParamField body="transaction" type="object" required>
+Объект вызова транзакции.
+
+<Expandable title="Свойства объекта Transaction">
+<ParamField body="from" type="string">
+Адрес, с которого отправляется транзакция (20 байт)
+</ParamField>
+
+<ParamField body="to" type="string">
+Адрес, на который направлена транзакция (20 байт).
+</ParamField>
+
+<ParamField body="gas" type="string">
+Целое число газа, предоставленного для выполнения транзакции.
+</ParamField>
+
+<ParamField body="gasPrice" type="string">
+Целое число gasPrice, используемого за каждый оплаченный газ.
+</ParamField>
+
+<ParamField body="value" type="string">
+Целое число значения, отправленного с этой транзакцией.
+</ParamField>
+
+<ParamField body="data" type="string">
+Хеш сигнатуры метода и закодированных параметров.
+</ParamField>
+</Expandable>
+</ParamField>
+
+## Возвращает
+
+<ResponseField name="result" type="string">
+Количество использованного газа в виде шестнадцатеричной строки.
+</ResponseField>
+
+<RequestExample>
+```json Request
+{
+  "id": 1,
+  "jsonrpc": "2.0",
+  "method": "eth_estimateGas",
+  "params": [{
+    "from": "0xb60e8dd61c5d32be8058bb8eb970870f07233155",
+    "to": "0xd46e8dd67c5d32be8058bb8eb970870f07244567",
+    "gas": "0x76c0",
+    "gasPrice": "0x9184e72a000",
+    "value": "0x9184e72a",
+    "data": "0xd46e8dd67c5d32be8d24c6b0afe7c5c3f4e9c3b2"
+  }]
+}
+```
+</RequestExample>
+
+<ResponseExample>
+```json Success Response
+{
+  "id": 1,
+  "jsonrpc": "2.0",
+  "result": "0x5208"
+}
+```
+</ResponseExample>
+
+## Обработка ошибок
+
+| Код    | Сообщение                       | Описание   |
+| ------ | ------------------------------ | ----------- |
+| -32602 | Invalid params                 | Неверные параметры транзакции |
+| -32000 | Execution reverted             | Транзакция отменится во время выполнения |
+| 4100   | Requested method not supported | Метод не поддерживается кошельком |
+
+<Info>
+Оценка может быть неточной, если состояние блокчейна изменится между оценкой и фактическим выполнением.
+</Info>

@@ -1,0 +1,111 @@
+---
+title: Верификация смарт-контрактов
+description: Верификация смарт-контрактов с помощью Hardhat.
+hide_table_of_contents: false
+---
+
+# Верификация смарт-контрактов
+
+В этой статье вы узнаете, как верифицировать смарт-контракты в Etherscan с помощью Hardhat и плагина hardhat-deploy.
+
+---
+
+## Цели
+
+К концу этого урока вы сможете:
+
+- Верифицировать развернутый смарт-контракт в Etherscan
+- Подключать кошелек к контракту в Etherscan
+- Использовать Etherscan для взаимодействия с вашим собственным развернутым контрактом
+
+---
+
+## Обзор
+
+Верификация смарт-контрактов играет важную роль в обеспечении безопасности и уверенности для пользователей ваших децентрализованных приложений. Предоставляя полную видимость исходного кода вашего смарт-контракта, вы обеспечиваете доверие и прозрачность намерений выполняемого кода.
+
+Верификация смарт-контрактов осуществляется путем простой загрузки исходного кода и адреса контракта в такие сервисы, как Etherscan.
+
+OПосле верификации контракта обозреватель Etherscan показывает статус, как на следующем изображении:
+
+![Verified contract](https://github.com/base/web/blob/master/apps/base-docs/docs/public/images/learn/hardhat-verify/hardhat-verify.png)
+
+К счастью, Hardhat и Hardhat-deploy уже содержат встроенную возможность легко выполнить эту задачу за вас.
+
+Этот процесс включает следующие шаги:
+
+1. Получение ключа Etherscan
+2. Настройка Hardhat
+3. Верификация
+
+## Получение ключа Etherscan
+
+Чтобы получить API-ключ Etherscan, посетите [Etherscan](https://etherscan.io/) и создайте учетную запись.
+
+Затем перейдите по адресу [https://etherscan.io/myapikey](https://etherscan.io/myapikey) и создайте API-ключ, нажав кнопку `Add`:
+
+![Add key](https://github.com/base/web/blob/master/apps/base-docs/docs/public/images/learn/hardhat-verify/harhat-verify-create-key.png)
+
+Имейте в виду, что у разных сетей есть свои обозреватели блокчейна. Например:
+
+- [Base](https://basescan.org/)
+- [Sepolia](https://sepolia.etherscan.io/)
+
+Вам нужно будет перейти в конкретный обозреватель и получить API-ключ, следуя процессу, аналогичному описанному выше (за исключением Sepolia Etherscan, где вы можете использовать ключ от основной сети Etherscan).
+
+## Настройка Hardhat
+
+Вы можете настроить API-ключ Etherscan для каждой конкретной сети. Например, добавьте следующее в файл `hardhat.config.ts` для Base Sepolia:
+
+```tsx
+base_sepolia: {
+  url: "https://sepolia.base.org",
+  accounts: {
+    mnemonic: process.env.MNEMONIC ?? ""
+  },
+  verify: {
+    etherscan: {
+      apiUrl: "https://api-sepolia.basescan.org",
+      apiKey: process.env.ETHERSCAN_API_KEY
+    }
+  }
+}
+```
+
+Добавьте в ваш файл `.env` следующее:
+
+```
+ETHERSCAN_API_KEY=<YOUR_ETHERSCAN_API_KEY>
+```
+
+## Верификация
+
+Вы верифицируете в сети Base, и чтобы сделать это, просто выполните следующую команду:
+
+```bash
+npx hardhat --network base_sepolia etherscan-verify
+```
+
+Вы должны получить следующий ответ:
+
+```
+verifying Lock ...
+waiting for result...
+ => contract Lock is now verified
+```
+
+Теперь вы можете перейти в Basescan и найти адрес вашего контракта, где вы увидите следующее:
+
+![Base scan success](/images/learn/hardhat-verify/hardhat-verify-success.png)
+
+## Теперь вы можете перейти в Basescan и найти адрес вашего контракта, где вы увидите следующее:
+
+В этом уроке вы узнали, как верифицировать смарт-контракты с помощью Hardhat и Hardhat-deploy. Вы научились настраивать Hardhat для поддержки нескольких сетей и выполнять верификацию с помощью простой команды.
+
+---
+
+## Смотрите также
+
+[Solidity Docs]: https://docs.soliditylang.org/en/v0.8.17/
+[Remix Project]: https://remix-project.org/
+[Hardhat Deploy]: https://github.com/wighawag/hardhat-deploy

@@ -1,0 +1,91 @@
+---
+title: Basenames + OnchainKit Tutorial
+slug: /basenames/basenames-onchainkit-tutorial
+description: 'Руководство по интеграции Basenames в ваше wagmi/viem приложение с использованием OnchainKit'
+author: hughescoin
+---
+
+# Добавление Basenames в ваше wagmi/viem приложение с помощью OnchainKit
+
+Basenames уже доступны! Но что это такое? Basenames позволяет пользователям регистрировать читаемые человеком имена для своих адресов и служит фундаментальным строительным блоком для ончейн-идентичности. Представьте это как ваш любимый псевдоним в соцсетях, но ещё лучше. Ваш Basename по умолчанию работает в нескольких сетях и принадлежит вам навсегда — никакая платформа не может забрать его у вас (просто не забывайте оплачивать сборы).
+
+Интеграция Basenames в ваше ончейн-приложение улучшает пользовательский опыт, скрывая сложные адреса кошельков. Подобно тому, как домены упрощают IP-адреса, Basenames делают то же самое для адресов кошельков.
+
+OnchainKit - это библиотека React-компонентов, разработанная для упрощения создания ончейн-приложений. В этом руководстве мы будем использовать компонент `<Identity/>` для разрешения Basenames.
+
+В этой демонстрации используется Coinbase Base Account и Coinbase Wallet, но Basenames поддерживаются многими [другими кошельками].
+
+## Цели
+
+К концу этого руководства вы сможете:
+
+- Понять, как работает ончейн-идентичность в сети Base
+- Включить использование ончейн-идентичности пользователями в вашем приложении с помощью [OnchainKit]
+
+---
+
+Если вы начинаете с нуля, вам нужно создать новый wagmi-проект. Если у вас уже есть существующий wagmi-проект, вы можете перейти к разделу об установке OnchainKit.
+
+Чтобы создать новый wagmi-проект с использованием TypeScript и установить необходимые зависимости, выполните следующую команду:
+
+```bash
+bun create wagmi
+```
+
+Далее вам нужно установить OnchainKit. Выполните следующую команду:
+
+```bash
+bun add @coinbase/onchainkit
+```
+
+После добавления OnchainKit установите все зависимости и запустите сервер разработки с помощью:
+
+```
+bun install && bun run dev
+```
+
+Эта команда установит необходимые зависимости и запустит сервер разработки.
+
+Для эффективного прохождения руководства откройте веб-браузер и вашу IDE рядом. Такая настройка позволит вам программировать и видеть изменения в реальном времени.
+
+### Обновление конфигурации Wagmi
+
+В этом разделе мы настроим ваш wagmi-проект для поддержки блокчейна Base, импортировав необходимые модули.
+
+Начните с импорта цепочек `base` и `baseSepolia` в вашу конфигурацию wagmi. Перейдите в `src/wagmi.ts` и обновите файл следующим образом:
+
+```typescript wagmi.ts
+import { http, cookieStorage, createConfig, createStorage } from 'wagmi';
+import { base, baseSepolia } from 'wagmi/chains';
+import { coinbaseWallet, injected } from 'wagmi/connectors';
+
+export function getConfig() {
+  return createConfig({
+    chains: [base, baseSepolia],
+    connectors: [
+      injected(),
+      coinbaseWallet({
+        appName: 'Create Wagmi',
+        preference: 'smartWalletOnly',
+      }),
+    ],
+    storage: createStorage({
+      storage: cookieStorage,
+    }),
+    ssr: true,
+    transports: {
+      [base.id]: http(),
+      [baseSepolia.id]: http(),
+    },
+  });
+}
+
+declare module 'wagmi' {
+  interface Register {
+    config: ReturnType<typeof getConfig>;
+  }
+}
+```
+
+Эта конфигурация настраивает wagmi-проект для подключения к сетям Base и BaseSepolia, используя Coinbase Wallet и другие коннекторы.
+

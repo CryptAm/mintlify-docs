@@ -1,0 +1,108 @@
+---
+title: web3.js
+description: Документация по использованию web3.js, библиотеки JavaScript для взаимодействия с EVM-совместимыми блокчейнами. На этой странице рассматривается установка, настройка, подключение к сети Base и взаимодействие со смарт-контрактами.
+---
+
+# web3.js
+
+[web3.js](https://web3js.org/) - это библиотека JavaScript, которая позволяет разработчикам взаимодействовать с EVM-совместимыми блокчейн-сетями.
+
+Вы можете использовать web3.js для взаимодействия со смарт-контрактами, развернутыми в сети Base.
+
+## Установка
+
+Чтобы установить web3.js, выполните следующую команду:
+
+```bash
+npm install web3
+```
+
+## Настройка
+
+Прежде чем начать использовать web3.js, вам нужно импортировать его в ваш проект.
+
+Добавьте следующую строку кода в начало вашего файла, чтобы импортировать web3.js:
+
+```javascript
+//web3.js v1
+const Web3 = require('web3');
+
+//web3.js v4
+const { Web3 } = require('web3');
+```
+
+## Подключение к Base
+
+Вы можете подключиться к Base, создав новый объект web3.js Web3 с RPC URL сети Base:
+
+```javascript
+const { Web3 } = require('web3');
+
+const web3 = new Web3('https://mainnet.base.org');
+```
+
+<Info>
+Чтобы подключиться к Base Sepolia (тестнет), измените URL выше с `https://mainnet.base.org` на `https://sepolia.base.org`.
+</Info>
+
+## Доступ к данным
+
+После создания провайдера вы можете использовать его для чтения данных из сети Base.
+
+Например, вы можете использовать метод `getBlockNumber` для получения последнего блока:
+
+```javascript
+async function getLatestBlock(address) {
+  const latestBlock = await web3.eth.getBlockNumber();
+  console.log(latestBlock.toString());
+}
+```
+
+## Развертывание контрактов
+
+Прежде чем вы сможете развернуть контракт в сети Base с помощью web3.js, вы должны сначала создать аккаунт.
+
+Вы можете создать аккаунт с помощью `web3.eth.accounts`:
+
+```javascript
+const privateKey = "PRIVATE_KEY";
+const account = web3.eth.accounts.privateKeyToAccount(privateKey);
+```
+
+<Info>
+`PRIVATE_KEY` - это приватный ключ кошелька, который будет использоваться при создании аккаунта.
+</Info>
+
+## Взаимодействие со смарт-контрактами
+
+Вы можете использовать web3.js для взаимодействия со смарт-контрактом на Base, создав объект `Contract`, используя ABI и адрес развернутого контракта:
+
+```javascript
+const abi = [
+... // ABI развернутого контракта
+];
+
+const contractAddress = "CONTRACT_ADDRESS"
+
+const contract = new web3.eth.Contract(abi, contractAddress);
+```
+
+После создания объекта `Contract` вы можете использовать его для вызова нужных методов смарт-контракта:
+
+```javascript
+async function setValue(value) {
+  // запрос на запись
+  const tx = await contract.methods.set(value).send();
+  console.log(tx.transactionHash);
+}
+
+async function getValue() {
+  // запрос на чтение
+  const value = await contract.methods.get().call();
+  console.log(value.toString());
+}
+```
+
+<Info>
+Для получения дополнительной информации о развертывании контрактов на Base см. [Deploying a Smart Contract](../smart-contract-development/hardhat/deploy-with-hardhat.md).
+</Info> 

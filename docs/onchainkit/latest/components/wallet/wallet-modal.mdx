@@ -1,0 +1,152 @@
+---
+title: WalletModal
+sidebarTitle: WalletModal
+description: Модальный компонент, предоставляющий несколько вариантов подключения кошелька
+---
+
+<Frame>
+<img 
+  alt="Wallet Modal"
+  src="/images/onchainkit/wallet-modal.png"
+  height="364"
+  width="364"
+  className="mx-400"
+/>
+</Frame>
+
+`WalletModal` предлагает пользователям несколько вариантов подключения кошелька. Модальное окно автоматически появляется, когда пользователи нажимают на компонент `ConnectWallet`, и предоставляет несколько путей подключения:
+
+1. Быстрое создание нового смарт-аккаунта для новых пользователей
+2. Подключение Coinbase Wallet (поддерживает как смарт-аккаунты, так и EOA)
+3. Подключение MetaMask
+4. Подключение Phantom
+5. Подключение Rabby, Frame и Trust Wallet (опционально)
+
+## Пошаговое руководство
+
+<Steps>
+  <Step title="Настройте OnchainKitProvider с параметрами модального окна:">
+  ```tsx providers.tsx
+  <OnchainKitProvider
+    apiKey={process.env.ONCHAINKIT_API_KEY}
+    chain={base}
+    config={{
+      appearance: {
+        name: 'Название вашего приложения',        // Отображается в заголовке модального окна logo
+        logo: 'https://your-logo.com',// Отображается в заголовке модального окна mode
+        mode: '400',                 // 'light' | 'dark' | '400'
+        theme: 'default',             // 'default' или пользовательская тема
+      },
+      wallet: { // [!code focus]
+        display: 'modal', // [!code focus]
+        termsUrl: 'https://...', // [!code focus]
+        privacyUrl: 'https://...', // [!code focus]
+        },
+    }}
+  >
+    {children}
+  </OnchainKitProvider>
+  ```
+
+  </Step>
+  <Step title="Используйте компонент ConnectWallet в вашем UI:">
+  ```tsx App.tsx
+  <Wallet>
+    <ConnectWallet>
+      <Avatar className="h-6 w-6" />
+      <Name />
+    </ConnectWallet>
+    <WalletDropdown>
+      <Identity className="px-4 pt-3 pb-2" hasCopyAddressOnClick>
+        <Avatar />
+        <Name />
+        <Address />
+        <EthBalance />
+      </Identity>
+      <WalletDropdownDisconnect />
+    </WalletDropdown>
+  </Wallet>
+  ```
+
+  <iframe
+    src="https://684b5e62b1ff46bc5bf83966-aijszlfakk.chromatic.com/iframe.html?args=&id=onchainkit-wallet-modal--connect-wallet-in-ui&viewMode=story&dark=true&hero=true"
+    width="100%"
+    height="400"
+  />
+  {/* <AppWithWalletModal>
+    <div className="my-10 flex justify-center">
+      <Wallet>
+        <ConnectWallet>
+          <Avatar className="h-6 w-6" />
+          <Name />
+        </ConnectWallet>
+        <WalletDropdown>
+          <Identity className="px-4 pt-3 pb-2" hasCopyAddressOnClick>
+            <Avatar />
+            <Name />
+            <Address className={color.foregroundMuted} />
+            <EthBalance />
+          </Identity>
+          <WalletDropdownDisconnect />
+        </WalletDropdown>
+      </Wallet>
+    </div>
+  </AppWithWalletModal> */}
+
+  </Step>
+</Steps>
+
+## Компоненты
+
+Компоненты модального окна кошелька предназначены для совместной иерархической работы:
+
+- `<OnchainKitProvider />` - Настраивает параметры и внешний вид модального окна
+- `<ConnectWallet />` - Запускает открытие модального окна при нажатии
+- `<WalletModal />` - Сам интерфейс модального окна, содержащий:
+  - Процесс создания смарт-аккаунта
+  - Подключение Coinbase Wallet
+  - Подключение MetaMask
+  - Подключение Phantom
+  - Подключение Rabby, Trust и Frame Wallet (если включено)
+  - Ссылки на условия использования и политику конфиденциальности
+
+Модальное окно автоматически обрабатывает:
+
+- Состояния подключения кошелька
+- Обработку ошибок
+- Адаптивное поведение для мобильных/настольных устройств
+- Кастомизацию темы
+- Отображение условий использования/политики конфиденциальности
+
+## Дополнительная поддержка кошельков
+
+По умолчанию модальное окно кошелька включает Coinbase Wallet, MetaMask и Phantom в качестве вариантов подключения. Вы можете включить дополнительную поддержку кошельков, настроив объект `supportedWallets` в `OnchainKitProvider`:
+
+```tsx
+<OnchainKitProvider
+  apiKey={process.env.ONCHAINKIT_API_KEY}
+  chain={base}
+  config={{
+    appearance: {
+      name: 'Your App Name',
+      logo: 'https://your-logo.com',
+      mode: '400',
+      theme: 'default',
+    },
+    wallet: {
+      display: 'modal',
+      termsUrl: 'https://...',
+      privacyUrl: 'https://...',
+      supportedWallets: { // [!code focus]
+        rabby: true, // [!code focus]
+        trust: true, // [!code focus]
+        frame: true, // [!code focus]
+      }, // [!code focus]
+    },
+  }}
+>
+  {children}
+</OnchainKitProvider>
+```
+
+Каждый кошелек может быть индивидуально включен или отключен по мере необходимости. Если конфигурация `supportedWallets` не предоставлена, дополнительные кошельки будут отключены по умолчанию.

@@ -1,0 +1,170 @@
+---
+title: Темы
+sidebarTitle: Темы
+description: Настройте внешний вид компонентов OnchainKit с помощью встроенных тем или создайте свои собственные
+---
+
+<Frame>
+<img alt="Themes"
+  src="/images/onchainkit/onchainkit-themes.gif"
+  height="364"/>
+</Frame>
+
+## Обзор
+
+OnchainKit предоставляет гибкий контроль над внешним видом через две основные возможности: `mode` и `theme`.
+
+- **Режим**: Управляет светлым/темным оформлением с опциями `auto`, `light`, или `dark`
+- **Тема**: Задает общее оформление, включая цвета, шрифты и скругления углов
+
+Настройте темы через `OnchainKitProvider`, чтобы создать кастомизированный интерфейс, соответствующий дизайну вашего приложения.
+
+## Встроенные темы
+
+OnchainKit включает несколько встроенных тем. Установите тему через `OnchainKitProvider`, используя `config.appearance.theme`:
+
+- `default`: Многомодовая тема со светлым и темным вариантами
+- `base`: Брендовые цвета Base, доступны в светлом и темном режимах
+- `cyberpunk`: Только темная тема с акцентами фуксии и шрифтом Oxanium
+- `hacker`: Моноширинная тема с цинковыми цветами и шрифтом Noto Sans Mono
+
+Если тема не указана, используется тема `default`.
+
+```tsx
+<OnchainKitProvider
+  apiKey={process.env.NEXT_PUBLIC_ONCHAINKIT_API_KEY}
+  chain={base}
+  config={{ // [!code focus]
+    appearance: { // [!code focus]
+      mode: 'auto', // 'auto' | 'light' | 'dark'
+      theme: 'default', // 'default' | 'base' | 'cyberpunk' | 'hacker' // [!code focus]
+    }, // [!code focus]
+  }} // [!code focus]
+>
+```
+
+## Режим (Mode)
+
+Управляйте цветовой схемой, устанавливая свойство `config.appearance.mode`:
+
+- `auto`: Автоматически переключается между светлым и темным в зависимости от системных предпочтений (по умолчанию)
+- `light`: Принудительно использует светлый режим для всех компонентов
+- `dark`: Принудительно использует темный режим для всех компонентов
+
+Примечание: Одномодовые темы, такие как `cyberpunk` и `hacker`, игнорируют настройку режима.
+
+```tsx
+<OnchainKitProvider
+  apiKey={process.env.NEXT_PUBLIC_ONCHAINKIT_API_KEY}
+  chain={base}
+  config={{
+    appearance: {
+      mode: 'auto', // 'auto' | 'light' | 'dark' // [!code focus]
+      theme: 'default', // 'default' | 'base' | 'cyberpunk' | 'hacker'
+    },
+  }}
+>
+```
+
+## CSS-переопределения
+
+Точно настройте конкретные аспекты существующей темы, переопределяя CSS-переменные.
+
+```css
+@layer base {
+  [data-ock-theme='default-light'],
+  [data-ock-theme='default-dark'],
+  [data-ock-theme='base-light'],
+  [data-ock-theme='base-dark'],
+  [data-ock-theme='cyberpunk'],
+  [data-ock-theme='hacker'] {
+    /* Переопределите конкретные переменные */
+    --ock-font-family: 'Roboto', sans-serif;
+    --ock-radius-default: 0.5rem;
+    --ock-primary: #ff6b35;
+  }
+}
+```
+
+## Кастомная тема
+
+Создайте полностью кастомную тему с полным контролем над цветами, шрифтами и оформлением.
+
+### Настройка кастомной темы
+
+Определите вашу кастомную тему, используя CSS-переменные. Классы темы должны включать суффиксы `-light` и `-dark` для поддержки многомодовости:
+
+```tsx
+<OnchainKitProvider
+  apiKey={process.env.NEXT_PUBLIC_ONCHAINKIT_API_KEY}
+  chain={base}
+  config={{
+    appearance: {
+      mode: 'auto', // Будет переключаться между custom-light и custom-dark
+      theme: 'custom', // [!code focus]
+    },
+  }}
+>
+```
+
+### Определение темы
+
+Используйте правильные имена CSS-переменных, которые соответствуют системе темизации OnchainKit:
+
+```css
+@layer base {
+  [data-ock-theme='custom-light'] {
+    /* Типографика и форма */
+    --ock-font-family: 'Inter', sans-serif;
+    --ock-radius-default: 0.75rem;
+    --ock-radius-inner: 0.375rem;
+
+    /* Цвета переднего плана (Foreground) */
+    --ock-foreground: #1a1a1a;
+    --ock-foreground-muted: #6b7280;
+    --ock-foreground-inverse: #ffffff;
+    --ock-foreground-disabled: #9ca3af;
+
+    /* Цвета фона (Background) */
+    --ock-background: #ffffff;
+    --ock-background-hover: #f3f4f6;
+    --ock-background-active: #e5e7eb;
+    --ock-background-alternate: #f9fafb;
+    --ock-background-alternate-hover: #f3f4f6;
+    --ock-background-alternate-active: #e5e7eb;
+    --ock-background-inverse: #f3f4f6;
+    --ock-background-inverse-hover: #e5e7eb;
+    --ock-background-inverse-active: #d1d5db;
+    --ock-background-reverse: #1a1a1a;
+
+    /* Основные цвета (Primary) */
+    --ock-primary: #3b82f6;
+    --ock-primary-hover: #2563eb;
+    --ock-primary-active: #1d4ed8;
+    --ock-primary-washed: #dbeafe;
+    --ock-primary-disabled: #93c5fd;
+
+    /* Вторичные цвета (Secondary) */
+    --ock-secondary: #e2e8f0;
+    --ock-secondary-hover: #cbd5e1;
+    --ock-secondary-active: #94a3b8;
+
+    /* Цвета состояния (State) */
+    --ock-error: #dc2626;
+    --ock-warning: #d97706;
+    --ock-success: #16a34a;
+    --ock-success-background: #bbf7d0;
+
+    /* Линии  (Lines) */
+    --ock-line: #e5e7eb;
+  }
+
+  [data-ock-theme='custom-dark'] {
+    /* Определите переменные для темного режима здесь */
+    --ock-foreground: #ffffff;
+    --ock-foreground-muted: #9ca3af;
+    --ock-background: #1a1a1a;
+    /* ... другие переменные для темного режима */
+  }
+}
+```

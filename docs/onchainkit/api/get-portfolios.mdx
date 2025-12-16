@@ -1,0 +1,62 @@
+---
+title: getPortfolios
+openapi: get /getPortfolios
+---
+
+
+Функция `getPortfolios` возвращает объект, содержащий массив портфолио для 
+предоставленных адресов. Каждое портфолио представляет собой объект с адресом кошелька, 
+фиатной стоимостью портфолио и массивом токенов, принадлежащих предоставленному адресу.
+
+<Note>
+Перед использованием этой конечной точки убедитесь, что у вас есть [Client API Key](https://portal.cdp.coinbase.com/projects/api-keys/client-key)
+от Coinbase Developer Platform.
+</Note>
+
+
+<Note>
+Обратите внимание: `getPortfolios` доступен только для Base mainnet и Ethereum mainnet. 
+Вы можете управлять сетью в `OnchainKitProvider`, устанавливая свойство `chain`.
+</Note>
+
+
+{/* ## Использование
+
+<CodeGroup>
+```tsx code
+import { setOnchainKitConfig } from '@coinbase/onchainkit';
+import { getPortfolios } from '@coinbase/onchainkit/api';
+
+const response = await getPortfolios({
+  addresses: ['0x...'],
+});
+```
+
+```json return value
+  "portfolios": [
+    {
+      "address": "0x...",
+      "portfolioBalanceInUsd": 100,
+      "tokenBalances": [{
+        "address": "0x...",
+        "chainId": 1,
+        "decimals": 18,
+        "image": "https://example.com/image.png",
+        "name": "Token Name",
+        "symbol": "TKN",
+        "cryptoBalance": 10,
+        "fiatBalance": 100
+      }]
+    }
+  ]
+```
+</CodeGroup> */}
+
+## Возвращает
+
+[`Promise<GetPortfoliosResponse>`](/onchainkit/api/types#getportfoliosresponse)
+
+## Параметры
+
+[`GetPortfoliosParams`](/onchainkit/api/types#getportfoliosparams)
+
